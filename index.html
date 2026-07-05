@@ -3668,7 +3668,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260704-02';
+const APP_VERSION = '20260702-02';
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí Y CACHE_VERSION en sw.js
 
 function actualizarApp(){
@@ -5218,9 +5218,9 @@ function renderCCInlineCobro(cid){
   if(!c){el.style.display='none';return;}
   const rems=_remitos.filter(r=>String(r.cliente_id)===sid&&!r.anulado)
     .map(r=>({fecha:r.fecha,tipo:'Remito',desc:`R-${String(r.id).padStart(4,'0')}`,importe:r.total,estado:r.cobrado?'✅ Cobrado':'⏳ Pendiente',color:'var(--A)'}));
-  const cobs=_cobros.filter(r=>String(r.cliente_id)===sid||(r.cliente&&c.nombre&&r.cliente.trim().toLowerCase()===c.nombre.trim().toLowerCase()))
+  const cobs=_cobros.filter(r=>(String(r.cliente_id)===sid||(r.cliente&&c.nombre&&r.cliente.trim().toLowerCase()===c.nombre.trim().toLowerCase()))&&(r.estado_rendicion||'pendiente')!=='rechazado')
     .map(r=>({fecha:r.fecha,tipo:'Cobro',desc:r.forma||'efectivo',importe:r.importe,
-      estado:r.estado_rendicion==='validado'?'✅ Val':r.estado_rendicion==='rechazado'?'❌ Rech':'⏳ Pend',color:'var(--P)'}));
+      estado:r.estado_rendicion==='validado'?'✅ Val':'⏳ Pend',color:'var(--P)'}));
   const movs=[...rems,...cobs].sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,15);
   if(!movs.length){el.style.display='none';return;}
   el.style.display='block';
@@ -5621,11 +5621,37 @@ async function validarCobro(id){
   toast('✅ Cobro validado — saldo aplicado');
 }
 async function rechazarCobro(id){
-  if(!confirm('¿Rechazar este cobro? El saldo del cliente no será afectado.'))return;
+  if(!confirm('¿Rechazar este cobro?'))return;
+  const cob=_cobros.find(x=>x.id===id);if(!cob)return;
+
+  // Detectar si el cobro ya impactó saldo (flujo anterior o cobro ya validado)
+  const imps=Array.isArray(cob.imputaciones)?cob.imputaciones:[];
+  const remImpactados=imps.map(imp=>_remitos.find(r=>r.id===imp.remito_id)).filter(r=>r&&r.cobrado);
+  const yaImpacto=remImpactados.length>0||cob.estado_rendicion==='validado';
+
   const {error}=await sb.from('cobros').update({estado_rendicion:'rechazado'}).eq('id',id);
   if(error){toast('Error al rechazar cobro: '+error.message,'err');return;}
-  const c=_cobros.find(x=>x.id===id);if(c)c.estado_rendicion='rechazado';
-  await cargarCobros();renderRendicion();renderCobros();toast('❌ Cobro rechazado');
+
+  if(yaImpacto){
+    // Revertir saldo en remitos imputados
+    for(const imp of imps){
+      const rem=_remitos.find(r=>r.id===imp.remito_id);
+      if(rem){
+        const saldoRevertido=(rem.saldo_pendiente!=null?rem.saldo_pendiente:0)+imp.monto;
+        await sb.from('remitos').update({saldo_pendiente:saldoRevertido,cobrado:false,forma_cobro:null}).eq('id',rem.id);
+      }
+    }
+    // Revertir saldo del cliente
+    const cli=_clientes.find(x=>x.id===cob.cliente_id||(cob.cliente&&x.nombre&&x.nombre.trim().toLowerCase()===cob.cliente.trim().toLowerCase()));
+    if(cli){
+      const saldoRevertido=(cli.saldo||0)+cob.importe;
+      await sb.from('clientes').update({saldo:saldoRevertido}).eq('id',cli.id);
+    }
+  }
+
+  await Promise.all([cargarCobros(),cargarClientes(),cargarRemitos()]);
+  renderRendicion();renderCobros();renderCC();renderDash();renderRemitos();
+  toast('❌ Cobro rechazado'+(yaImpacto?' — saldo revertido':''));
 }
 function renderRendicion(){
   const el=document.getElementById('rend-resultado');if(!el)return;
@@ -5827,7 +5853,7 @@ function histCliente(id){
   const c=_clientes.find(x=>String(x.id)===sid)||_clientes.find(x=>x.id==id);
   if(!c)return;
   const rems=_remitos.filter(r=>String(r.cliente_id)===sid&&!r.anulado).sort((a,b)=>a.fecha.localeCompare(b.fecha));
-  const cobs=_cobros.filter(r=>String(r.cliente_id)===sid||(r.cliente&&c.nombre&&r.cliente.trim().toLowerCase()===c.nombre.trim().toLowerCase())).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const cobs=_cobros.filter(r=>(String(r.cliente_id)===sid||(r.cliente&&c.nombre&&r.cliente.trim().toLowerCase()===c.nombre.trim().toLowerCase()))&&(r.estado_rendicion||'pendiente')!=='rechazado').sort((a,b)=>a.fecha.localeCompare(b.fecha));
   const ncs=_ncs?_ncs.filter(r=>String(r.cliente_id)===sid).sort((a,b)=>a.fecha.localeCompare(b.fecha)):[];
   const dias=diasDesde(c.ultimo_remito);
 
