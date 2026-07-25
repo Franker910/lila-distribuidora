@@ -288,15 +288,28 @@ function popupDetalle(titulo,subtitulo,bodyHTML){
 }
 
 // ─── TECLA F8: Grabar / Grabar e imprimir / Solo imprimir ───
-// Solo en formularios que generan un comprobante imprimible. "editId" es el id del
-// campo hidden que indica edición de un registro ya guardado (si no hay, "Solo
-// imprimir" no tiene sentido y no se muestra).
+// Vale para cualquier formulario de carga, tenga o no comprobante imprimible.
+// "imprimir" queda en null en los formularios que no generan nada imprimible
+// (ahí el cartel solo ofrece Grabar). "editId" es el id del campo hidden que
+// indica edición de un registro ya guardado (si no hay, o si no hay imprimir,
+// "Solo imprimir" no tiene sentido y no se muestra).
 const _F8_FORMS={
   'm-comprobante':{guardar:()=>guardarComprobante(),imprimir:id=>imprimirComprobante(id),editId:'comp-edit-id'},
   'cob-form-inline':{guardar:()=>guardarCobro(),imprimir:id=>imprimirRecibo(id),editId:null},
   'm-nc':{guardar:()=>guardarNC(),imprimir:id=>imprimirNC(id),editId:null},
   'm-nd':{guardar:()=>guardarND(),imprimir:id=>imprimirNC(id),editId:null},
+  'm-pedido':{guardar:()=>guardarPedido(),imprimir:null,editId:null},
+  'm-cliente':{guardar:()=>guardarCliente(),imprimir:null,editId:null},
+  'm-producto':{guardar:()=>guardarProducto(),imprimir:null,editId:null},
+  'm-proveedor':{guardar:()=>guardarProveedor(),imprimir:null,editId:null},
+  'm-zona':{guardar:()=>guardarZona(),imprimir:null,editId:null},
+  'm-gasto':{guardar:()=>guardarGasto(),imprimir:null,editId:null},
+  'm-comp-ajuste':{guardar:()=>guardarAjusteComp(),imprimir:null,editId:null},
+  'm-carga':{guardar:()=>guardarCarga(),imprimir:null,editId:null},
   'p-remito-rapido':{guardar:()=>emitirRemitoRapido(),imprimir:()=>imprimirRemito(),editId:null},
+  'tp-pagos':{guardar:()=>guardarPago(),imprimir:null,editId:null},
+  'tp-concil':{guardar:()=>guardarMovBanc(),imprimir:null,editId:null},
+  'stock-conteo-section':{guardar:()=>guardarConteo(),imprimir:null,editId:null},
 };
 let _f8Cfg=null;
 
@@ -305,8 +318,8 @@ function _f8AbrirPopup(cfg){
   const idExistente=cfg.editId?document.getElementById(cfg.editId)?.value:'';
   const body=`<div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
     <button class="btn P" style="padding:14px;font-size:14px" onclick="_f8Ejecutar('grabar')">💾 Grabar</button>
-    <button class="btn P" style="padding:14px;font-size:14px" onclick="_f8Ejecutar('grabarImprimir')">💾🖨️ Grabar e imprimir</button>
-    ${idExistente?`<button class="btn" style="padding:14px;font-size:14px" onclick="_f8Ejecutar('soloImprimir')">🖨️ Solo imprimir</button>`:''}
+    ${cfg.imprimir?`<button class="btn P" style="padding:14px;font-size:14px" onclick="_f8Ejecutar('grabarImprimir')">💾🖨️ Grabar e imprimir</button>`:''}
+    ${cfg.imprimir&&idExistente?`<button class="btn" style="padding:14px;font-size:14px" onclick="_f8Ejecutar('soloImprimir')">🖨️ Solo imprimir</button>`:''}
   </div>`;
   popupDetalle('¿Qué querés hacer? (F8)','',body);
 }
@@ -316,11 +329,11 @@ async function _f8Ejecutar(accion){
   if(!_f8Cfg)return;
   if(accion==='soloImprimir'){
     const id=_f8Cfg.editId?parseInt(document.getElementById(_f8Cfg.editId)?.value):null;
-    if(id)_f8Cfg.imprimir(id);
+    if(id&&_f8Cfg.imprimir)_f8Cfg.imprimir(id);
     return;
   }
   const id=await _f8Cfg.guardar();
-  if(accion==='grabarImprimir'&&id)_f8Cfg.imprimir(id);
+  if(accion==='grabarImprimir'&&id&&_f8Cfg.imprimir)_f8Cfg.imprimir(id);
 }
 
 document.addEventListener('keydown',e=>{
