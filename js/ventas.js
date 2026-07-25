@@ -315,7 +315,7 @@ function filtrarBusqCli(){
     (c.direccion||'').toLowerCase().includes(q)||
     (c.telefono||'').includes(q)||
     String(c.codigo||'').includes(q)
-  ).slice(0,20);
+  );
   lista.innerHTML=res.length?res.map(c=>`
     <div onmousedown="selDesدeBuscador('${pfx}',${c.id})"
       style="padding:8px 10px;border-bottom:0.5px solid var(--brd);cursor:pointer;border-radius:6px"
@@ -370,7 +370,7 @@ function filtrarBusqPro(){
     !q||
     (p.nombre||'').toLowerCase().includes(q)||
     String(p.codigo||'').includes(q)
-  ).slice(0,20);
+  );
   lista.innerHTML=res.length?res.map(p=>`
     <div onmousedown="selProDesdeBuscador('${pfx}',${p.id})"
       style="padding:8px 10px;border-bottom:0.5px solid var(--brd);cursor:pointer;border-radius:6px"
