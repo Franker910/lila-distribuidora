@@ -287,6 +287,56 @@ function popupDetalle(titulo,subtitulo,bodyHTML){
   document.body.appendChild(ov);
 }
 
+// ─── TECLA F8: Grabar / Grabar e imprimir / Solo imprimir ───
+// Solo en formularios que generan un comprobante imprimible. "editId" es el id del
+// campo hidden que indica edición de un registro ya guardado (si no hay, "Solo
+// imprimir" no tiene sentido y no se muestra).
+const _F8_FORMS={
+  'm-comprobante':{guardar:()=>guardarComprobante(),imprimir:id=>imprimirComprobante(id),editId:'comp-edit-id'},
+  'cob-form-inline':{guardar:()=>guardarCobro(),imprimir:id=>imprimirRecibo(id),editId:null},
+  'm-nc':{guardar:()=>guardarNC(),imprimir:id=>imprimirNC(id),editId:null},
+  'm-nd':{guardar:()=>guardarND(),imprimir:id=>imprimirNC(id),editId:null},
+};
+let _f8Cfg=null;
+
+function _f8AbrirPopup(cfg){
+  _f8Cfg=cfg;
+  const idExistente=cfg.editId?document.getElementById(cfg.editId)?.value:'';
+  const body=`<div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+    <button class="btn P" style="padding:14px;font-size:14px" onclick="_f8Ejecutar('grabar')">💾 Grabar</button>
+    <button class="btn P" style="padding:14px;font-size:14px" onclick="_f8Ejecutar('grabarImprimir')">💾🖨️ Grabar e imprimir</button>
+    ${idExistente?`<button class="btn" style="padding:14px;font-size:14px" onclick="_f8Ejecutar('soloImprimir')">🖨️ Solo imprimir</button>`:''}
+  </div>`;
+  popupDetalle('¿Qué querés hacer? (F8)','',body);
+}
+
+async function _f8Ejecutar(accion){
+  document.getElementById('detalle-popup')?.remove();
+  if(!_f8Cfg)return;
+  if(accion==='soloImprimir'){
+    const id=_f8Cfg.editId?parseInt(document.getElementById(_f8Cfg.editId)?.value):null;
+    if(id)_f8Cfg.imprimir(id);
+    return;
+  }
+  const id=await _f8Cfg.guardar();
+  if(accion==='grabarImprimir'&&id)_f8Cfg.imprimir(id);
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key!=='F8')return;
+  for(const contId in _F8_FORMS){
+    const cont=document.getElementById(contId);
+    if(!cont)continue;
+    // Los modales .mbg son position:fixed → offsetParent siempre da null, hay que mirar la clase .on.
+    // El resto (secciones inline como cob-form-inline) se ocultan/muestran con display, ahí sí sirve offsetParent.
+    const visible=cont.classList.contains('mbg')?cont.classList.contains('on'):cont.offsetParent!==null;
+    if(!visible)continue;
+    e.preventDefault();
+    _f8AbrirPopup(_F8_FORMS[contId]);
+    return;
+  }
+});
+
 // Autofiltro por columna: soporta texto libre (includes) y comparación numérica (>500, <=100, etc.)
 function matchFiltroCol(valor,filtro){
   filtro=(filtro||'').trim();
@@ -310,8 +360,14 @@ function poblarSelectValores(id,valores,formatearTexto){
   vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=formatearTexto?formatearTexto(v):v;sel.appendChild(o);});
 }
 
+// Nombre real de la zona (ej. "Arequito") en vez del código (ej. "Z2"), con fallback si no tiene descripción cargada
+function nombreZona(codigo){
+  const z=(_zonas||[]).find(x=>x.codigo===codigo);
+  return z?.descripcion||('Zona '+codigo);
+}
+
 function poblarSelectZona(id){
-  poblarSelectValores(id,_clientes.map(c=>c.zona||''),z=>'Zona '+z);
+  poblarSelectValores(id,_clientes.map(c=>c.zona||''),nombreZona);
 }
 
 function toast(msg,tipo='ok',ms=2800){
@@ -366,9 +422,6 @@ function volverAdmin(){
   if(btnAdmin) btnAdmin.style.display = 'none';
   go('dash');
 }
-
-// ─── HISTORIAL DE NAVEGACIÓN ───
-const _navHistory=[];
 
 function toggleNavGroup(grupo){
   const existing=document.getElementById('nav-floating-dropdown');
@@ -465,16 +518,16 @@ document.addEventListener('keydown',e=>{
     // Si hay buscador F3 abierto, cerrarlo
     const f3=document.getElementById('f3-modal');
     if(f3&&f3.style.display!=='none'){f3Cerrar();return;}
-    // Si el menú hamburguesa (sidebar) está abierto, cerrarlo
-    if(document.getElementById('sidebar')?.classList.contains('open')){cerrarMenu();return;}
-    // Si hay dropdown del sidebar abierto, cerrarlo
-    const sidebarOpen=document.querySelector('.sidebar-group.open');
-    if(sidebarOpen){toggleSidebar(sidebarOpen.id.replace('sg-',''));return;}
-    // Volver al panel anterior
-    if(_navHistory.length>0){
-      const anterior=_navHistory.pop();
-      go(anterior);
-    }
+    // Si hay un acordeón del sidebar abierto, colapsarlo primero
+    const sidebarGroupOpen=document.querySelector('.sidebar-group.open');
+    if(sidebarGroupOpen){toggleSidebar(sidebarGroupOpen.id.replace('sg-',''));return;}
+    // Retroceso general: cerrar el menú hamburguesa (si está abierto) y volver al menú principal
+    const esMovilNav=usuarioActual?.rol==='vendedor'||usuarioActual?.rol==='repartidor';
+    const home=esMovilNav?'vendedor-home':'dash';
+    const sidebarAbierto=document.getElementById('sidebar')?.classList.contains('open');
+    const panelActual=document.querySelector('.panel.on')?.id?.replace('p-','');
+    if(sidebarAbierto)cerrarMenu();
+    if(panelActual&&panelActual!==home)go(home);
   }
 });
 
@@ -566,8 +619,6 @@ document.addEventListener('click',e=>{
 });
 
 function go(p){
-  const panelActual=document.querySelector('.panel.on')?.id?.replace('p-','');
-  if(panelActual&&panelActual!==p){_navHistory.push(panelActual);if(_navHistory.length>20)_navHistory.shift();}
   document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.nav-group').forEach(g=>g.classList.remove('active'));
   const panel=document.getElementById('p-'+p);

@@ -1233,6 +1233,7 @@ async function guardarComprobante(){
   document.getElementById('comp-costos-lista').innerHTML='';
   await cargarComprobantes();
   renderComprobantes();
+  return compId;
 }
 
 function toggleCompCostos(){

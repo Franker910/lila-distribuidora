@@ -539,7 +539,7 @@ async function guardarCobro(){
     if(compFile) comprobante_url=await _subirComprobante(compFile, cid);
   }
 
-  const {error:cobErr}=await sb.from('cobros').insert({
+  const {data:nuevoCobro,error:cobErr}=await sb.from('cobros').insert({
     cliente_id:parseInt(cid),cliente:c?.nombre||'?',
     fecha:document.getElementById('cob-fecha').value,
     forma:formas.join('+')||'efectivo',importe:imp,
@@ -553,7 +553,7 @@ async function guardarCobro(){
     vendedor:document.getElementById('cob-ven-nom')?.value||'',
     observaciones:document.getElementById('cob-obs2')?.value||'',
     imputaciones,saldo_favor:_cobRestoSaldoFavor||0,comprobante_url
-  });
+  }).select().single();
   if(cobErr){toast('Error al guardar cobro: '+cobErr.message,'err',6000);reactivar();return;}
 
   // ⚠️ El saldo del cliente y remitos NO se toca aquí.
@@ -567,6 +567,7 @@ async function guardarCobro(){
   toast(`✅ Cobro de ${fmt(imp)} registrado para ${nombreCli} — pendiente de validación.${restoMsg}`);
   reactivar();
   limpiarModalCobro();
+  return nuevoCobro?.id;
 }
 
 function renderCobros(){
@@ -844,7 +845,7 @@ function renderCC(){
   actualizarDeuda();
   const q=(document.getElementById('cc-q').value||'').toLowerCase();
   const f=document.getElementById('cc-f').value;
-  poblarSelectValores('cc-f-zona',_clientes.map(c=>c.zona||''),z=>'Zona '+z);
+  poblarSelectValores('cc-f-zona',_clientes.map(c=>c.zona||''),nombreZona);
   poblarSelectValores('cc-f-ven',_clientes.map(c=>(c.vendedor||'').trim()));
   const fCli=document.getElementById('cc-f-cli')?.value||'';
   const fLoc=document.getElementById('cc-f-loc')?.value||'';

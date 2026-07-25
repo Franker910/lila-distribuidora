@@ -56,7 +56,7 @@ function poblarZonas(){
 function renderClientes(){
   const q=(document.getElementById('cli-q').value||'').toLowerCase();
   // Poblar dropdowns de autofiltro dinámicamente en el primer render
-  poblarSelectValores('cli-f-zona',_clientes.map(c=>c.zona||''),z=>'Zona '+z);
+  poblarSelectValores('cli-f-zona',_clientes.map(c=>c.zona||''),nombreZona);
   poblarSelectValores('cli-f-ven',_clientes.map(c=>(c.vendedor||'').trim()));
   const fNombre=document.getElementById('cli-f-nombre')?.value||'';
   const fLoc=document.getElementById('cli-f-loc')?.value||'';

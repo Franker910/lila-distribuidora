@@ -1117,6 +1117,7 @@ async function guardarNC(){
   await Promise.all([cargarClientes(),cargarProductos(),cargarNCs(),cargarRemitos()]);
   renderCC();renderDash();actualizarDeuda();renderNCs();renderProductos();renderRemitos();
   alert(`✅ Nota de crédito emitida por ${fmt(imp)}.\nSaldo de ${c?.nombre} actualizado.${remito_id?' Imputada contra R-'+String(remito_id).padStart(4,'0')+'.':''}${motivo==='devolucion'?' Stock actualizado.':''}`);
+  return nc.id;
 }
 
 function verNCDetalle(id){
@@ -1222,13 +1223,13 @@ async function guardarND(){
   const c=_clientes.find(x=>x.id==cid);
   const motivo=document.getElementById('nd-motivo').value;
 
-  const {error}=await sb.from('notas_credito').insert({
+  const {data:nd,error}=await sb.from('notas_credito').insert({
     cliente_id:parseInt(cid),cliente:c?.nombre||'?',
     fecha:document.getElementById('nd-fecha').value,
     motivo:'ND:'+motivo,importe:-imp, // importe negativo = ND
     observaciones:document.getElementById('nd-obs').value,
     remito_id:null
-  });
+  }).select().single();
   if(error){alert('Error: '+error.message);return;}
 
   // Incrementar saldo del cliente
@@ -1238,6 +1239,7 @@ async function guardarND(){
   await Promise.all([cargarClientes(),cargarNCs()]);
   renderCC();renderDash();actualizarDeuda();renderNCs();
   alert(`✅ Nota de débito emitida por ${fmt(imp)}.\nSaldo de ${c?.nombre} aumentado en ${fmt(imp)}.`);
+  return nd.id;
 }
 
 // ─── FIN COBRO MÓVIL ───
