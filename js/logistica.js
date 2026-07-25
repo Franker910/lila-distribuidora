@@ -332,8 +332,11 @@ function resumenCarga(id){
   const peds=_pedidos.filter(p=>(cg.pedidos||[]).includes(p.id));
   const totalGeneral=peds.reduce((a,p)=>a+p.total,0);
   document.getElementById('m-ver-title').textContent='Carga #'+cg.id+' — '+cg.vendedor;
-  document.getElementById('m-ver-print').style.display='inline-flex';
-  const _mvp2=document.getElementById('m-ver-print2');if(_mvp2)_mvp2.style.display='inline-flex';
+  const _mvp=document.getElementById('m-ver-print');
+  if(_mvp){_mvp.textContent='🖨 Hoja de carga';_mvp.onclick=imprimirHojaCarga;_mvp.style.display='inline-flex';}
+  const _mvp2=document.getElementById('m-ver-print2');
+  if(_mvp2){_mvp2.textContent='🖨 Hoja de ruta';_mvp2.onclick=imprimirHojaRuta;_mvp2.style.display='inline-flex';}
+  const _anu=document.getElementById('m-ver-anular');if(_anu)_anu.style.display='none';
   document.getElementById('m-ver-body').innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
       <div style="font-size:12px;color:var(--txt2)">${cg.fecha} · ${peds.length} paradas · Vendedor: <b>${cg.vendedor||'—'}</b></div>
@@ -415,6 +418,12 @@ function renderRemitos(){
   const est=document.getElementById('rem-est').value;
   const fd=document.getElementById('rem-fd')?.value||'';
   const fh=document.getElementById('rem-fh')?.value||'';
+  const fNro=document.getElementById('rem-f-nro')?.value||'';
+  const fFecha=document.getElementById('rem-f-fecha')?.value||'';
+  const fCli=document.getElementById('rem-f-cli')?.value||'';
+  const fLoc=document.getElementById('rem-f-loc')?.value||'';
+  const fItems=document.getElementById('rem-f-items')?.value||'';
+  const fTotal=document.getElementById('rem-f-total')?.value||'';
   let data=_remitos.filter(r=>{
     if(r.anulado)return false;
     if(q&&!((r.cliente||'').toLowerCase().includes(q)||('r-'+String(r.id).padStart(4,'0')).includes(q)||String(r.id).includes(q)||(r.localidad||'').toLowerCase().includes(q)))return false;
@@ -422,6 +431,12 @@ function renderRemitos(){
     else if(est!==''&&String(r.cobrado)!==est)return false;
     if(fd&&r.fecha<fd)return false;
     if(fh&&r.fecha>fh)return false;
+    if(!matchFiltroCol('R-'+String(r.id).padStart(4,'0'),fNro))return false;
+    if(!matchFiltroCol(r.fecha,fFecha))return false;
+    if(!matchFiltroCol(r.cliente,fCli))return false;
+    if(!matchFiltroCol(r.localidad,fLoc))return false;
+    if(!matchFiltroCol((r.items||[]).length,fItems))return false;
+    if(!matchFiltroCol(r.total,fTotal))return false;
     return true;
   });
   const tot=data.length,sl=data.slice((_remPg-1)*PP,_remPg*PP);
@@ -858,24 +873,30 @@ function imprimirHojaRutaGrupal(){
 // ─── Pool de clientes para el repartidor ─────────────────────────────────────
 let _hrClientesHoy = null;
 
+// Carga/reparto activo del repartidor para hoy (o null si no tiene ninguna carga emitida hoy)
+let _cargaActivaHoy = null;
+
  // null = no cargado, [] = cargado sin ruta, [ids] = ruta del día
 async function cargarHojaRutaRepartidor(){
-  if(usuarioActual?.rol!=='repartidor'){_hrClientesHoy=null;return;}
+  if(usuarioActual?.rol!=='repartidor'){_hrClientesHoy=null;_cargaActivaHoy=null;return;}
   const hoy=new Date().toISOString().split('T')[0];
   const nombre=usuarioActual.nombre||'';
   const {data}=await sb.from('hoja_ruta').select('cliente_id').eq('fecha',hoy).ilike('vendedor',nombre);
   const ids=(data||[]).map(r=>r.cliente_id).filter(Boolean);
   _hrClientesHoy=ids.length?ids:[];
+
+  // Carga/reparto activo: la carga emitida hoy a nombre de este chofer/repartidor
+  const candidatas=(_cargas||[]).filter(c=>c.estado==='emitida'&&c.fecha===hoy&&(c.vendedor||'').toLowerCase()===nombre.toLowerCase());
+  _cargaActivaHoy=candidatas.length?candidatas.sort((a,b)=>b.id-a.id)[0]:null;
+
   // Mostrar badge indicador
   const badge=document.getElementById('cobm-ruta-badge');
   if(badge){
-    if(ids.length){
-      badge.textContent=`📍 Ruta del día: ${ids.length} cliente${ids.length>1?'s':''}`;
-      badge.style.display='block';
-    } else {
-      badge.textContent='⚠️ Sin hoja de ruta hoy — mostrando todos tus clientes';
-      badge.style.display='block';
-    }
+    const partes=[];
+    partes.push(ids.length?`📍 Ruta del día: ${ids.length} cliente${ids.length>1?'s':''}`:'⚠️ Sin hoja de ruta hoy — mostrando todos tus clientes');
+    partes.push(_cargaActivaHoy?`🚚 ${_cargaActivaHoy.nombre||'Reparto #'+_cargaActivaHoy.id}`:'⚠️ Sin reparto emitido hoy — el cobro no quedará vinculado a una carga');
+    badge.textContent=partes.join(' · ');
+    badge.style.display='block';
   }
 }
 

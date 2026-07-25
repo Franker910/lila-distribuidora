@@ -43,11 +43,6 @@ async function cargarListasPrecios(){
 async function cargarProductos(){const {data}=await sb.from('productos').select('*').order('nombre');_productos=data||[];}
 
 function poblarZonas(){
-  const zonas=[...new Set(_clientes.map(c=>c.zona).filter(Boolean))].sort();
-  const sel=document.getElementById('cli-zon');
-  sel.innerHTML='<option value="">Todas las zonas</option>';
-  zonas.forEach(z=>{const o=document.createElement('option');o.value=z;o.textContent='Zona '+z;sel.appendChild(o);});
-  
   // Poblar proveedores desde la tabla real de proveedores
   const selProv=document.getElementById('pro-prov');
   if(selProv){
@@ -60,31 +55,34 @@ function poblarZonas(){
 // ─── CLIENTES ───
 function renderClientes(){
   const q=(document.getElementById('cli-q').value||'').toLowerCase();
-  const zon=document.getElementById('cli-zon').value;
-  const loc=document.getElementById('cli-loc')?.value||'';
-  const venF=document.getElementById('cli-ven-f')?.value||'';
-  // Poblar dropdowns dinámicamente en el primer render
-  const selLoc=document.getElementById('cli-loc');
-  if(selLoc&&selLoc.options.length<=1){
-    const locs=[...new Set(_clientes.map(c=>c.localidad||'').filter(Boolean))].sort();
-    locs.forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=l;selLoc.appendChild(o);});
-  }
-  const selVen=document.getElementById('cli-ven-f');
-  if(selVen&&selVen.options.length<=1){
-    const vens=[...new Set(_clientes.map(c=>(c.vendedor||'').trim()).filter(Boolean))].sort();
-    vens.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;selVen.appendChild(o);});
-  }
+  // Poblar dropdowns de autofiltro dinámicamente en el primer render
+  poblarSelectValores('cli-f-zona',_clientes.map(c=>c.zona||''),z=>'Zona '+z);
+  poblarSelectValores('cli-f-ven',_clientes.map(c=>(c.vendedor||'').trim()));
+  const fNombre=document.getElementById('cli-f-nombre')?.value||'';
+  const fLoc=document.getElementById('cli-f-loc')?.value||'';
+  const fTel=document.getElementById('cli-f-tel')?.value||'';
+  const fZona=document.getElementById('cli-f-zona')?.value||'';
+  const fVen=document.getElementById('cli-f-ven')?.value||'';
+  const fDto=document.getElementById('cli-f-dto')?.value||'';
+  const fSaldo=document.getElementById('cli-f-saldo')?.value||'';
   let data=_clientes.filter(c=>
     (!q||(c.nombre||'').toLowerCase().includes(q)||(c.telefono||'').includes(q)||(c.localidad||'').toLowerCase().includes(q)||(c.codigo||'').toString().includes(q)||(c.cuit||'').includes(q))&&
-    (!zon||c.zona===zon)&&
-    (!loc||(c.localidad||'')=== loc)&&
-    (!venF||(c.vendedor||'').trim()===venF)
+    matchFiltroCol(c.nombre,fNombre)&&
+    matchFiltroCol(c.localidad,fLoc)&&
+    matchFiltroCol(c.telefono,fTel)&&
+    (!fZona||c.zona===fZona)&&
+    (!fVen||(c.vendedor||'').trim()===fVen)&&
+    matchFiltroCol(c.descuento,fDto)&&
+    matchFiltroCol(c.saldo,fSaldo)
   );
   const tot=data.length,sl=data.slice((_cliPg-1)*PP,_cliPg*PP);
   const tbody=document.getElementById('cli-tbody');
   tbody.innerHTML=sl.length?sl.map(c=>`<tr>
    <td style="font-weight:600"><span style="font-size:10px;color:var(--txt2);margin-right:4px">${c.codigo||''}</span>${c.nombre}</td>
-    <td><span class="b bA">Z${c.zona||'-'}</span></td><td>${(c.vendedor||'').trim()||'—'}</td>
+    <td>${c.localidad||'—'}</td>
+    <td>${c.telefono||'—'}</td>
+    <td><span class="b bA">Z${c.zona||'-'}</span></td>
+    <td>${(c.vendedor||'').trim()||'—'}</td>
     <td>${c.descuento||0}%</td>
     <td style="${(c.saldo||0)>0?'color:var(--D);font-weight:600':''}">${fmt(c.saldo)}</td>
     <td style="display:flex;gap:3px">
@@ -152,6 +150,23 @@ async function guardarCliente(){
 function pedRapido(id){go('pedidos');abrirPedido();setTimeout(()=>selCli(id),100);}
 
 // ─── PRODUCTOS ───
+// Autofiltro por columna de la grilla de Productos (compartido entre la vista y el export)
+function _productoPasaAutofiltro(p){
+  const costo=p.costo||0,precio=p.precio||0;
+  const mReal=costo>0?Math.round((precio-costo)/costo*1000)/10:0;
+  const fCod=document.getElementById('pro-f-cod')?.value||'';
+  const fNom=document.getElementById('pro-f-nom')?.value||'';
+  const fUn=document.getElementById('pro-f-unidad')?.value||'';
+  const fCosto=document.getElementById('pro-f-costo')?.value||'';
+  const fPrecio=document.getElementById('pro-f-precio')?.value||'';
+  const fMreal=document.getElementById('pro-f-mreal')?.value||'';
+  const fMobj=document.getElementById('pro-f-mobj')?.value||'';
+  const fStock=document.getElementById('pro-f-stock')?.value||'';
+  return matchFiltroCol(p.codigo,fCod)&&matchFiltroCol(p.nombre,fNom)&&matchFiltroCol(p.unidad,fUn)&&
+    matchFiltroCol(costo,fCosto)&&matchFiltroCol(precio,fPrecio)&&matchFiltroCol(mReal,fMreal)&&
+    matchFiltroCol(p.margen_objetivo||0,fMobj)&&matchFiltroCol(p.stock||0,fStock);
+}
+
 function renderProductos(){
   const q=(document.getElementById('pro-q').value||'').toLowerCase();
   const cat=document.getElementById('pro-cat')?.value||'';
@@ -165,7 +180,7 @@ function renderProductos(){
     const okP=!prov||(p.proveedor_nom||'')===prov;
     const esActivo=p.activo!==false;
     const okA=activoFiltro==='todos'||(activoFiltro==='activos'&&esActivo)||(activoFiltro==='inactivos'&&!esActivo);
-    return okQ&&okC&&okSC&&okP&&okA;
+    return okQ&&okC&&okSC&&okP&&okA&&_productoPasaAutofiltro(p);
   });
   const tot=data.length,sl=data.slice((_proPg-1)*PP,_proPg*PP);
   const tbody=document.getElementById('pro-tbody');
@@ -205,7 +220,7 @@ function _getProductosFiltrados(){
     const okPr=!prov||(p.proveedor_nom||'')===prov;
     const esActivo=p.activo!==false;
     const okA=activoFiltro==='todos'||(activoFiltro==='activos'&&esActivo)||(activoFiltro==='inactivos'&&!esActivo);
-    return okQ&&okC&&okSC&&okPr&&okA;
+    return okQ&&okC&&okSC&&okPr&&okA&&_productoPasaAutofiltro(p);
   });
 }
 

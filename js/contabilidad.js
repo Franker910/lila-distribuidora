@@ -1313,6 +1313,55 @@ async function eliminarComprobante(id){
   renderComprobantes();
 }
 
+function imprimirComprobante(id){
+  const c=_comprobantes.find(x=>x.id===id);if(!c)return;
+  const hoy=new Date().toISOString().split('T')[0];
+  let estado=c.estado;
+  if(estado==='pendiente'&&c.fecha_vencimiento&&c.fecha_vencimiento<hoy)estado='vencido';
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Comprobante ${c.nro_comprobante||c.id}</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:30px;color:#000;max-width:500px;margin:0 auto}
+    .titulo{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:16px}
+    .empresa{font-size:18px;font-weight:bold}
+    .nro{font-size:14px;color:#555}
+    .row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;font-size:13px}
+    .row.total{font-weight:bold;font-size:15px;border-top:2px solid #000;border-bottom:none;margin-top:8px;padding-top:8px}
+    @media print{button{display:none}}
+  </style></head><body>
+  <div class="titulo">
+    <div class="empresa">🌸 DISTRIBUIDORA LILA</div>
+    <div class="nro">COMPROBANTE DE COMPRA ${c.nro_comprobante||'#'+c.id}</div>
+  </div>
+  <div class="row"><span><b>Fecha:</b></span><span>${c.fecha||'—'}</span></div>
+  <div class="row"><span><b>Proveedor:</b></span><span>${c.proveedor_nom||'—'}</span></div>
+  ${c.descripcion?`<div class="row"><span><b>Descripción:</b></span><span>${c.descripcion}</span></div>`:''}
+  ${c.fecha_vencimiento?`<div class="row"><span><b>Vencimiento:</b></span><span>${c.fecha_vencimiento}</span></div>`:''}
+  <div class="row"><span><b>Cond. pago:</b></span><span>${c.condicion_pago?c.condicion_pago+' días':'Contado'}</span></div>
+  <div class="row"><span><b>Estado:</b></span><span>${estado}</span></div>
+  <div class="row total"><span>IMPORTE</span><span>${fmt(c.importe)}</span></div>
+  <div style="text-align:center;margin-top:16px"><button onclick="window.print()" style="padding:8px 20px;background:#1a7a52;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">🖨️ Imprimir</button></div>
+  </body></html>`);
+  w.document.close();
+}
+
+function verComprobanteCompra(id){
+  const c=_comprobantes.find(x=>x.id===id);if(!c)return;
+  const hoy=new Date().toISOString().split('T')[0];
+  let estado=c.estado;
+  if(estado==='pendiente'&&c.fecha_vencimiento&&c.fecha_vencimiento<hoy)estado='vencido';
+  const body=`
+    <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:13px;margin-bottom:10px">
+      <span>Estado: <b>${estado}</b></span>
+      <span>Cond. pago: <b>${c.condicion_pago?c.condicion_pago+'d':'Contado'}</b></span>
+      ${c.fecha_vencimiento?`<span>Vence: <b>${c.fecha_vencimiento}</b></span>`:''}
+    </div>
+    ${c.descripcion?`<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">${c.descripcion}</div>`:''}
+    <div style="text-align:right;font-size:16px;font-weight:700;color:var(--PD);border-top:2px solid var(--brd);padding-top:10px">Importe: ${fmt(c.importe)}</div>
+  `;
+  popupDetalle(c.nro_comprobante||('Comprobante #'+c.id),`${c.proveedor_nom||''} · ${c.fecha}`,body);
+}
+
 function renderComprobantes(){
   const q = (document.getElementById('comp-q')?.value||'').toLowerCase();
   const est = document.getElementById('comp-est')?.value||'';
@@ -1321,13 +1370,22 @@ function renderComprobantes(){
   // Actualizar estado vencidos
   const hoy = new Date().toISOString().split('T')[0];
   
+  const fFecha=document.getElementById('comp-f-fecha')?.value||'';
+  const fProv=document.getElementById('comp-f-prov')?.value||'';
+  const fNro=document.getElementById('comp-f-nro')?.value||'';
+  const fDesc=document.getElementById('comp-f-desc')?.value||'';
+  const fVenc=document.getElementById('comp-f-venc')?.value||'';
+  const fImp=document.getElementById('comp-f-imp')?.value||'';
+
   let data = _comprobantes.filter(c => {
     const okQ = !q || (c.proveedor_nom||'').toLowerCase().includes(q) || (c.descripcion||'').toLowerCase().includes(q) || (c.nro_comprobante||'').includes(q);
     let estado = c.estado;
     if(estado === 'pendiente' && c.fecha_vencimiento && c.fecha_vencimiento < hoy) estado = 'vencido';
     const okE = !est || estado === est;
     const okM = !mes || (c.fecha||'').startsWith(mes);
-    return okQ && okE && okM;
+    const okCols = matchFiltroCol(c.fecha,fFecha)&&matchFiltroCol(c.proveedor_nom,fProv)&&matchFiltroCol(c.nro_comprobante,fNro)&&
+      matchFiltroCol(c.descripcion||c.tipo,fDesc)&&matchFiltroCol(c.fecha_vencimiento,fVenc)&&matchFiltroCol(c.importe,fImp);
+    return okQ && okE && okM && okCols;
   });
   
   // Poblar meses
@@ -1355,7 +1413,7 @@ function renderComprobantes(){
     if(estado === 'pendiente' && c.fecha_vencimiento && c.fecha_vencimiento < hoy) estado = 'vencido';
     const badgeClass = estado==='pagado'?'bP':estado==='vencido'?'bD':'bW';
     const diasVenc = c.fecha_vencimiento ? Math.floor((new Date(c.fecha_vencimiento)-new Date())/(864e5)) : null;
-    return `<tr style="${estado==='vencido'?'background:var(--DL)':''}">
+    return `<tr data-comp-id="${c.id}" style="${estado==='vencido'?'background:var(--DL)':''}">
       <td>${c.fecha}</td>
       <td style="font-weight:600">${c.proveedor_nom}</td>
       <td style="color:var(--txt2);font-size:12px">${c.nro_comprobante||'—'}</td>
@@ -1368,6 +1426,7 @@ function renderComprobantes(){
         ${estado!=='pagado'?`<button class="btn P sm" onclick="pagarComprobante(${c.id})">✓ Pagar</button>`:''}
         <button class="btn sm" onclick="abrirAjusteComp(${c.id},'nc')" title="Nota de crédito del proveedor" style="background:#dbeafe;color:#1e40af;border:none">NC</button>
         <button class="btn sm" onclick="abrirAjusteComp(${c.id},'nd')" title="Nota de débito del proveedor" style="background:#fef3c7;color:#92400e;border:none">ND</button>
+        <button class="btn sm" onclick="imprimirComprobante(${c.id})" title="Imprimir">🖨</button>
         <button class="btn D sm" onclick="eliminarComprobante(${c.id})">🗑</button>
       </td>
     </tr>`;

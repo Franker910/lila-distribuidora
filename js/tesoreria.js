@@ -1,6 +1,6 @@
 // ─── TESORERÍA: cobros, cheques, caja, rendición, cobranza móvil ───
 
-async function cargarCobros(){const {data,error}=await sb.from('cobros').select('id,cliente_id,cliente,fecha,forma,importe,referencia,total,efectivo,transferencia,cheque_propio,cheque_terceros,retencion_ganancias,retencion_ing_brutos,retencion_otras,estado_transferencia,estado_rendicion,reparto,tipo_cobrador,vendedor,imputaciones,observaciones,comprobante_url,saldo_favor,banco_cheque,nro_cheque,nombre_transferencia,created_at').order('id',{ascending:false});if(error)console.error('[cobros]',error.message,error.details);_cobros=data||[];}
+async function cargarCobros(){const {data,error}=await sb.from('cobros').select('id,cliente_id,cliente,fecha,forma,importe,referencia,total,efectivo,transferencia,cheque_propio,cheque_terceros,retencion_ganancias,retencion_ing_brutos,retencion_otras,estado_transferencia,estado_rendicion,reparto,carga_id,tipo_cobrador,vendedor,imputaciones,observaciones,comprobante_url,saldo_favor,banco_cheque,nro_cheque,nombre_transferencia,created_at').order('id',{ascending:false});if(error)console.error('[cobros]',error.message,error.details);_cobros=data||[];}
 
 async function cobrarRemito(id){
   const r = _remitos.find(x=>x.id===id); if(!r) return;
@@ -293,7 +293,7 @@ function selCliCob(id){
            style="width:100px;padding:6px 8px;border:2px solid var(--brd);border-radius:8px;text-align:right;font-size:15px;font-weight:700"
            placeholder="0" oninput="limitarImputacion(this,${r.saldo_pendiente||r.total});calcTotalDesdeImputacion()"
            ondblclick="imputarTotal(${r.id},${r.saldo_pendiente||r.total});this.select();"
-           title="F = todo · → o Tab = botón Todo"
+           title="F = todo · → o Tab = botón Todo · Inicio = ver factura"
            onkeydown="cobImpKeydown(event,${r.id},${r.saldo_pendiente||r.total})">
          <button id="todo-rem-${r.id}" class="btn P" onclick="imputarTotal(${r.id},${r.saldo_pendiente||r.total})"
            style="padding:6px 10px;font-size:12px;white-space:nowrap"
@@ -316,6 +316,7 @@ function selCliCob(id){
 }
 
 function cobImpKeydown(e,remId,max){
+  if(e.key==='Home'){e.preventDefault();verRemitoEnCobro(remId);return;}
   if(e.key==='F'){e.preventDefault();imputarTotal(remId,max);return;}
   if(e.key==='ArrowRight'||e.key==='Tab'){e.preventDefault();document.getElementById('todo-rem-'+remId)?.focus();return;}
   if(e.key==='Enter'){
@@ -372,6 +373,29 @@ function verRemitoEnCobro(id){
   </div>`;
   ov.onclick=e=>{if(e.target===ov)ov.remove();};
   document.body.appendChild(ov);
+}
+
+function verCobroDetalle(id){
+  const r=_cobros.find(x=>x.id===id);if(!r)return;
+  const imp=r.imputaciones||[];
+  const impRows=imp.length?imp.map(i=>`<tr><td style="padding:5px 8px;border-bottom:1px solid var(--brd)">R-${String(i.remito_id).padStart(4,'0')}</td><td style="padding:5px 8px;border-bottom:1px solid var(--brd);text-align:right">${fmt(i.monto)}</td></tr>`).join(''):'';
+  const estBadge=r.estado_rendicion==='validado'?'✅ Validado':r.estado_rendicion==='rechazado'?'❌ Rechazado':'⏳ Pendiente';
+  const body=`
+    <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:13px;margin-bottom:10px">
+      <span>Forma: <b>${r.forma||'—'}</b></span>
+      <span>Estado: <b>${estBadge}</b></span>
+      ${r.reparto?`<span>Reparto: <b>${r.reparto}</b></span>`:''}
+      ${r.vendedor?`<span>Cobrador: <b>${r.vendedor}</b></span>`:''}
+    </div>
+    ${impRows?`<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px">
+      <thead><tr style="background:var(--bg2)"><th style="padding:5px 8px;text-align:left">Imputado a</th><th style="padding:5px 8px;text-align:right">Monto</th></tr></thead>
+      <tbody>${impRows}</tbody>
+    </table>`:''}
+    ${r.observaciones?`<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">Obs: ${r.observaciones}</div>`:''}
+    ${r.comprobante_url?`<div style="margin-bottom:8px"><a href="${r.comprobante_url}" target="_blank">📎 Ver comprobante adjunto</a></div>`:''}
+    <div style="text-align:right;font-size:16px;font-weight:700;color:var(--PD);border-top:2px solid var(--brd);padding-top:10px">Total: ${fmt(r.importe)}</div>
+  `;
+  popupDetalle('RC-'+String(r.id).padStart(4,'0'),`${r.cliente||''} · ${r.fecha}`,body);
 }
 
 function limitarImputacion(input, maxRemito){
@@ -792,6 +816,24 @@ function imprimirRecibo(id){
   w.document.close();
 }
 
+function imprimirCuentaCorriente(){
+  const titulo=document.getElementById('m-ver-title')?.textContent||'Cuenta corriente';
+  const body=document.getElementById('m-ver-body')?.innerHTML||'';
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>${titulo}</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:20px;color:#000;font-size:12px}
+    table{border-collapse:collapse;width:100%}
+    @page{size:A4 landscape;margin:10mm}
+    @media print{button{display:none}}
+  </style></head><body>
+  <div style="font-size:16px;font-weight:700;color:#1a7a52;border-bottom:2px solid #1a7a52;padding-bottom:8px;margin-bottom:14px">🌸 Distribuidora Lila — ${titulo}</div>
+  ${body}
+  <div style="text-align:center;margin-top:16px"><button onclick="window.print()" style="padding:8px 20px;background:#1a7a52;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">🖨️ Imprimir</button></div>
+  </body></html>`);
+  w.document.close();
+}
+
 // ─── CUENTAS CORRIENTES ───
 function actualizarDeuda(){
   const d=_clientes.reduce((a,c)=>a+(c.saldo>0?c.saldo:0),0);
@@ -802,12 +844,24 @@ function renderCC(){
   actualizarDeuda();
   const q=(document.getElementById('cc-q').value||'').toLowerCase();
   const f=document.getElementById('cc-f').value;
+  poblarSelectValores('cc-f-zona',_clientes.map(c=>c.zona||''),z=>'Zona '+z);
+  poblarSelectValores('cc-f-ven',_clientes.map(c=>(c.vendedor||'').trim()));
+  const fCli=document.getElementById('cc-f-cli')?.value||'';
+  const fLoc=document.getElementById('cc-f-loc')?.value||'';
+  const fZona=document.getElementById('cc-f-zona')?.value||'';
+  const fVen=document.getElementById('cc-f-ven')?.value||'';
+  const fDias=document.getElementById('cc-f-dias')?.value||'';
+  const fSaldo=document.getElementById('cc-f-saldo')?.value||'';
+  const fTotal=document.getElementById('cc-f-total')?.value||'';
   let data=_clientes.filter(c=>{
     const okQ=!q||(c.nombre||'').toLowerCase().includes(q)||(c.localidad||'').toLowerCase().includes(q)||String(c.codigo||'').includes(q)||String(c.id||'').includes(q);
     const dias=diasDesde(c.ultimo_remito);
     const venc=c.saldo>0&&dias!==null&&dias>(c.condicion_pago||0)+5;
     const okF=f===''||(f==='deuda'&&c.saldo>0)||(f==='ok'&&c.saldo<=0)||(f==='vencido'&&venc);
-    return okQ&&okF;
+    const okCols=matchFiltroCol(c.nombre,fCli)&&matchFiltroCol(c.localidad,fLoc)&&
+      (!fZona||c.zona===fZona)&&(!fVen||(c.vendedor||'').trim()===fVen)&&
+      matchFiltroCol(dias,fDias)&&matchFiltroCol(c.saldo,fSaldo)&&matchFiltroCol(c.total_comprado,fTotal);
+    return okQ&&okF&&okCols;
   }).sort((a,b)=>{
     const sa=a.saldo||0,sb=b.saldo||0;
     if(sb!==sa)return sb-sa;
@@ -850,6 +904,13 @@ function colorDias(dias,condPago){
   return 'color:var(--W)';
 }
 
+// Tecla Inicio (o click) sobre un renglón de la cuenta corriente: abre el comprobante de origen
+function histAbrirDetalle(tipo,id){
+  if(tipo==='REMITO')verRemitoEnCobro(id);
+  else if(tipo==='RECIBO')verCobroDetalle(id);
+  else if(tipo==='N.CRED')verNCDetalle(id);
+}
+
 function histCliente(id){
   const sid=String(id);
   const c=_clientes.find(x=>String(x.id)===sid)||_clientes.find(x=>x.id==id);
@@ -865,16 +926,16 @@ function histCliente(id){
   const saldoInicial=c.saldo_inicial||0;
   
   // Agregar remitos como DEBE
-  rems.forEach(r=>movs.push({fecha:r.fecha,tipo:'REMITO',nro:'R-'+String(r.id).padStart(4,'0'),debe:r.total,haber:0,reparto:'',obs:''}));
+  rems.forEach(r=>movs.push({id:r.id,fecha:r.fecha,tipo:'REMITO',nro:'R-'+String(r.id).padStart(4,'0'),debe:r.total,haber:0,reparto:'',obs:''}));
   // Agregar cobros como HABER — con detalle de imputación
   cobs.forEach(r=>{
     const imp=r.imputaciones||[];
     const obs=r.observaciones||'';
     const detalle=imp.length?imp.map(i=>`R-${String(i.remito_id).padStart(4,'0')}: ${fmt(i.monto)}`).join(', '):'';
-    movs.push({fecha:r.fecha,tipo:'RECIBO',nro:'RC-'+String(r.id).padStart(4,'0'),debe:0,haber:r.importe,reparto:r.reparto||'',obs:detalle||obs,forma:r.forma||''});
+    movs.push({id:r.id,fecha:r.fecha,tipo:'RECIBO',nro:'RC-'+String(r.id).padStart(4,'0'),debe:0,haber:r.importe,reparto:r.reparto||'',obs:detalle||obs,forma:r.forma||''});
   });
   // Agregar NC como HABER
-  ncs.forEach(r=>movs.push({fecha:r.fecha,tipo:'N.CRED',nro:'NC-'+String(r.id).padStart(4,'0'),debe:0,haber:r.importe,reparto:'',obs:r.motivo||''}));
+  ncs.forEach(r=>movs.push({id:r.id,fecha:r.fecha,tipo:'N.CRED',nro:'NC-'+String(r.id).padStart(4,'0'),debe:0,haber:r.importe,reparto:'',obs:r.motivo||''}));
   
   // Ordenar por fecha
   movs.sort((a,b)=>a.fecha.localeCompare(b.fecha));
@@ -890,7 +951,10 @@ function histCliente(id){
   if(!movs.length) saldoAcum=c.saldo||0;
 
   document.getElementById('m-ver-title').textContent='Cuenta corriente — '+c.nombre;
-  document.getElementById('m-ver-print').style.display='inline-flex';
+  const _mvpCC=document.getElementById('m-ver-print');
+  if(_mvpCC){_mvpCC.textContent='🖨 Imprimir';_mvpCC.onclick=imprimirCuentaCorriente;_mvpCC.style.display='inline-flex';}
+  const _mvp2CC=document.getElementById('m-ver-print2');if(_mvp2CC)_mvp2CC.style.display='none';
+  const _anuCC=document.getElementById('m-ver-anular');if(_anuCC)_anuCC.style.display='none';
   document.getElementById('m-ver-body').innerHTML=`
     <div style="background:var(--bg2);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--txt2)">
       <span>📍 ${c.direccion||'—'}, ${c.localidad||''}</span>
@@ -921,7 +985,7 @@ function histCliente(id){
         </tr>
       </thead>
       <tbody>
-        ${movs.length?movs.map(m=>`<tr style="${m.tipo==='RECIBO'?'background:#f0faf5':m.tipo==='N.CRED'?'background:#fef9f0':''}">
+        ${movs.length?movs.map(m=>`<tr tabindex="0" onclick="histAbrirDetalle('${m.tipo}',${m.id})" onkeydown="if(event.key==='Home'){event.preventDefault();histAbrirDetalle('${m.tipo}',${m.id})}" title="Click o tecla Inicio para ver el detalle" style="cursor:pointer;${m.tipo==='RECIBO'?'background:#f0faf5':m.tipo==='N.CRED'?'background:#fef9f0':''}">
           <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd)">${m.fecha}</td>
           <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd);font-weight:500">${m.tipo}</td>
           <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd);color:var(--A)">${m.nro}</td>
@@ -1287,6 +1351,7 @@ function cobmAbrirCC(){
   document.getElementById('cobm-panel-cc').style.display='block';
   const q=document.getElementById('cobm-cc-q');if(q)q.value='';
   const l=document.getElementById('cobm-cc-lista');if(l)l.innerHTML='';
+  poblarSelectZona('cobm-cc-zon');
   setTimeout(()=>{const q=document.getElementById('cobm-cc-q');if(q)q.focus();},100);
 }
 
@@ -1395,11 +1460,13 @@ function cobmVolverZonas(){
 // ── Cuenta corriente desde cobranza ─────────────────────────────────────
 function buscarClienteCC(){
   const q=(document.getElementById('cobm-cc-q')?.value||'').toLowerCase().trim();
+  const zonaFil=document.getElementById('cobm-cc-zon')?.value||'';
   const lista=document.getElementById('cobm-cc-lista');
   if(!lista)return;
-  if(!q){lista.innerHTML='';return;}
+  if(!q&&!zonaFil){lista.innerHTML='';return;}
   const res=_clientes.filter(c=>
-    (c.nombre||'').toLowerCase().includes(q)||(c.codigo||'').toString().includes(q)
+    ((c.nombre||'').toLowerCase().includes(q)||(c.codigo||'').toString().includes(q))
+    &&(!zonaFil||c.zona===zonaFil)
   ).slice(0,8);
   if(!res.length){lista.innerHTML='<div style="font-size:13px;color:var(--txt2);padding:8px 0">Sin resultados</div>';return;}
   lista.innerHTML=res.map(c=>`
@@ -1602,6 +1669,7 @@ function limpiarCobMovil(){
   const sEl=document.getElementById('cobm-cli-saldo');if(sEl)sEl.textContent='';
   const pc=document.getElementById('cobm-paso-cliente');if(pc)pc.style.display='block';
   const pp=document.getElementById('cobm-paso-cobro');if(pp)pp.style.display='none';
+  poblarSelectZona('cobm-cli-zon');
   const imp=document.getElementById('cobm-importe');if(imp)imp.value='';
   const obs=document.getElementById('cobm-obs');if(obs)obs.value='';
   const fw=document.getElementById('cobm-facturas-wrap');if(fw)fw.style.display='none';
@@ -1642,10 +1710,14 @@ function _cobmCliPool(){
 
 function buscarClienteCobMovil(){
   const q=(document.getElementById('cobm-cli-q').value||'').toLowerCase();
+  const zonaFil=document.getElementById('cobm-cli-zon')?.value||'';
   const lista=document.getElementById('cobm-cli-lista');
-  if(q.length<1){lista.style.display='none';lista.innerHTML='';return;}
+  if(q.length<1&&!zonaFil){lista.style.display='none';lista.innerHTML='';return;}
   const pool=_cobmCliPool();
-  const m=pool.filter(c=>(c.nombre||'').toLowerCase().includes(q)||String(c.codigo||c.id).includes(q)).slice(0,10);
+  const m=pool.filter(c=>
+    ((c.nombre||'').toLowerCase().includes(q)||String(c.codigo||c.id).includes(q))
+    &&(!zonaFil||c.zona===zonaFil)
+  ).slice(0,10);
   lista.style.display=m.length?'block':'none';
   if(!m.length){lista.innerHTML='<div style="padding:14px;font-size:14px;color:var(--txt2)">Sin resultados</div>';return;}
   lista.innerHTML=m.map(c=>`<div onclick="selClienteCobMovil(${c.id})"
@@ -1701,11 +1773,13 @@ function selClienteCobMovil(id){
   if(remsPend.length&&wrap&&lista){
     wrap.style.display='block';
     lista.innerHTML=remsPend.map(r=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--brd)">
-      <div style="flex:1"><div style="font-size:14px;font-weight:600">R-${String(r.id).padStart(4,'0')}</div>
+      <div style="flex:1;cursor:pointer" onclick="verRemitoEnCobro(${r.id})"><div style="font-size:14px;font-weight:600;text-decoration:underline;color:var(--P)">R-${String(r.id).padStart(4,'0')}</div>
       <div style="font-size:11px;color:var(--txt2)">${r.fecha} · Saldo: ${fmt(r.saldo_pendiente||r.total)}</div></div>
       <input type="number" id="cobm-imp-${r.id}" value="0" min="0" step="0.01"
         style="width:120px;padding:8px;border:2px solid var(--brd);border-radius:8px;font-size:16px;font-weight:700;text-align:right"
-        oninput="calcCobMovil()" ondblclick="cobmImputarTodo(${r.id},${r.saldo_pendiente||r.total})" title="Doble toque = todo">
+        oninput="calcCobMovil()" ondblclick="cobmImputarTodo(${r.id},${r.saldo_pendiente||r.total})"
+        onkeydown="if(event.key==='Home'){event.preventDefault();verRemitoEnCobro(${r.id})}"
+        title="Doble toque = todo · Inicio = ver factura">
     </div>`).join('');
   }
   setTimeout(()=>document.getElementById('cobm-importe')?.focus(),100);
@@ -1772,6 +1846,8 @@ async function guardarCobMovil(){
     cheque_terceros:_cobMovilForma==='cheque'?importe:0,
     estado_rendicion:'pendiente',
     vendedor:usuarioActual?.nombre||'',
+    reparto:_cargaActivaHoy?(_cargaActivaHoy.nombre||('Reparto #'+_cargaActivaHoy.id)):'',
+    carga_id:_cargaActivaHoy?.id||null,
     observaciones:document.getElementById('cobm-obs')?.value||'',
     imputaciones,saldo_favor:resto>0?resto:0,
     comprobante_url,

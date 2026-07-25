@@ -914,9 +914,10 @@ function selCliNC(id){
     if(!remsPend.length) return '';
     return `<div style="font-size:12px;color:var(--txt2);margin-bottom:6px">${label}</div>`+
     remsPend.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:6px;border-bottom:0.5px solid var(--brd);font-size:13px">
-      <input type="radio" name="nc-factura" id="nc-fac-${r.id}" value="${r.id}" style="width:16px;height:16px">
+      <input type="radio" name="nc-factura" id="nc-fac-${r.id}" value="${r.id}" style="width:16px;height:16px"
+        onkeydown="if(event.key==='Home'){event.preventDefault();verRemitoEnCobro(${r.id})}" title="Inicio = ver factura">
       <label for="nc-fac-${r.id}" style="flex:1;cursor:pointer">
-        <strong>R-${String(r.id).padStart(4,'0')}</strong>
+        <strong style="text-decoration:underline;color:var(--P);cursor:pointer" onclick="event.preventDefault();event.stopPropagation();verRemitoEnCobro(${r.id})">R-${String(r.id).padStart(4,'0')}</strong>
         <span style="color:var(--txt2);font-size:11px;margin-left:6px">${r.fecha}</span>
         <span style="color:var(--D);font-weight:600;margin-left:8px">${fmt(r.saldo_pendiente||r.total)}</span>
       </label>
@@ -1118,15 +1119,66 @@ async function guardarNC(){
   alert(`✅ Nota de crédito emitida por ${fmt(imp)}.\nSaldo de ${c?.nombre} actualizado.${remito_id?' Imputada contra R-'+String(remito_id).padStart(4,'0')+'.':''}${motivo==='devolucion'?' Stock actualizado.':''}`);
 }
 
+function verNCDetalle(id){
+  const n=_ncs.find(x=>x.id===id);if(!n)return;
+  const esND=(n.motivo||'').startsWith('ND:');
+  const motivoTxt=esND?n.motivo.replace('ND:',''):n.motivo;
+  const body=`
+    <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:13px;margin-bottom:10px">
+      <span>Motivo: <b>${motivoTxt||'—'}</b></span>
+      ${n.remito_id?`<span>Vinculada a: <b>R-${String(n.remito_id).padStart(4,'0')}</b></span>`:''}
+    </div>
+    ${n.observaciones?`<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">Obs: ${n.observaciones}</div>`:''}
+    <div style="text-align:right;font-size:16px;font-weight:700;color:var(--PD);border-top:2px solid var(--brd);padding-top:10px">Importe: ${fmt(Math.abs(n.importe))}</div>
+  `;
+  popupDetalle((esND?'ND-':'NC-')+String(n.id).padStart(4,'0'),`${n.cliente||''} · ${n.fecha}`,body);
+}
+
+function imprimirNC(id){
+  const n=_ncs.find(x=>x.id===id);if(!n)return;
+  const esND=(n.motivo||'').startsWith('ND:');
+  const nro=(esND?'ND-':'NC-')+String(n.id).padStart(4,'0');
+  const motivoTxt=esND?n.motivo.replace('ND:',''):n.motivo;
+  const filasItems=(n.items||[]).map(it=>`<tr><td style="padding:4px 6px;border-bottom:1px solid #eee">${it.nom}</td><td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:center">${it.cant}</td><td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:right">${fmt(it.precio)}</td></tr>`).join('');
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>${nro}</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:30px;color:#000;max-width:500px;margin:0 auto}
+    .titulo{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:16px}
+    .empresa{font-size:18px;font-weight:bold}
+    .nro{font-size:14px;color:#555}
+    .row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;font-size:13px}
+    .row.total{font-weight:bold;font-size:15px;border-top:2px solid #000;border-bottom:none;margin-top:8px;padding-top:8px}
+    @media print{button{display:none}}
+  </style></head><body>
+  <div class="titulo">
+    <div class="empresa">🌸 DISTRIBUIDORA LILA</div>
+    <div class="nro">${esND?'NOTA DE DÉBITO':'NOTA DE CRÉDITO'} ${nro}</div>
+  </div>
+  <div class="row"><span><b>Fecha:</b></span><span>${n.fecha||'—'}</span></div>
+  <div class="row"><span><b>Cliente:</b></span><span>${n.cliente||'—'}</span></div>
+  <div class="row"><span><b>Motivo:</b></span><span>${motivoTxt||'—'}</span></div>
+  ${n.remito_id?`<div class="row"><span><b>Factura vinculada:</b></span><span>R-${String(n.remito_id).padStart(4,'0')}</span></div>`:''}
+  ${filasItems?`<table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:13px"><thead><tr><th style="text-align:left;padding:4px 6px;border-bottom:1px solid #000">Producto</th><th style="padding:4px 6px;border-bottom:1px solid #000">Cant.</th><th style="text-align:right;padding:4px 6px;border-bottom:1px solid #000">Precio</th></tr></thead><tbody>${filasItems}</tbody></table>`:''}
+  <div class="row total"><span>IMPORTE</span><span>${fmt(Math.abs(n.importe))}</span></div>
+  ${n.observaciones?`<div style="font-size:12px;color:#555;margin-top:8px">Obs: ${n.observaciones}</div>`:''}
+  <div style="text-align:center;margin-top:16px"><button onclick="window.print()" style="padding:8px 20px;background:#1a7a52;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">🖨️ Imprimir</button></div>
+  </body></html>`);
+  w.document.close();
+}
+
 function renderNCs(){
   const tbody=document.getElementById('nc-tbody');if(!tbody)return;
-  if(!_ncs.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty">Sin notas de crédito</div></td></tr>';return;}
-  tbody.innerHTML=_ncs.map(n=>`<tr>
+  const q=(document.getElementById('nc-q')?.value||'').toLowerCase();
+  const data=_ncs.filter(n=>!q||(n.cliente||'').toLowerCase().includes(q)||(n.motivo||'').toLowerCase().includes(q)||(n.observaciones||'').toLowerCase().includes(q));
+  if(!data.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty">${_ncs.length?'Sin resultados':'Sin notas de crédito'}</div></td></tr>`;return;}
+  tbody.innerHTML=data.map(n=>`<tr data-nc-id="${n.id}">
     <td style="font-weight:600;color:var(--A)">NC-${String(n.id).padStart(4,'0')}</td>
     <td>${n.fecha}</td><td style="font-weight:500">${n.cliente}</td>
     <td><span class="b ${n.motivo==='devolucion'?'bW':'bA'}">${n.motivo||''}</span></td>
     <td style="font-weight:600;color:var(--D)">${fmt(n.importe)}</td>
     <td>${n.observaciones||'—'}</td>
+    <td><button class="btn sm" onclick="imprimirNC(${n.id})" title="Imprimir">🖨</button></td>
   </tr>`).join('');
 }
 
@@ -1249,6 +1301,7 @@ function abrirPedidoMovil(){
   if(pasoResEl)pasoResEl.style.display='none';
   const saldoWrap=document.getElementById('pm-cli-saldo-wrap');
   if(saldoWrap)saldoWrap.style.display='none';
+  poblarSelectZona('pm-cli-zon');
   actualizarCarritoBar();
   setTimeout(()=>document.getElementById('pm-cli-q')?.focus(),100);
 }
@@ -1257,9 +1310,13 @@ function pmBuscarPorCod(){const cod=(document.getElementById('pm-cli-cod')?.valu
 
 function buscarClienteMovil(){
   const q=(document.getElementById('pm-cli-q').value||'').toLowerCase();
+  const zonaFil=document.getElementById('pm-cli-zon')?.value||'';
   const lista=document.getElementById('pm-cli-lista');
-  if(q.length<1){lista.innerHTML='';return;}
-  const m=_clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q)||String(c.codigo||c.id).includes(q)).slice(0,12);
+  if(q.length<1&&!zonaFil){lista.innerHTML='';return;}
+  const m=_clientes.filter(c=>
+    ((c.nombre||'').toLowerCase().includes(q)||String(c.codigo||c.id).includes(q))
+    &&(!zonaFil||c.zona===zonaFil)
+  ).slice(0,12);
   lista.innerHTML=m.map(c=>`
     <div onclick="selClienteMovil(${c.id})" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--brd);cursor:pointer;background:#fff;active:background:var(--PL)">
       <div>

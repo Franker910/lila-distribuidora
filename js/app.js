@@ -160,9 +160,12 @@ function entrarApp(found){
   
   // Aplicar permisos de navegación
   const sidebar=document.getElementById('sidebar');
+  const btnMenu=document.getElementById('btn-menu');
+  cerrarMenu();
   const esMovil=found.rol==='vendedor'||found.rol==='repartidor';
   if(esMovil){
     if(sidebar)sidebar.style.display='none';
+    if(btnMenu)btnMenu.style.display='none';
     document.querySelector('[data-p="vendedor-home"]').style.display='flex';
     // Si es admin en modo vendedor, mostrar botón para volver al admin
     if(found.rol_original==='admin' || found.user==='mauricio' || found.esAdmin){
@@ -171,6 +174,7 @@ function entrarApp(found){
     }
   } else {
     if(sidebar)sidebar.style.display='';
+    if(btnMenu)btnMenu.style.display='';
   }
 
   // Si es móvil (vendedor o repartidor), ir directo a home
@@ -191,17 +195,12 @@ function entrarApp(found){
       const dashBtn=document.querySelector('.sidebar-dash[data-p="dash"]');
       if(dashBtn){dashBtn.classList.add('on');}
       go('dash');
-      // Foco automático en primer botón visible del sidebar
-      setTimeout(()=>{
-        const firstBtn=document.querySelector('#sidebar .sidebar-dash:not([style*="display:none"])');
-        if(firstBtn)firstBtn.focus();
-      },400);
-      // Navegación con flechas entre ítems del sidebar
+      // Navegación con flechas entre ítems del sidebar (solo mientras está abierto)
       document.getElementById('sidebar').addEventListener('keydown',function(e){
         if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
         e.preventDefault();
         const btns=[...this.querySelectorAll('.sidebar-dash,.sidebar-group-btn,.sidebar-item')]
-          .filter(b=>b.offsetParent!==null);
+          .filter(b=>b.style.display!=='none');
         const idx=btns.indexOf(document.activeElement);
         if(idx===-1)return;
         const next=e.key==='ArrowDown'?btns[idx+1]:btns[idx-1];
@@ -244,8 +243,8 @@ async function cargarTodo(){
   // Guardar HTML original del panel pedido-movil
   const pmPanel = document.getElementById('p-pedido-movil');
   if(pmPanel && !window._pmPanelOriginal) window._pmPanelOriginal = pmPanel.innerHTML;
-  await Promise.all([cargarClientes(),cargarProductos(),cargarPedidos(),cargarRemitos(),cargarCobros(),cargarCargas(),cargarGastos(),cargarProveedores(),cargarZonas(),cargarComprobantes(),cargarListasPrecios()]);
-  renderDash();renderPedidos();renderClientes();renderProductos();renderProveedores();renderRemitos();renderCobros();renderCC();renderCargas();renderGastos();
+  await Promise.all([cargarClientes(),cargarProductos(),cargarPedidos(),cargarRemitos(),cargarCobros(),cargarCargas(),cargarGastos(),cargarProveedores(),cargarZonas(),cargarComprobantes(),cargarListasPrecios(),cargarNCs()]);
+  renderDash();renderPedidos();renderClientes();renderProductos();renderProveedores();renderRemitos();renderCobros();renderCC();renderCargas();renderGastos();renderNCs();
   poblarZonas();
   // Asegurar que el panel activo sea el correcto
   if(!document.querySelector('.panel.on'))go('dash');
@@ -266,6 +265,54 @@ function cerrar(id){
 }
 
 function diasDesde(fecha){if(!fecha)return null;return Math.floor((new Date()-new Date(fecha))/(864e5));}
+
+// Popup liviano de "ver detalle" (mismo estilo que verRemitoEnCobro), reutilizable para cobro/NC/comprobante
+function popupDetalle(titulo,subtitulo,bodyHTML){
+  document.getElementById('detalle-popup')?.remove();
+  const ov=document.createElement('div');
+  ov.id='detalle-popup';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9990;display:flex;align-items:center;justify-content:center';
+  ov.innerHTML=`<div style="background:var(--bg);border-radius:12px;padding:20px;max-width:520px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.25)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:16px;font-weight:700;color:var(--P)">${titulo}</span>
+      <button onclick="document.getElementById('detalle-popup').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--txt2);line-height:1">✕</button>
+    </div>
+    ${subtitulo?`<div style="font-size:12px;color:var(--txt2);margin-bottom:12px">${subtitulo}</div>`:''}
+    ${bodyHTML}
+    <div style="text-align:center;margin-top:14px">
+      <button onclick="document.getElementById('detalle-popup').remove()" class="btn" style="padding:8px 28px">Cerrar</button>
+    </div>
+  </div>`;
+  ov.onclick=e=>{if(e.target===ov)ov.remove();};
+  document.body.appendChild(ov);
+}
+
+// Autofiltro por columna: soporta texto libre (includes) y comparación numérica (>500, <=100, etc.)
+function matchFiltroCol(valor,filtro){
+  filtro=(filtro||'').trim();
+  if(!filtro)return true;
+  const op=filtro.match(/^(>=|<=|>|<)\s*([\d.,]+)$/);
+  if(op){
+    const num=parseFloat((valor??'').toString().replace(/[^\d.,-]/g,'').replace(',','.'))||0;
+    const ref=parseFloat(op[2].replace(',','.'))||0;
+    if(op[1]==='>')return num>ref;
+    if(op[1]==='<')return num<ref;
+    if(op[1]==='>=')return num>=ref;
+    return num<=ref;
+  }
+  return (valor??'').toString().toLowerCase().includes(filtro.toLowerCase());
+}
+
+function poblarSelectValores(id,valores,formatearTexto){
+  const sel=document.getElementById(id);
+  if(!sel||sel.options.length>1)return;
+  const vals=[...new Set(valores)].filter(Boolean).sort();
+  vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=formatearTexto?formatearTexto(v):v;sel.appendChild(o);});
+}
+
+function poblarSelectZona(id){
+  poblarSelectValores(id,_clientes.map(c=>c.zona||''),z=>'Zona '+z);
+}
 
 function toast(msg,tipo='ok',ms=2800){
   const t=document.createElement('div');
@@ -312,6 +359,8 @@ function volverAdmin(){
   if(usuarioActual) usuarioActual.rol = 'admin';
   const sidebar = document.getElementById('sidebar');
   if(sidebar) sidebar.style.display = '';
+  const btnMenu = document.getElementById('btn-menu');
+  if(btnMenu) btnMenu.style.display = '';
   document.querySelector('[data-p="vendedor-home"]').style.display = 'none';
   const btnAdmin = document.getElementById('btn-volver-admin');
   if(btnAdmin) btnAdmin.style.display = 'none';
@@ -416,6 +465,8 @@ document.addEventListener('keydown',e=>{
     // Si hay buscador F3 abierto, cerrarlo
     const f3=document.getElementById('f3-modal');
     if(f3&&f3.style.display!=='none'){f3Cerrar();return;}
+    // Si el menú hamburguesa (sidebar) está abierto, cerrarlo
+    if(document.getElementById('sidebar')?.classList.contains('open')){cerrarMenu();return;}
     // Si hay dropdown del sidebar abierto, cerrarlo
     const sidebarOpen=document.querySelector('.sidebar-group.open');
     if(sidebarOpen){toggleSidebar(sidebarOpen.id.replace('sg-',''));return;}
@@ -591,6 +642,47 @@ function go(p){
   const g=grupoMap[p];
   if(g){const sg=document.getElementById('sg-'+g);if(sg)sg.classList.add('active');}
 }
+
+// ─── MENÚ HAMBURGUESA (mostrar/ocultar sidebar) ───
+function abrirMenu(){
+  const sidebar=document.getElementById('sidebar');
+  if(sidebar){sidebar.classList.add('open');sidebar.removeAttribute('inert');}
+  document.getElementById('sidebar-overlay')?.classList.add('open');
+  const btn=document.getElementById('btn-menu');
+  if(btn){btn.setAttribute('aria-expanded','true');btn.textContent='✕';}
+  setTimeout(()=>{
+    const first=sidebar?.querySelector('.sidebar-dash:not([style*="display:none"])');
+    if(first)first.focus();
+  },260);
+}
+function cerrarMenu(){
+  const sidebar=document.getElementById('sidebar');
+  const teniaFoco=sidebar?.contains(document.activeElement);
+  if(sidebar){sidebar.classList.remove('open');sidebar.setAttribute('inert','');}
+  document.getElementById('sidebar-overlay')?.classList.remove('open');
+  const btn=document.getElementById('btn-menu');
+  if(btn){
+    btn.setAttribute('aria-expanded','false');
+    btn.textContent='☰';
+    if(teniaFoco)btn.focus();
+  }
+}
+function toggleMenu(){
+  document.getElementById('sidebar')?.classList.contains('open')?cerrarMenu():abrirMenu();
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  // Cerrar el menú al elegir un ítem de navegación (no al abrir/cerrar un grupo)
+  document.getElementById('sidebar')?.addEventListener('click',e=>{
+    if(e.target.closest('.sidebar-item,.sidebar-dash'))cerrarMenu();
+  });
+  // Tecla Inicio en cualquier lugar de una fila de Comprobantes de compra: ver ese comprobante
+  document.getElementById('comp-tbody')?.addEventListener('keydown',e=>{
+    if(e.key!=='Home')return;
+    const tr=e.target.closest('tr[data-comp-id]');if(!tr)return;
+    e.preventDefault();
+    verComprobanteCompra(parseInt(tr.dataset.compId));
+  });
+});
 
 function toggleSidebar(grupo){
   const sg=document.getElementById('sg-'+grupo);
