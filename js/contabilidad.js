@@ -944,7 +944,7 @@ function dropProvComp(){
   const q=(document.getElementById('comp-prov-q')?.value||'').toLowerCase();
   const drop=document.getElementById('comp-prov-drop');if(!drop)return;
   if(q.length<1){drop.style.display='none';return;}
-  const m=_proveedores.filter(p=>(p.nombre||'').toLowerCase().includes(q)).slice(0,8);
+  const m=_proveedores.filter(p=>(p.nombre||'').toLowerCase().includes(q));
   drop.innerHTML=m.map(p=>`<div style="padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--brd);font-size:13px"
     onmousedown="selProvComp(${p.id})"><strong>${p.nombre}</strong>
     ${p.cuit?'<span style="font-size:11px;color:var(--txt2);margin-left:6px">CUIT: '+p.cuit+'</span>':''}</div>`).join('');

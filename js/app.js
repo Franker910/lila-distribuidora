@@ -296,6 +296,7 @@ const _F8_FORMS={
   'cob-form-inline':{guardar:()=>guardarCobro(),imprimir:id=>imprimirRecibo(id),editId:null},
   'm-nc':{guardar:()=>guardarNC(),imprimir:id=>imprimirNC(id),editId:null},
   'm-nd':{guardar:()=>guardarND(),imprimir:id=>imprimirNC(id),editId:null},
+  'p-remito-rapido':{guardar:()=>emitirRemitoRapido(),imprimir:()=>imprimirRemito(),editId:null},
 };
 let _f8Cfg=null;
 

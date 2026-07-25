@@ -259,7 +259,7 @@ function dropCliCob(){
   const q=(document.getElementById('cob-cli-q').value||'').toLowerCase();
   const drop=document.getElementById('cob-cli-drop');
   if(q.length<1){drop.style.display='none';return;}
-  const m=_clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q)).slice(0,8);
+  const m=_clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q));
   drop.innerHTML=m.map(c=>`<div onmousedown="selCliCob(${c.id})"><strong>${c.nombre}</strong> <span style="color:var(--txt2);font-size:11px">Saldo: ${fmt(c.saldo)}</span></div>`).join('');
   drop.style.display=m.length?'block':'none';
 }

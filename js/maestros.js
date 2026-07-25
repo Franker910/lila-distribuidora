@@ -581,7 +581,7 @@ function lpSimDropCli(){
   const q=(document.getElementById('lp-sim-cli-q').value||'').toLowerCase();
   const drop=document.getElementById('lp-sim-cli-drop');
   if(q.length<1){drop.style.display='none';return;}
-  const m=_clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q)).slice(0,8);
+  const m=_clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q));
   drop.innerHTML=m.map(c=>`<div onmousedown="lpSimSelCli(${c.id})"
     style="padding:10px 12px;cursor:pointer;border-bottom:0.5px solid var(--brd)"
     onmouseover="this.style.background='var(--PL)'" onmouseout="this.style.background=''">
@@ -604,7 +604,7 @@ function lpSimDropPro(){
   const q=(document.getElementById('lp-sim-pro-q').value||'').toLowerCase();
   const drop=document.getElementById('lp-sim-pro-drop');
   if(q.length<1){drop.style.display='none';return;}
-  const m=_productos.filter(p=>(p.nombre||'').toLowerCase().includes(q)).slice(0,10);
+  const m=_productos.filter(p=>(p.nombre||'').toLowerCase().includes(q));
   drop.innerHTML=m.map(p=>`<div onmousedown="lpSimSelPro(${p.id})"
     style="padding:10px 12px;cursor:pointer;border-bottom:0.5px solid var(--brd)"
     onmouseover="this.style.background='var(--PL)'" onmouseout="this.style.background=''">

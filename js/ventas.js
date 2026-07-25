@@ -87,7 +87,7 @@ function dropCli(){
   const q=(document.getElementById('np-cli-q').value||'').toLowerCase();
   const drop=document.getElementById('np-cli-drop');
   if(q.length<1){drop.style.display='none';return;}
-  const m=_clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q)||(c.telefono||'').includes(q)).slice(0,8);
+  const m=_clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q)||(c.telefono||'').includes(q));
   drop.innerHTML=m.map(c=>`<div onmousedown="selCli(${c.id})"><strong>${c.nombre}</strong> <span style="color:var(--txt2);font-size:11px">${c.localidad} · Z${c.zona}</span></div>`).join('');
   drop.style.display=m.length?'block':'none';
 }
@@ -118,7 +118,7 @@ function dropPro(){
   const q=(document.getElementById('np-pro-q').value||'').toLowerCase();
   const drop=document.getElementById('np-pro-drop');
   if(q.length<1){drop.style.display='none';_proTemp=null;return;}
-  const m=_productos.filter(p=>p.activo!==false&&((p.nombre||'').toLowerCase().includes(q)||(p.codigo||'').toString().includes(q))).slice(0,8);
+  const m=_productos.filter(p=>p.activo!==false&&((p.nombre||'').toLowerCase().includes(q)||(p.codigo||'').toString().includes(q)));
   drop.innerHTML=m.map(p=>{
     const stock=p.stock||0;
     const stockColor=stock<=0?'color:#C00000;font-weight:600':stock<=5?'color:#C55A11;font-weight:600':'color:var(--txt2)';
@@ -432,7 +432,7 @@ function dropCliRR(){
     const matchQ=(c.nombre||'').toLowerCase().includes(q)||(c.telefono||'').includes(q);
     if(!ven)return matchQ;
     return matchQ&&(c.vendedor||'').toLowerCase().includes(ven);
-  }).slice(0,8);
+  });
   drop.innerHTML=m.map(c=>`<div onmousedown="selCliRR(${c.id})"><strong>${c.nombre}</strong> <span style="color:var(--txt2);font-size:11px">${c.localidad} · Z${c.zona}</span></div>`).join('');
   if(m.length){ajustarDrop(inp,drop);drop.style.display='block';}else{drop.style.display='none';}
 }
@@ -623,7 +623,7 @@ function dropProRR(){
   const q=(document.getElementById('rr-pro-q').value||'').toLowerCase();
   const drop=document.getElementById('rr-pro-drop');
   if(q.length<1){drop.style.display='none';_rrProTemp=null;return;}
-  const m=_productos.filter(p=>p.activo!==false&&((p.nombre||'').toLowerCase().includes(q)||(p.codigo||'').toString().includes(q))).slice(0,8);
+  const m=_productos.filter(p=>p.activo!==false&&((p.nombre||'').toLowerCase().includes(q)||(p.codigo||'').toString().includes(q)));
   drop.innerHTML=m.map(p=>{
     const stock=p.stock||0;
     const stockColor=stock<=0?'color:#C00000;font-weight:600':stock<=5?'color:#C55A11;font-weight:600':'color:var(--txt2)';
@@ -832,6 +832,7 @@ async function emitirRemitoRapido(){
     </div>`;
   document.body.appendChild(toast);
   setTimeout(()=>{ if(toast.parentNode) toast.remove(); }, 8000);
+  return rem.id;
 }
 
 let _ncs=[], _ncItems=[], _ncProTemp=null;
@@ -893,7 +894,7 @@ function dropCliNC(){
   const q=(document.getElementById('nc-cli-q').value||'').toLowerCase();
   const drop=document.getElementById('nc-cli-drop');
   if(q.length<1){drop.style.display='none';return;}
-  const m=_clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q)).slice(0,8);
+  const m=_clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q));
   drop.innerHTML=m.map(c=>`<div onmousedown="selCliNC(${c.id})"><strong>${c.nombre}</strong> <span style="color:var(--txt2);font-size:11px">Saldo: ${fmt(c.saldo)}</span></div>`).join('');
   drop.style.display=m.length?'block':'none';
 }
@@ -970,7 +971,7 @@ function dropProNC(){
   const q=(document.getElementById('nc-pro-q').value||'').toLowerCase();
   const drop=document.getElementById('nc-pro-drop');
   if(q.length<1){drop.style.display='none';_ncProTemp=null;return;}
-  const m=_productos.filter(p=>(p.nombre||'').toLowerCase().includes(q)||(p.codigo||'').toString().includes(q)).slice(0,8);
+  const m=_productos.filter(p=>(p.nombre||'').toLowerCase().includes(q)||(p.codigo||'').toString().includes(q));
   drop.innerHTML=m.map(p=>`<div onmousedown="selProNC(${p.id})"><strong>${p.nombre}</strong> <span style="color:var(--txt2);font-size:11px">${fmt(p.precio)} · stock:${p.stock||0} ${p.unidad||''}</span></div>`).join('');
   drop.style.display=m.length?'block':'none';
 }
@@ -1199,7 +1200,7 @@ function dropCliND(){
   const q=(document.getElementById('nd-cli-q')?.value||'').toLowerCase();
   const drop=document.getElementById('nd-cli-drop');if(!drop)return;
   if(q.length<1){drop.style.display='none';return;}
-  const m=_clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q)).slice(0,8);
+  const m=_clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q));
   drop.innerHTML=m.map(c=>`<div onmousedown="selCliND(${c.id})"><strong>${c.nombre}</strong> <span style="color:var(--txt2);font-size:11px">Saldo: ${fmt(c.saldo)}</span></div>`).join('');
   drop.style.display=m.length?'block':'none';
 }
