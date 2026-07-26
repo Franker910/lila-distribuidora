@@ -45,7 +45,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260725-02';
+const APP_VERSION = '20260726-01';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí Y CACHE_VERSION en sw.js
 function actualizarApp(){
@@ -316,12 +316,25 @@ let _f8Cfg=null;
 function _f8AbrirPopup(cfg){
   _f8Cfg=cfg;
   const idExistente=cfg.editId?document.getElementById(cfg.editId)?.value:'';
-  const body=`<div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+  const body=`<div id="f8-botonera" style="display:flex;flex-direction:column;gap:10px;margin-top:6px" onkeydown="_f8Nav(event)">
     <button class="btn P" style="padding:14px;font-size:14px" onclick="_f8Ejecutar('grabar')">💾 Grabar</button>
     ${cfg.imprimir?`<button class="btn P" style="padding:14px;font-size:14px" onclick="_f8Ejecutar('grabarImprimir')">💾🖨️ Grabar e imprimir</button>`:''}
     ${cfg.imprimir&&idExistente?`<button class="btn" style="padding:14px;font-size:14px" onclick="_f8Ejecutar('soloImprimir')">🖨️ Solo imprimir</button>`:''}
   </div>`;
   popupDetalle('¿Qué querés hacer? (F8)','',body);
+  // Foco en el primer botón para poder elegir con flechas ↑↓ + Enter, sin mouse
+  setTimeout(()=>document.querySelector('#f8-botonera button')?.focus(),30);
+}
+
+function _f8Nav(e){
+  if(e.key==='Escape'){e.stopPropagation();document.getElementById('detalle-popup')?.remove();return;}
+  if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
+  e.preventDefault();
+  e.stopPropagation();
+  const btns=[...document.querySelectorAll('#f8-botonera button')];
+  const idx=btns.indexOf(document.activeElement);
+  const next=e.key==='ArrowDown'?Math.min(idx+1,btns.length-1):Math.max(idx-1,0);
+  btns[next]?.focus();
 }
 
 async function _f8Ejecutar(accion){

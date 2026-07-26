@@ -706,13 +706,13 @@ function renderItemsRR(){
     sub+=base;dtoT+=dtoA;tot+=neto;
     const pedidoCant=it.pedido_cant?`<span style="color:var(--txt2);font-size:10px">(ped:${it.pedido_cant})</span>`:'';
     const pesoCol=it.esPeso
-      ?`<input type="number" value="${it.peso||''}" min="0.01" step="0.01" onchange="updItemRR(${i},'peso',this.value)" style="width:70px;${(it.peso||0)===0?'border-color:var(--W)':''}" placeholder="kg real" title="Peso real de balanza">`
+      ?`<input type="number" data-idx="${i}" data-field="peso" value="${it.peso||''}" min="0.01" step="0.01" oninput="updItemRR(${i},'peso',this.value,this)" style="width:70px;${(it.peso||0)===0?'border-color:var(--W)':''}" placeholder="kg real" title="Peso real de balanza">`
       :`<span style="width:70px;display:inline-block;text-align:center;font-size:12px;color:var(--txt2)">—</span>`;
     return `<div class="pitem" style="${it.esPeso&&(it.peso||0)===0?'border:1px solid var(--W);background:var(--WL)':''}">
       <span class="pnom">${it.nom}${it.esPeso?' <span class="b bA" style="font-size:10px">kg</span>':''} ${pedidoCant}</span>
-      <input type="number" value="${it.cant}" min="1" step="1" onchange="updItemRR(${i},'cant',this.value)" style="width:58px" title="Cantidad">
+      <input type="number" data-idx="${i}" data-field="cant" value="${it.cant}" min="1" step="1" oninput="updItemRR(${i},'cant',this.value,this)" style="width:58px" title="Cantidad">
       ${pesoCol}
-      <input type="number" value="${it.precio}" onchange="updItemRR(${i},'precio',this.value)" style="width:88px;text-align:right">
+      <input type="number" data-idx="${i}" data-field="precio" value="${it.precio}" oninput="updItemRR(${i},'precio',this.value,this)" style="width:88px;text-align:right">
       <span style="width:42px;text-align:center;font-size:11px;color:var(--txt2)">${it.dto?it.dto+'%':''}</span>
       <span class="ptot">${q>0?fmt(neto):'—'}</span>
       <button class="btn D sm" onclick="delItemRR(${i})">🗑</button>
@@ -737,7 +737,16 @@ function renderItemsRR(){
   document.getElementById('rr-total').textContent=fmt(tot);
 }
 
-function updItemRR(i,k,v){_rrItems[i][k]=parseFloat(v)||0;renderItemsRR();}
+function updItemRR(i,k,v,inputEl){
+  _rrItems[i][k]=parseFloat(v)||0;
+  renderItemsRR();
+  if(!inputEl)return;
+  // Restaurar el string crudo tipeado (ej "1." antes de terminar "1.5"): el
+  // re-render usa el valor numérico del modelo y pisaría un punto decimal
+  // a medio escribir si reasignáramos el value parseado.
+  const nuevo=el2=>el2&&(el2.value=v,el2.focus());
+  nuevo(document.querySelector(`#rr-items input[data-idx="${i}"][data-field="${k}"]`));
+}
 
 function delItemRR(i){_rrItems.splice(i,1);renderItemsRR();}
 
