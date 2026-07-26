@@ -368,11 +368,13 @@ function verRemitoEnCobro(id){
     </table>
     <div style="text-align:right;font-size:16px;font-weight:700;color:var(--PD);margin-top:12px;border-top:2px solid var(--brd);padding-top:10px">Total: ${fmt(r.total)}</div>
     <div style="text-align:center;margin-top:14px">
-      <button onclick="document.getElementById('cob-rem-popup').remove()" class="btn" style="padding:8px 28px">Cerrar</button>
+      <button id="cob-rem-popup-cerrar" onclick="document.getElementById('cob-rem-popup').remove()" class="btn" style="padding:8px 28px">Cerrar</button>
     </div>
   </div>`;
   ov.onclick=e=>{if(e.target===ov)ov.remove();};
+  ov.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();ov.remove();}});
   document.body.appendChild(ov);
+  setTimeout(()=>document.getElementById('cob-rem-popup-cerrar')?.focus(),30);
 }
 
 function verCobroDetalle(id){

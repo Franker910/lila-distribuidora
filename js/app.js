@@ -45,7 +45,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260726-03';
+const APP_VERSION = '20260726-04';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -198,6 +198,8 @@ function entrarApp(found){
       const dashBtn=document.querySelector('.sidebar-dash[data-p="dash"]');
       if(dashBtn){dashBtn.classList.add('on');}
       go('dash');
+      // Foco en el botón de hamburguesa para poder arrancar a navegar sin mouse
+      setTimeout(()=>document.getElementById('btn-menu')?.focus(),80);
       // Navegación con flechas entre ítems del sidebar (solo mientras está abierto)
       document.getElementById('sidebar').addEventListener('keydown',function(e){
         if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
@@ -283,11 +285,13 @@ function popupDetalle(titulo,subtitulo,bodyHTML){
     ${subtitulo?`<div style="font-size:12px;color:var(--txt2);margin-bottom:12px">${subtitulo}</div>`:''}
     ${bodyHTML}
     <div style="text-align:center;margin-top:14px">
-      <button onclick="document.getElementById('detalle-popup').remove()" class="btn" style="padding:8px 28px">Cerrar</button>
+      <button id="detalle-popup-cerrar" onclick="document.getElementById('detalle-popup').remove()" class="btn" style="padding:8px 28px">Cerrar</button>
     </div>
   </div>`;
   ov.onclick=e=>{if(e.target===ov)ov.remove();};
+  ov.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();ov.remove();}});
   document.body.appendChild(ov);
+  setTimeout(()=>document.getElementById('detalle-popup-cerrar')?.focus(),30);
 }
 
 // ─── TECLA F8: Grabar / Grabar e imprimir / Solo imprimir ───
