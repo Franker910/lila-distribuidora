@@ -912,6 +912,19 @@ function histAbrirDetalle(tipo,id){
   else if(tipo==='N.CRED')verNCDetalle(id);
 }
 
+// Navegación por teclado entre renglones de la cuenta corriente: ↑↓ mueve el
+// foco entre movimientos, Inicio o Enter abre el comprobante de ese renglón.
+function histNavFila(e,tr,tipo,id){
+  if(e.key==='Home'||e.key==='Enter'){e.preventDefault();histAbrirDetalle(tipo,id);return;}
+  if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
+  e.preventDefault();
+  const filas=[...tr.parentElement.querySelectorAll('tr[tabindex]')];
+  const idx=filas.indexOf(tr);
+  const next=e.key==='ArrowDown'?Math.min(idx+1,filas.length-1):Math.max(idx-1,0);
+  filas[next]?.focus();
+  filas[next]?.scrollIntoView({block:'nearest'});
+}
+
 function histCliente(id){
   const sid=String(id);
   const c=_clientes.find(x=>String(x.id)===sid)||_clientes.find(x=>x.id==id);
@@ -986,7 +999,7 @@ function histCliente(id){
         </tr>
       </thead>
       <tbody>
-        ${movs.length?movs.map(m=>`<tr tabindex="0" onclick="histAbrirDetalle('${m.tipo}',${m.id})" onkeydown="if(event.key==='Home'){event.preventDefault();histAbrirDetalle('${m.tipo}',${m.id})}" title="Click o tecla Inicio para ver el detalle" style="cursor:pointer;${m.tipo==='RECIBO'?'background:#f0faf5':m.tipo==='N.CRED'?'background:#fef9f0':''}">
+        ${movs.length?movs.map(m=>`<tr tabindex="0" onclick="histAbrirDetalle('${m.tipo}',${m.id})" onkeydown="histNavFila(event,this,'${m.tipo}',${m.id})" onfocus="this.style.outline='2px solid var(--P)'" onblur="this.style.outline=''" title="↑↓ navegar · Inicio o Enter para ver el detalle" style="cursor:pointer;${m.tipo==='RECIBO'?'background:#f0faf5':m.tipo==='N.CRED'?'background:#fef9f0':''}">
           <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd)">${m.fecha}</td>
           <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd);font-weight:500">${m.tipo}</td>
           <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd);color:var(--A)">${m.nro}</td>
@@ -1010,6 +1023,14 @@ function histCliente(id){
     </div>
   `;
   document.getElementById('m-ver').classList.add('on');
+  // Foco automático en el movimiento más reciente para poder navegar con
+  // ↑↓ y abrir el comprobante con Inicio/Enter sin tocar el mouse.
+  if(movs.length){
+    setTimeout(()=>{
+      const filas=document.querySelectorAll('#m-ver-body tr[tabindex]');
+      filas[filas.length-1]?.focus();
+    },80);
+  }
 }
 
 function initRendicion(){
