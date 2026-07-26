@@ -751,6 +751,11 @@ async function aprobarTodoRendicion(ids){
   const esAdmin=usuarioActual?.esAdmin||usuarioActual?.rol_original==='admin';
   if(!esAdmin){toast('Solo el admin puede aprobar cobros','err');return;}
   let ok=0,err=0;
+  // Saldos corrientes en memoria: si el lote trae más de un cobro del mismo
+  // cliente o imputado al mismo remito, cada iteración tiene que partir del
+  // saldo ya descontado por la anterior — no del valor stale de _clientes/_remitos,
+  // que si no se pisa una imputación a la siguiente.
+  const saldoRemCorriente={},saldoCliCorriente={};
   for(const id of ids){
     const cob=_cobros.find(x=>x.id===id);if(!cob||cob.estado_rendicion!=='pendiente')continue;
     const {error}=await sb.from('cobros').update({estado_rendicion:'validado'}).eq('id',id);
@@ -759,13 +764,17 @@ async function aprobarTodoRendicion(ids){
     for(const imp of imps){
       const rem=_remitos.find(r=>r.id===imp.remito_id);
       if(rem){
-        const nuevoSaldo=Math.max(0,(rem.saldo_pendiente!=null?rem.saldo_pendiente:rem.total)-imp.monto);
+        if(!(rem.id in saldoRemCorriente))saldoRemCorriente[rem.id]=rem.saldo_pendiente!=null?rem.saldo_pendiente:rem.total;
+        const nuevoSaldo=Math.max(0,saldoRemCorriente[rem.id]-imp.monto);
+        saldoRemCorriente[rem.id]=nuevoSaldo;
         await sb.from('remitos').update({saldo_pendiente:nuevoSaldo,cobrado:nuevoSaldo<=0,forma_cobro:nuevoSaldo<=0?(cob.forma||'efectivo'):rem.forma_cobro}).eq('id',rem.id);
       }
     }
     const cli=_clientes.find(x=>x.id===cob.cliente_id||(cob.cliente&&x.nombre&&x.nombre.trim().toLowerCase()===cob.cliente.trim().toLowerCase()));
     if(cli){
-      const nuevoSaldo=Math.max(0,(cli.saldo||0)-cob.importe);
+      if(!(cli.id in saldoCliCorriente))saldoCliCorriente[cli.id]=cli.saldo||0;
+      const nuevoSaldo=Math.max(0,saldoCliCorriente[cli.id]-cob.importe);
+      saldoCliCorriente[cli.id]=nuevoSaldo;
       await sb.from('clientes').update({saldo:nuevoSaldo}).eq('id',cli.id);
     }
     ok++;
