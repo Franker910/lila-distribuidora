@@ -45,7 +45,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260726-04';
+const APP_VERSION = '20260726-05';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -64,10 +64,13 @@ async function initVersionCheck(){
   let _updateReady=false;
   let _bgDesde=0;
 
-  // Recarga silenciosa: si hay diferencia de versión, recargar directamente
+  // Recarga silenciosa: si hay diferencia de versión, recargar directamente.
+  // APP_VERSION vive en js/app.js, no en index.html — hay que traer ese
+  // archivo puntual (bypaseando cache) para poder comparar la versión real.
   const _autoReload=async()=>{
     try{
-      const r=await fetch(location.origin+location.pathname+'?_v='+Date.now(),{cache:'no-store',headers:{'Accept':'text/html'}});
+      const url=new URL('js/app.js?_v='+Date.now(),location.href).href;
+      const r=await fetch(url,{cache:'no-store'});
       if(!r.ok)return;
       const txt=await r.text();
       const m=txt.match(/APP_VERSION\s*=\s*'([^']+)'/);
