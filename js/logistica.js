@@ -941,6 +941,10 @@ async function hrCargarRuta(){
   const {data} = await q.order('orden');
   _hrRuta = (data||[]).map(r=>({...r, visitado: r.visitado||false}));
   hrRenderLista();
+  const cerrada=_hrRuta.length>0&&_hrRuta.every(r=>r.cerrada);
+  const numRend=_hrRuta.find(r=>r.numero_rendicion)?.numero_rendicion;
+  const badge=document.getElementById('hr-estado-badge');
+  if(badge)badge.innerHTML=cerrada?`<span class="b bP">🔒 Cerrada${numRend?' — Rendición #'+numRend:''}</span>`:_hrRuta.length?'<span class="b bW">🔓 Abierta</span>':'';
 }
 
 function hrRenderLista(){
@@ -985,6 +989,7 @@ function hrFiltrarClientes(){
 }
 
 function hrSelCli(id){
+  if(_hrRuta.length&&_hrRuta.every(r=>r.cerrada)){alert('Esta hoja de ruta ya está cerrada y no se pueden agregar más clientes.');return;}
   const c = _clientes.find(x=>x.id===id);if(!c)return;
   _hrRuta.push({cliente_id:c.id,nombre:c.nombre,direccion:c.direccion||'',localidad:c.localidad||'',zona:c.zona||'',telefono:c.telefono||'',vendedor:document.getElementById('hr-vendedor').value||'',orden:_hrRuta.length+1,visitado:false,fecha:document.getElementById('hr-fecha').value});
   document.getElementById('hr-cli-drop').style.display='none';
@@ -1004,6 +1009,7 @@ async function hrGuardarRuta(){
   const fecha = document.getElementById('hr-fecha').value;
   const vend = document.getElementById('hr-vendedor').value;
   if(!fecha){alert('Seleccioná una fecha');return;}
+  if(_hrRuta.length&&_hrRuta.every(r=>r.cerrada)){alert('Esta hoja de ruta ya está cerrada (tiene rendición generada) y no se puede modificar.');return;}
   // Borrar la ruta anterior de ese día y vendedor
   const dq = sb.from('hoja_ruta').delete().eq('fecha',fecha);
   if(vend) dq.eq('vendedor',vend);
@@ -1014,7 +1020,31 @@ async function hrGuardarRuta(){
     if(error){alert('Error al guardar: '+error.message);return;}
   }
   alert('Ruta guardada ✓');
+  hrCargarRuta();
 }
+
+async function hrCerrarYGenerarRendicion(){
+  const fecha = document.getElementById('hr-fecha').value;
+  const vend = document.getElementById('hr-vendedor').value;
+  if(!fecha){alert('Seleccioná una fecha');return;}
+  if(!_hrRuta.length){alert('No hay clientes cargados en esta hoja de ruta');return;}
+  if(_hrRuta.every(r=>r.cerrada)){alert('Esta hoja de ruta ya está cerrada.');return;}
+  if(!confirm(`¿Cerrar la hoja de ruta de ${vend||'(todos)'} del ${fecha} y generar su rendición?\nLos cobros de estos clientes quedarán listos para aprobar en Rendición.`))return;
+  const num=await _proximoNumeroRendicion();
+  const dq=sb.from('hoja_ruta').update({cerrada:true,numero_rendicion:num}).eq('fecha',fecha);
+  if(vend)dq.eq('vendedor',vend);
+  const {error}=await dq;
+  if(error){alert('Error al cerrar: '+error.message);return;}
+  const clienteIds=_hrRuta.map(r=>r.cliente_id);
+  for(const cid of clienteIds){
+    await sb.from('cobros').update({numero_rendicion:num}).eq('cliente_id',cid).eq('fecha',fecha).is('numero_rendicion',null);
+  }
+  await cargarCobros();
+  alert(`✅ Hoja de ruta cerrada — Rendición #${num} generada.`);
+  hrCargarRuta();
+}
+
+let _hrMiaRutaActual = [];
 
 async function hrVerMiRuta(){
   const fecha = document.getElementById('hr-fecha-mia').value;
@@ -1024,9 +1054,17 @@ async function hrVerMiRuta(){
   if(vend) q.eq('vendedor',vend);
   const {data} = await q.order('orden');
   const ruta = data||[];
+  _hrMiaRutaActual = ruta;
+  const cerrada = ruta.length>0 && ruta.every(r=>r.cerrada);
+  const btnAgregar = document.getElementById('hr-mia-btn-agregar');
+  if(btnAgregar) btnAgregar.style.display = cerrada?'none':'';
+  if(cerrada){
+    const buscador=document.getElementById('hr-mia-buscador');
+    if(buscador) buscador.style.display='none';
+  }
   const el = document.getElementById('hr-mia-lista');
   if(!ruta.length){el.innerHTML='<div class="empty">Sin clientes asignados para hoy</div>';return;}
-  el.innerHTML = ruta.map((r,i)=>`
+  el.innerHTML = (cerrada?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">🔒 Ruta cerrada — ya se generó su rendición</div>':'') + ruta.map((r,i)=>`
     <div onclick="hrMarcarVisitado(${r.id},${!r.visitado})"
       style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:${r.visitado?'var(--PL)':'var(--bg)'};border-radius:14px;margin-bottom:8px;border:2px solid ${r.visitado?'var(--P)':'var(--brd)'};cursor:pointer;transition:background .15s">
       <div style="font-size:26px;font-weight:700;min-width:32px;text-align:center;color:${r.visitado?'var(--P)':'var(--txt2)'}">
@@ -1047,5 +1085,50 @@ async function hrVerMiRuta(){
 
 async function hrMarcarVisitado(id, visitado){
   await sb.from('hoja_ruta').update({visitado}).eq('id',id);
+  hrVerMiRuta();
+}
+
+// ─── Agregar cliente sobre la marcha (vista móvil del repartidor/vendedor) ──
+function hrMiRutaAgregarToggle(){
+  const w=document.getElementById('hr-mia-buscador');if(!w)return;
+  const abrir=w.style.display==='none';
+  w.style.display=abrir?'block':'none';
+  if(abrir){
+    document.getElementById('hr-mia-cli-q').value='';
+    hrMiRutaFiltrar();
+    setTimeout(()=>document.getElementById('hr-mia-cli-q')?.focus(),100);
+  }
+}
+
+function hrMiRutaFiltrar(){
+  const q=(document.getElementById('hr-mia-cli-q')?.value||'').toLowerCase();
+  const drop=document.getElementById('hr-mia-cli-drop');if(!drop)return;
+  if(q.length<1){drop.style.display='none';return;}
+  const idsEnRuta=new Set(_hrMiaRutaActual.map(r=>r.cliente_id));
+  const res=_clientes.filter(c=>!idsEnRuta.has(c.id)&&(c.nombre||'').toLowerCase().includes(q)).slice(0,15);
+  drop.innerHTML=res.length?res.map(c=>`
+    <div onmousedown="hrMiRutaAgregarCliente(${c.id})" style="padding:12px 14px;cursor:pointer;border-bottom:0.5px solid var(--brd)">
+      <div style="font-weight:600;font-size:14px">${c.nombre}</div>
+      <div style="font-size:12px;color:var(--txt2)">${c.direccion||''}${c.localidad?' · '+c.localidad:''}</div>
+    </div>`).join(''):'<div style="padding:12px;color:var(--txt2);font-size:13px">Sin resultados</div>';
+  drop.style.display='block';
+}
+
+async function hrMiRutaAgregarCliente(clienteId){
+  const c=_clientes.find(x=>x.id===clienteId);if(!c)return;
+  const fecha=document.getElementById('hr-fecha-mia').value;
+  const vend=usuarioActual?.nombre||'';
+  if(_hrMiaRutaActual.length&&_hrMiaRutaActual.every(r=>r.cerrada)){
+    alert('Esta hoja de ruta ya fue cerrada, no se pueden agregar más clientes.');
+    return;
+  }
+  const ordenMax=_hrMiaRutaActual.reduce((m,r)=>Math.max(m,r.orden||0),0);
+  const {error}=await sb.from('hoja_ruta').insert({
+    cliente_id:c.id,nombre:c.nombre,direccion:c.direccion||'',localidad:c.localidad||'',
+    zona:c.zona||'',telefono:c.telefono||'',vendedor:vend,orden:ordenMax+1,visitado:false,fecha
+  });
+  if(error){alert('Error al agregar cliente: '+error.message);return;}
+  document.getElementById('hr-mia-cli-drop').style.display='none';
+  document.getElementById('hr-mia-buscador').style.display='none';
   hrVerMiRuta();
 }

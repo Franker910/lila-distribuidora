@@ -697,95 +697,247 @@ async function rechazarCobro(id){
   toast('❌ Cobro rechazado'+(yaImpacto?' — saldo revertido':''));
 }
 
+// ─── RENDICIÓN — por Hoja de Ruta ─────────────────────────────────────────
+let _hojaRutaTodas=[];
+let _rendHojaSel=null; // {fecha, vendedor} de la hoja elegida, o null
+
+async function cargarHojaRutaTodas(){
+  const {data}=await sb.from('hoja_ruta').select('*').order('fecha',{ascending:false});
+  _hojaRutaTodas=data||[];
+}
+
+// Próximo número de rendición: correlativo consultado directo en la base
+// (no confiar en cachés locales que puedan no estar cargados/actualizados).
+async function _proximoNumeroRendicion(){
+  const [{data:hr},{data:cb}]=await Promise.all([
+    sb.from('hoja_ruta').select('numero_rendicion').not('numero_rendicion','is',null).order('numero_rendicion',{ascending:false}).limit(1),
+    sb.from('cobros').select('numero_rendicion').not('numero_rendicion','is',null).order('numero_rendicion',{ascending:false}).limit(1)
+  ]);
+  const maxHr=hr?.[0]?.numero_rendicion||0;
+  const maxCb=cb?.[0]?.numero_rendicion||0;
+  return Math.max(maxHr,maxCb)+1;
+}
+
+function _idsChk(sel){return [...document.querySelectorAll(sel+':checked')].map(c=>parseInt(c.dataset.cobid));}
+
 function renderRendicion(){
-  const el=document.getElementById('rend-resultado');if(!el)return;
-  const mostrarTodos=document.getElementById('rend-mostrar-todos')?.checked;
+  renderListaHojasRuta();
+  if(_rendHojaSel)renderGrillaRendicion();
+  renderSinHojaRuta();
+}
+
+function renderListaHojasRuta(){
+  const el=document.getElementById('rend-hr-lista');if(!el)return;
+  const q=(document.getElementById('rend-hr-q')?.value||'').toLowerCase();
+  const grupos={};
+  _hojaRutaTodas.forEach(r=>{
+    const vend=(r.vendedor||'').trim()||'—';
+    const key=r.fecha+'|'+vend;
+    if(!grupos[key])grupos[key]={fecha:r.fecha,vendedor:vend,filas:[]};
+    grupos[key].filas.push(r);
+  });
+  let lista=Object.values(grupos).sort((a,b)=>b.fecha.localeCompare(a.fecha)||a.vendedor.localeCompare(b.vendedor));
+  if(q)lista=lista.filter(g=>g.vendedor.toLowerCase().includes(q)||g.fecha.includes(q));
+  if(!lista.length){el.innerHTML='<div class="empty">No hay hojas de ruta cargadas.</div>';return;}
+  el.innerHTML=lista.map(g=>{
+    const cerrada=g.filas.length>0&&g.filas.every(f=>f.cerrada);
+    const numRend=g.filas.find(f=>f.numero_rendicion)?.numero_rendicion;
+    const fechaFmt=g.fecha.split('-').reverse().join('/');
+    const sel=_rendHojaSel&&_rendHojaSel.fecha===g.fecha&&_rendHojaSel.vendedor===g.vendedor;
+    return `<div onclick="seleccionarHojaRendicion('${g.fecha}',${JSON.stringify(g.vendedor)})"
+      style="cursor:pointer;padding:10px 14px;border-radius:8px;margin-bottom:6px;border:1.5px solid ${sel?'var(--P)':'var(--brd)'};background:${sel?'var(--PL)':'var(--bg)'};display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div><b>${g.vendedor}</b> <span style="color:var(--txt2);font-size:12px">— ${fechaFmt} · ${g.filas.length} cliente${g.filas.length>1?'s':''}</span></div>
+      <div style="display:flex;gap:8px;align-items:center;font-size:11px">
+        ${numRend?`<span class="b bA">Rendición #${numRend}</span>`:''}
+        <span class="b ${cerrada?'bP':'bW'}">${cerrada?'🔒 Cerrada':'🔓 Abierta'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function seleccionarHojaRendicion(fecha,vendedor){
+  _rendHojaSel={fecha,vendedor};
+  renderListaHojasRuta();
+  const wrap=document.getElementById('rend-grilla-wrap');
+  if(wrap)wrap.style.display='block';
+  renderGrillaRendicion();
+}
+
+function cerrarGrillaRendicion(){
+  _rendHojaSel=null;
+  const wrap=document.getElementById('rend-grilla-wrap');
+  if(wrap)wrap.style.display='none';
+  renderListaHojasRuta();
+}
+
+function renderGrillaRendicion(){
+  if(!_rendHojaSel)return;
+  const {fecha,vendedor}=_rendHojaSel;
+  const filasHoja=_hojaRutaTodas.filter(r=>r.fecha===fecha&&((r.vendedor||'').trim()||'—')===vendedor).sort((a,b)=>(a.orden||0)-(b.orden||0));
+  const titEl=document.getElementById('rend-grilla-titulo');
+  if(titEl)titEl.textContent=`${vendedor} — ${fecha.split('-').reverse().join('/')}`;
+
+  const fCli=(document.getElementById('rend-f-cli')?.value||'').toLowerCase();
+  const fZona=document.getElementById('rend-f-zona')?.value||'';
+  const fCobro=document.getElementById('rend-f-cobro')?.value||'';
+  const fForma=document.getElementById('rend-f-forma')?.value||'';
+  const fEstado=document.getElementById('rend-f-estado')?.value||'';
+
+  const filas=filasHoja.map(hr=>{
+    const cli=_clientes.find(c=>c.id===hr.cliente_id);
+    const zona=(cli?.zona||hr.zona||'').trim();
+    const rems=_remitos.filter(r=>!r.anulado&&String(r.cliente_id)===String(hr.cliente_id)&&r.fecha===fecha);
+    const importeRemito=rems.reduce((a,r)=>a+(r.total||0),0);
+    const cobs=_cobros.filter(c=>String(c.cliente_id)===String(hr.cliente_id)&&c.fecha===fecha);
+    const cobPrincipal=cobs[0]||null;
+    const importeCobrado=cobs.reduce((a,c)=>a+(c.importe||0),0);
+    const formas=[...new Set(cobs.map(c=>c.forma).filter(Boolean))].join('+');
+    const estado=cobPrincipal?(cobPrincipal.estado_rendicion||'pendiente'):null;
+    const numRend=cobPrincipal?.numero_rendicion||hr.numero_rendicion||null;
+    return {hr,cli,zona,importeRemito,cobs,cobPrincipal,importeCobrado,formas,estado,numRend};
+  });
+
+  // Filtros dinámicos de columna (zona/forma) según lo que hay en esta hoja
+  const selZona=document.getElementById('rend-f-zona');
+  if(selZona){
+    const zonas=[...new Set(filas.map(f=>f.zona).filter(Boolean))].sort();
+    if(selZona.dataset.hoja!==fecha+vendedor){selZona.innerHTML='<option value="">Todas</option>'+zonas.map(z=>`<option value="${z}">Z${z}</option>`).join('');selZona.dataset.hoja=fecha+vendedor;}
+  }
+  const selForma=document.getElementById('rend-f-forma');
+  if(selForma){
+    const formasSet=[...new Set(filas.flatMap(f=>f.formas?f.formas.split('+'):[]))].sort();
+    if(selForma.dataset.hoja!==fecha+vendedor){selForma.innerHTML='<option value="">Todas</option>'+formasSet.map(fm=>`<option value="${fm}">${fm}</option>`).join('');selForma.dataset.hoja=fecha+vendedor;}
+  }
+
+  const filasFiltradas=filas.filter(f=>{
+    const okCli=!fCli||(f.cli?.nombre||f.hr.nombre||'').toLowerCase().includes(fCli);
+    const okZona=!fZona||f.zona===fZona;
+    const okCobro=!fCobro||(fCobro==='si'?f.cobs.length>0:f.cobs.length===0);
+    const okForma=!fForma||f.formas.includes(fForma);
+    const okEstado=!fEstado||f.estado===fEstado;
+    return okCli&&okZona&&okCobro&&okForma&&okEstado;
+  });
+
   const esAdmin=usuarioActual?.esAdmin||usuarioActual?.rol_original==='admin';
-  const cobros=mostrarTodos?[..._cobros]:_cobros.filter(c=>(c.estado_rendicion||'pendiente')==='pendiente');
-  if(!cobros.length){
-    el.innerHTML=`<div style="text-align:center;padding:48px 20px;color:var(--txt2);font-size:14px">No hay cobros${mostrarTodos?'':' pendientes'}.</div>`;
-    return;
+  const tbody=document.getElementById('rend-grilla-tbody');
+  if(tbody)tbody.innerHTML=filasFiltradas.length?filasFiltradas.map(f=>{
+    const nombre=f.cli?.nombre||f.hr.nombre||'?';
+    const badge=!f.cobPrincipal?'<span class="b" style="background:var(--bg2);color:var(--txt2)">Sin cobro</span>':
+      f.estado==='validado'?'<span class="b bP">✅ Aprobado</span>':
+      f.estado==='rechazado'?'<span class="b bD">❌ Rechazado</span>':'<span class="b bW">⏳ Pendiente</span>';
+    const puedeAccion=esAdmin&&f.cobPrincipal&&f.estado==='pendiente';
+    const acciones=puedeAccion?`<button class="btn sm" style="background:var(--G);color:#fff;font-size:10px" onclick="validarCobro(${f.cobPrincipal.id})">✅</button><button class="btn sm D" style="font-size:10px" onclick="rechazarCobro(${f.cobPrincipal.id})">❌</button>`:'';
+    const chk=puedeAccion?`<input type="checkbox" class="rend-chk" data-cobid="${f.cobPrincipal.id}">`:'';
+    return `<tr>
+      <td>${chk}</td>
+      <td style="font-weight:500">${nombre}</td>
+      <td>${f.zona?`<span class="b bA">Z${f.zona}</span>`:'—'}</td>
+      <td>${vendedor}</td>
+      <td style="text-align:right">${f.importeRemito?fmt(f.importeRemito):'—'}</td>
+      <td style="text-align:center">${f.cobs.length?'✅ Sí':'—'}</td>
+      <td style="text-align:right;${f.importeCobrado?'font-weight:700;color:var(--P)':''}">${f.importeCobrado?fmt(f.importeCobrado):'—'}</td>
+      <td style="font-size:11px;color:var(--txt2)">${f.formas||'—'}</td>
+      <td style="text-align:center">${f.numRend||'—'}</td>
+      <td>${badge}</td>
+      <td style="white-space:nowrap">${acciones}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="11"><div class="empty">Sin resultados</div></td></tr>';
+
+  const totalClientes=filas.length;
+  const cobrados=filas.filter(f=>f.cobs.length>0).length;
+  const pct=totalClientes?Math.round(cobrados/totalClientes*100):0;
+  const totalRemitos=filas.reduce((a,f)=>a+f.importeRemito,0);
+  const totalCobrado=filas.reduce((a,f)=>a+f.importeCobrado,0);
+  const resEl=document.getElementById('rend-resumen');
+  if(resEl)resEl.innerHTML=`
+    <div class="g4">
+      <div class="card"><div style="font-size:11px;color:var(--txt2)">CLIENTES</div><div style="font-size:20px;font-weight:700">${totalClientes}</div></div>
+      <div class="card"><div style="font-size:11px;color:var(--txt2)">COBRADOS</div><div style="font-size:20px;font-weight:700">${cobrados} <span style="font-size:13px;color:var(--txt2)">(${pct}%)</span></div></div>
+      <div class="card"><div style="font-size:11px;color:var(--txt2)">TOTAL REMITOS</div><div style="font-size:20px;font-weight:700">${fmt(totalRemitos)}</div></div>
+      <div class="card"><div style="font-size:11px;color:var(--txt2)">TOTAL COBRADO</div><div style="font-size:20px;font-weight:700;color:var(--P)">${fmt(totalCobrado)}</div></div>
+    </div>`;
+}
+
+function rendToggleAll(cb){
+  document.querySelectorAll('.rend-chk').forEach(el=>{if(!el.disabled)el.checked=cb.checked;});
+}
+
+function rendAprobarSeleccionados(){
+  const ids=_idsChk('.rend-chk');
+  if(!ids.length){toast('Seleccioná al menos un cobro','err');return;}
+  aprobarTodoRendicion(ids);
+}
+function rendRechazarSeleccionados(){
+  const ids=_idsChk('.rend-chk');
+  if(!ids.length){toast('Seleccioná al menos un cobro','err');return;}
+  rechazarTodoRendicion(ids);
+}
+function rendAprobarSelSinHoja(){
+  const ids=_idsChk('.rend-sh-chk');
+  if(!ids.length){toast('Seleccioná al menos un cobro','err');return;}
+  aprobarTodoRendicion(ids);
+}
+function rendRechazarSelSinHoja(){
+  const ids=_idsChk('.rend-sh-chk');
+  if(!ids.length){toast('Seleccioná al menos un cobro','err');return;}
+  rechazarTodoRendicion(ids);
+}
+
+async function rendAsignarNumeroAuto(){
+  if(!_rendHojaSel)return;
+  const {fecha,vendedor}=_rendHojaSel;
+  const num=await _proximoNumeroRendicion();
+  if(!confirm(`¿Asignar el número de rendición #${num} a esta hoja de ruta?`))return;
+  const dq=sb.from('hoja_ruta').update({numero_rendicion:num}).eq('fecha',fecha).is('numero_rendicion',null);
+  if(vendedor&&vendedor!=='—')dq.eq('vendedor',vendedor);
+  await dq;
+  const clienteIds=_hojaRutaTodas.filter(r=>r.fecha===fecha&&((r.vendedor||'').trim()||'—')===vendedor).map(r=>r.cliente_id);
+  for(const cid of clienteIds){
+    await sb.from('cobros').update({numero_rendicion:num}).eq('cliente_id',cid).eq('fecha',fecha).is('numero_rendicion',null);
   }
-  // Remitos ya cubiertos por algún cobro (pendiente o validado), para no
-  // mostrarlos de nuevo como "sin cobrar" más abajo.
-  const remitosImputados=new Set();
-  _cobros.forEach(cb=>(cb.imputaciones||[]).forEach(i=>remitosImputados.add(i.remito_id)));
-  // Agrupar por vendedor → (fecha, reparto) → zona
-  const porVendedor={};
-  for(const cob of cobros){
-    const v=(cob.vendedor||'').trim()||'—';
-    if(!porVendedor[v])porVendedor[v]={};
-    const fecha=cob.fecha||'?';
-    const reparto=(cob.reparto||'').trim();
-    const key=fecha+'|'+reparto;
-    if(!porVendedor[v][key])porVendedor[v][key]={fecha,reparto,cobros:[]};
-    porVendedor[v][key].cobros.push(cob);
-  }
-  let html='';
-  for(const [vendedor,rendByKey] of Object.entries(porVendedor).sort((a,b)=>a[0].localeCompare(b[0]))){
-    // Asignar número de rendición por persona+día (orden ascendente dentro del día)
-    const rendList=Object.values(rendByKey).sort((a,b)=>{
-      const d=a.fecha.localeCompare(b.fecha);
-      return d!==0?d:(a.reparto||'').localeCompare(b.reparto||'');
-    });
-    const dayIdx={};
-    for(const r of rendList){dayIdx[r.fecha]=(dayIdx[r.fecha]||0)+1;r.rendNum=dayIdx[r.fecha];}
-    // Mostrar de más reciente a más antigua
-    rendList.sort((a,b)=>{const d=b.fecha.localeCompare(a.fecha);return d!==0?d:(a.reparto||'').localeCompare(b.reparto||'');});
-    html+=`<div style="margin-bottom:20px"><div style="font-size:16px;font-weight:700;color:var(--PD);padding:10px 14px;background:var(--PL);border-radius:10px;margin-bottom:8px">👤 ${vendedor}</div>`;
-    for(const rend of rendList){
-      const total=rend.cobros.reduce((s,c)=>s+(c.importe||0),0);
-      const pendientes=rend.cobros.filter(c=>(c.estado_rendicion||'pendiente')==='pendiente');
-      const fechaFmt=rend.fecha?rend.fecha.split('-').reverse().join('/'):'?';
-      const pendIds=pendientes.map(c=>c.id);
-      const rk=`rb-${vendedor.replace(/[^a-z0-9]/gi,'_')}-${rend.fecha}-${rend.rendNum}`;
-      // Agrupar cobros de esta rendición por zona del cliente
-      const porZona={};
-      for(const cob of rend.cobros){
-        const cli=_clientes.find(x=>String(x.id)===String(cob.cliente_id));
-        const zona=(cli?.zona||cli?.localidad||'—').trim()||'—';
-        if(!porZona[zona])porZona[zona]=[];
-        porZona[zona].push(cob);
-      }
-      html+=`<div style="border:1px solid var(--brd);border-radius:8px;overflow:hidden;margin-bottom:10px">`;
-      html+=`<div style="background:var(--bg2);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none" onclick="document.getElementById('${rk}').style.display=document.getElementById('${rk}').style.display==='none'?'':'none'">`;
-      html+=`<div style="font-weight:700;font-size:13px">${vendedor} — ${fechaFmt} — Rendición #${rend.rendNum}${rend.reparto?` <span style="font-weight:400;font-size:11px;color:var(--txt2)">(Rep. ${rend.reparto})</span>`:''}</div>`;
-      html+=`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-weight:700;font-size:15px;color:var(--PD)">${fmt(total)}</span>`;
-      if(pendientes.length&&esAdmin)html+=`<button class="btn sm P" onclick="event.stopPropagation();aprobarTodoRendicion([${pendIds.join(',')}])" style="font-size:11px;white-space:nowrap">✅ Aprobar todo (${pendientes.length})</button>`;
-      html+=`</div></div>`;
-      html+=`<div id="${rk}">`;
-      for(const [zona,cobs] of Object.entries(porZona).sort()){
-        html+=`<div style="padding:8px 14px 2px;font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;background:var(--bg)">📍 ${zona}</div>`;
-        html+=`<div class="tbl-wrap"><table class="tbl" style="font-size:12px"><thead><tr><th>Cliente</th><th>Importe</th><th>Forma</th><th>Estado</th><th></th></tr></thead><tbody>`;
-        for(const cob of cobs){
-          const est=cob.estado_rendicion||'pendiente';
-          const badge=est==='validado'?'<span class="b bP">✅ Validado</span>':est==='rechazado'?'<span class="b bD">❌ Rechazado</span>':'<span class="b bW">⏳ Pendiente</span>';
-          const bots=esAdmin&&est==='pendiente'?`<button class="btn sm" style="background:var(--G);color:#fff;font-size:10px" onclick="validarCobro(${cob.id})">✅</button><button class="btn sm D" style="font-size:10px" onclick="rechazarCobro(${cob.id})">❌</button>`:'';
-          const compLink=cob.comprobante_url?`<a href="${cob.comprobante_url}" target="_blank" style="font-size:14px;margin-left:4px">📎</a>`:'';
-          html+=`<tr><td style="font-weight:500">${cob.cliente||'?'}</td><td style="text-align:right;font-weight:700;color:var(--P)">${fmt(cob.importe)}</td><td style="font-size:11px;color:var(--txt2)">${cob.forma||'—'}</td><td>${badge}</td><td style="white-space:nowrap">${bots}${compLink}</td></tr>`;
-        }
-        html+=`</tbody></table></div>`;
-      }
-      // Remitos del mismo vendedor y día de esta rendición que todavía no
-      // tienen ningún cobro asociado — el faltante real de ese reparto.
-      const remitosSinCobrar=_remitos.filter(r=>
-        !r.anulado&&!r.cobrado&&
-        (r.vendedor||'').trim()===vendedor&&r.fecha===rend.fecha&&
-        !remitosImputados.has(r.id)
-      );
-      if(remitosSinCobrar.length){
-        html+=`<div style="padding:8px 14px 2px;font-size:11px;font-weight:700;color:var(--W);text-transform:uppercase;letter-spacing:.5px;background:var(--WL)">⚠️ Remitos de este reparto sin cobrar (${remitosSinCobrar.length})</div>`;
-        html+=`<div class="tbl-wrap"><table class="tbl" style="font-size:12px"><thead><tr><th>Cliente</th><th>Remito</th><th style="text-align:right">Saldo</th></tr></thead><tbody>`;
-        for(const r of remitosSinCobrar){
-          html+=`<tr style="cursor:pointer" onclick="verRemitoEnCobro(${r.id})"><td style="font-weight:500">${r.cliente||'?'}</td><td style="color:var(--A)">R-${String(r.id).padStart(4,'0')}</td><td style="text-align:right;font-weight:700;color:var(--D)">${fmt(r.saldo_pendiente??r.total)}</td></tr>`;
-        }
-        html+=`</tbody></table></div>`;
-      }
-      html+=`</div></div>`;
-    }
-    html+=`</div>`;
-  }
-  el.innerHTML=html;
+  await Promise.all([cargarCobros(),cargarHojaRutaTodas()]);
+  renderRendicion();
+  toast(`✅ Número de rendición #${num} asignado`);
+}
+
+async function rendAsignarNumeroAutoSinHoja(){
+  const ids=_idsChk('.rend-sh-chk');
+  if(!ids.length){toast('Seleccioná al menos un cobro','err');return;}
+  const num=await _proximoNumeroRendicion();
+  if(!confirm(`¿Asignar el número de rendición #${num} a ${ids.length} cobro(s)?`))return;
+  for(const id of ids){await sb.from('cobros').update({numero_rendicion:num}).eq('id',id);}
+  await cargarCobros();
+  renderRendicion();
+  toast(`✅ Número de rendición #${num} asignado`);
+}
+
+function renderSinHojaRuta(){
+  const el=document.getElementById('rend-sin-hoja');if(!el)return;
+  const mostrarTodos=document.getElementById('rend-mostrar-todos')?.checked;
+  const hojaKeys=new Set(_hojaRutaTodas.map(r=>String(r.cliente_id)+'|'+r.fecha));
+  let cobrosSinHoja=_cobros.filter(c=>!hojaKeys.has(String(c.cliente_id)+'|'+c.fecha));
+  if(!mostrarTodos)cobrosSinHoja=cobrosSinHoja.filter(c=>(c.estado_rendicion||'pendiente')==='pendiente');
+  if(!cobrosSinHoja.length){el.innerHTML='<div class="empty">No hay cobros sin hoja de ruta.</div>';return;}
+  const esAdmin=usuarioActual?.esAdmin||usuarioActual?.rol_original==='admin';
+  const rows=cobrosSinHoja.map(c=>{
+    const est=c.estado_rendicion||'pendiente';
+    const badge=est==='validado'?'<span class="b bP">✅ Aprobado</span>':est==='rechazado'?'<span class="b bD">❌ Rechazado</span>':'<span class="b bW">⏳ Pendiente</span>';
+    const puede=esAdmin&&est==='pendiente';
+    const chk=puede?`<input type="checkbox" class="rend-sh-chk" data-cobid="${c.id}">`:'';
+    const acciones=puede?`<button class="btn sm" style="background:var(--G);color:#fff;font-size:10px" onclick="validarCobro(${c.id})">✅</button><button class="btn sm D" style="font-size:10px" onclick="rechazarCobro(${c.id})">❌</button>`:'';
+    return `<tr><td>${chk}</td><td style="font-weight:500">${c.cliente||'?'}</td><td>${c.fecha}</td><td>${c.vendedor||'—'}</td><td style="text-align:right;font-weight:700;color:var(--P)">${fmt(c.importe)}</td><td style="font-size:11px;color:var(--txt2)">${c.forma||'—'}</td><td>${c.numero_rendicion||'—'}</td><td>${badge}</td><td style="white-space:nowrap">${acciones}</td></tr>`;
+  }).join('');
+  el.innerHTML=`
+    <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+      <button class="btn sm" onclick="document.querySelectorAll('.rend-sh-chk').forEach(c=>c.checked=true)">Marcar todo</button>
+      <button class="btn sm P" onclick="rendAprobarSelSinHoja()">✅ Aprobar seleccionados</button>
+      <button class="btn sm D" onclick="rendRechazarSelSinHoja()">❌ Rechazar seleccionados</button>
+      <button class="btn sm" onclick="rendAsignarNumeroAutoSinHoja()">🔢 Asignar número automático</button>
+    </div>
+    <div class="tbl-wrap"><table class="tbl" style="font-size:12px">
+      <thead><tr><th></th><th>Cliente</th><th>Fecha</th><th>Vendedor</th><th style="text-align:right">Importe</th><th>Forma</th><th>Nº Rend.</th><th>Estado</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
 }
 
 async function aprobarTodoRendicion(ids){
@@ -824,6 +976,45 @@ async function aprobarTodoRendicion(ids){
   await Promise.all([cargarCobros(),cargarClientes(),cargarRemitos()]);
   renderRendicion();renderCobros();renderCC();renderDash();renderRemitos();
   toast(err>0?`✅ ${ok} aprobados, ${err} errores`:`✅ ${ok} cobro(s) aprobados — saldo aplicado`);
+}
+
+async function rechazarTodoRendicion(ids){
+  if(!confirm(`¿Rechazar ${ids.length} cobro(s)?`))return;
+  const esAdmin=usuarioActual?.esAdmin||usuarioActual?.rol_original==='admin';
+  if(!esAdmin){toast('Solo el admin puede rechazar cobros','err');return;}
+  let ok=0;
+  // Mismo cuidado que aprobarTodoRendicion: saldo corriente en memoria para
+  // no pisar la reversión de un cobro con la del siguiente en el mismo lote.
+  const saldoRemCorriente={},saldoCliCorriente={};
+  for(const id of ids){
+    const cob=_cobros.find(x=>x.id===id);if(!cob||cob.estado_rendicion==='rechazado')continue;
+    const imps=Array.isArray(cob.imputaciones)?cob.imputaciones:[];
+    const yaImpacto=cob.estado_rendicion==='validado';
+    const {error}=await sb.from('cobros').update({estado_rendicion:'rechazado'}).eq('id',id);
+    if(error)continue;
+    if(yaImpacto){
+      for(const imp of imps){
+        const rem=_remitos.find(r=>r.id===imp.remito_id);
+        if(rem){
+          if(!(rem.id in saldoRemCorriente))saldoRemCorriente[rem.id]=rem.saldo_pendiente!=null?rem.saldo_pendiente:0;
+          const saldoRevertido=saldoRemCorriente[rem.id]+imp.monto;
+          saldoRemCorriente[rem.id]=saldoRevertido;
+          await sb.from('remitos').update({saldo_pendiente:saldoRevertido,cobrado:false,forma_cobro:null}).eq('id',rem.id);
+        }
+      }
+      const cli=_clientes.find(x=>x.id===cob.cliente_id||(cob.cliente&&x.nombre&&x.nombre.trim().toLowerCase()===cob.cliente.trim().toLowerCase()));
+      if(cli){
+        if(!(cli.id in saldoCliCorriente))saldoCliCorriente[cli.id]=cli.saldo||0;
+        const saldoRevertido=saldoCliCorriente[cli.id]+cob.importe;
+        saldoCliCorriente[cli.id]=saldoRevertido;
+        await sb.from('clientes').update({saldo:saldoRevertido}).eq('id',cli.id);
+      }
+    }
+    ok++;
+  }
+  await Promise.all([cargarCobros(),cargarClientes(),cargarRemitos()]);
+  renderRendicion();renderCobros();renderCC();renderDash();renderRemitos();
+  toast(`❌ ${ok} cobro(s) rechazados`);
 }
 
 function imprimirRecibo(id){
@@ -1084,7 +1275,8 @@ function histCliente(id){
   }
 }
 
-function initRendicion(){
+async function initRendicion(){
+  await cargarHojaRutaTodas();
   renderRendicion();
 }
 

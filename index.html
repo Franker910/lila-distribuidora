@@ -1575,11 +1575,58 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <h2>💼 Rendición de cobranza</h2>
     <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;color:#fff">
       <input type="checkbox" id="rend-mostrar-todos" style="width:15px;height:15px" onchange="renderRendicion()">
-      Mostrar todos
+      Mostrar todos (incluye aprobados/rechazados)
     </label>
   </div>
   <div class="rend-scroll">
-    <div id="rend-resultado"></div>
+
+    <!-- Selector de Hoja de Ruta -->
+    <div class="tb">
+      <input id="rend-hr-q" placeholder="Buscar hoja de ruta por vendedor/repartidor o fecha..." oninput="renderListaHojasRuta()">
+    </div>
+    <div id="rend-hr-lista" style="margin-bottom:16px"></div>
+
+    <!-- Grilla de la hoja de ruta elegida -->
+    <div id="rend-grilla-wrap" style="display:none;margin-bottom:24px">
+      <div class="sech" style="padding:6px 0">
+        <h3 id="rend-grilla-titulo" style="margin:0"></h3>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn sm" onclick="cerrarGrillaRendicion()">← Volver</button>
+          <button class="btn sm" onclick="rendAsignarNumeroAuto()">🔢 Asignar número automático</button>
+          <button class="btn sm P" onclick="rendAprobarSeleccionados()">✅ Aprobar seleccionados</button>
+          <button class="btn sm D" onclick="rendRechazarSeleccionados()">❌ Rechazar seleccionados</button>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="rend-check-all" onchange="rendToggleAll(this)"></th>
+            <th>Cliente</th><th>Zona</th><th>Vend./Repart.</th><th>Importe remito</th>
+            <th>¿Cobró?</th><th>Importe cobrado</th><th>Forma</th><th>Nº Rend.</th><th>Estado</th><th></th>
+          </tr>
+          <tr class="tbl-autofiltro">
+            <th></th>
+            <th><input id="rend-f-cli" oninput="renderGrillaRendicion()" placeholder="Filtrar..."></th>
+            <th><select id="rend-f-zona" onchange="renderGrillaRendicion()"><option value="">Todas</option></select></th>
+            <th></th>
+            <th></th>
+            <th><select id="rend-f-cobro" onchange="renderGrillaRendicion()"><option value="">Todos</option><option value="si">Sí</option><option value="no">No</option></select></th>
+            <th></th>
+            <th><select id="rend-f-forma" onchange="renderGrillaRendicion()"><option value="">Todas</option></select></th>
+            <th></th>
+            <th><select id="rend-f-estado" onchange="renderGrillaRendicion()"><option value="">Todos</option><option value="pendiente">Pendiente</option><option value="validado">Aprobado</option><option value="rechazado">Rechazado</option></select></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="rend-grilla-tbody"></tbody>
+      </table></div>
+      <div id="rend-resumen" style="margin-top:12px"></div>
+    </div>
+
+    <!-- Cobros sin hoja de ruta -->
+    <div class="sech" style="padding:6px 0"><h3 style="margin:0">⚠️ Cobros sin hoja de ruta</h3></div>
+    <div id="rend-sin-hoja"></div>
+
   </div>
 </div>
 
@@ -3098,9 +3145,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </select>
       </div>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
       <button class="btn sm" onclick="hrAgregarCliente()">+ Agregar cliente a ruta</button>
       <button class="btn P sm" onclick="hrGuardarRuta()">💾 Guardar ruta</button>
+      <button class="btn A sm" onclick="hrCerrarYGenerarRendicion()">🔒 Cerrar y generar rendición</button>
+      <span id="hr-estado-badge" style="font-size:12px"></span>
     </div>
     <!-- Buscador para agregar clientes -->
     <div id="hr-buscador-wrap" style="display:none;margin-bottom:12px;position:relative">
@@ -3119,6 +3168,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="fg">
         <label style="font-size:12px;color:var(--txt2)">Fecha</label>
         <input type="date" id="hr-fecha-mia" style="width:100%" onchange="hrVerMiRuta()">
+      </div>
+    </div>
+    <div id="hr-mia-agregar-wrap" style="margin-bottom:12px">
+      <button class="btn sm" id="hr-mia-btn-agregar" onclick="hrMiRutaAgregarToggle()">+ Agregar cliente sobre la marcha</button>
+      <div id="hr-mia-buscador" style="display:none;margin-top:8px;position:relative">
+        <input id="hr-mia-cli-q" type="text" placeholder="Buscar cliente por nombre..." autocomplete="off"
+          style="width:100%;padding:12px 14px;border:2px solid var(--P);border-radius:8px;font-size:15px;box-sizing:border-box;font-family:inherit"
+          oninput="hrMiRutaFiltrar()">
+        <div id="hr-mia-cli-drop" style="position:absolute;top:100%;left:0;right:0;background:var(--bg);border:1.5px solid var(--P);border-radius:8px;max-height:260px;overflow-y:auto;z-index:50;display:none"></div>
       </div>
     </div>
     <div id="hr-mia-lista" style="margin-top:8px"><div class="empty">Sin clientes asignados para hoy</div></div>
@@ -3335,13 +3393,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260726-06"></script>
-<script src="js/maestros.js?v=20260726-06"></script>
-<script src="js/ventas.js?v=20260726-06"></script>
-<script src="js/tesoreria.js?v=20260726-06"></script>
-<script src="js/contabilidad.js?v=20260726-06"></script>
-<script src="js/informes.js?v=20260726-06"></script>
-<script src="js/logistica.js?v=20260726-06"></script>
+<script src="js/app.js?v=20260726-07"></script>
+<script src="js/maestros.js?v=20260726-07"></script>
+<script src="js/ventas.js?v=20260726-07"></script>
+<script src="js/tesoreria.js?v=20260726-07"></script>
+<script src="js/contabilidad.js?v=20260726-07"></script>
+<script src="js/informes.js?v=20260726-07"></script>
+<script src="js/logistica.js?v=20260726-07"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
