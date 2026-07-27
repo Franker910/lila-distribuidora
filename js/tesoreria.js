@@ -541,13 +541,18 @@ async function guardarCobro(){
     if(compFile) comprobante_url=await _subirComprobante(compFile, cid);
   }
 
+  // "Imputar al guardar": solo existe (y solo pesa) para admin — el checkbox
+  // ni siquiera se muestra para vendedor/repartidor, esos siempre van a Rendición.
+  const wrapImp=document.getElementById('cob-imputar-wrap');
+  const imputarYa=wrapImp&&wrapImp.style.display!=='none'&&!!document.getElementById('cob-imputar-ya')?.checked;
+
   const {data:nuevoCobro,error:cobErr}=await sb.from('cobros').insert({
     cliente_id:parseInt(cid),cliente:c?.nombre||'?',
     fecha:document.getElementById('cob-fecha').value,
     forma:formas.join('+')||'efectivo',importe:imp,
     efectivo:ef,transferencia:tr,cheque_terceros:ch3,
     retencion_ganancias:rg,retencion_ing_brutos:rib,retencion_otras:ro,
-    estado_rendicion:'pendiente',
+    estado_rendicion:imputarYa?'validado':'pendiente',
     banco_cheque:document.getElementById('cob-banco')?.value||'',
     nro_cheque:document.getElementById('cob-nrocheque')?.value||'',
     reparto:document.getElementById('cob-reparto')?.value||'',
@@ -558,15 +563,31 @@ async function guardarCobro(){
   }).select().single();
   if(cobErr){toast('Error al guardar cobro: '+cobErr.message,'err',6000);reactivar();return;}
 
-  // ⚠️ El saldo del cliente y remitos NO se toca aquí.
-  // Se aplica recién cuando un admin valida el cobro (validarCobro).
-  await Promise.all([cargarCobros(),cargarRemitos()]);
+  if(imputarYa){
+    // El admin ya tiene la plata en mano: no hay rendición física que esperar,
+    // se aplica el mismo efecto que validarCobro() de una.
+    for(const impu of imputaciones){
+      const rem=_remitos.find(r=>r.id===impu.remito_id);
+      if(rem){
+        const nuevoSaldoRem=Math.max(0,(rem.saldo_pendiente!=null?rem.saldo_pendiente:rem.total)-impu.monto);
+        await sb.from('remitos').update({saldo_pendiente:nuevoSaldoRem,cobrado:nuevoSaldoRem<=0,forma_cobro:nuevoSaldoRem<=0?(formas.join('+')||'efectivo'):rem.forma_cobro}).eq('id',rem.id);
+      }
+    }
+    if(c){
+      const nuevoSaldoCli=Math.max(0,(c.saldo||0)-imp);
+      await sb.from('clientes').update({saldo:nuevoSaldoCli}).eq('id',c.id);
+    }
+  } else {
+    // ⚠️ El saldo del cliente y remitos NO se toca aquí.
+    // Se aplica recién cuando un admin valida el cobro (validarCobro).
+  }
+  await Promise.all([cargarCobros(),cargarClientes(),cargarRemitos()]);
   renderCobros();renderCC();renderDash();renderRemitos();actualizarDeuda();
 
   const nombreCli=c?.nombre||'cliente';
   const restoMsg=_cobRestoSaldoFavor>0?` · Saldo a favor: ${fmt(_cobRestoSaldoFavor)}`:'';
   _cobRestoSaldoFavor=0;
-  toast(`✅ Cobro de ${fmt(imp)} registrado para ${nombreCli} — pendiente de validación.${restoMsg}`);
+  toast(`✅ Cobro de ${fmt(imp)} registrado para ${nombreCli}${imputarYa?' — imputado.':' — pendiente de validación.'}${restoMsg}`);
   reactivar();
   limpiarModalCobro();
   return nuevoCobro?.id;
@@ -685,6 +706,10 @@ function renderRendicion(){
     el.innerHTML=`<div style="text-align:center;padding:48px 20px;color:var(--txt2);font-size:14px">No hay cobros${mostrarTodos?'':' pendientes'}.</div>`;
     return;
   }
+  // Remitos ya cubiertos por algún cobro (pendiente o validado), para no
+  // mostrarlos de nuevo como "sin cobrar" más abajo.
+  const remitosImputados=new Set();
+  _cobros.forEach(cb=>(cb.imputaciones||[]).forEach(i=>remitosImputados.add(i.remito_id)));
   // Agrupar por vendedor → (fecha, reparto) → zona
   const porVendedor={};
   for(const cob of cobros){
@@ -738,6 +763,21 @@ function renderRendicion(){
           const bots=esAdmin&&est==='pendiente'?`<button class="btn sm" style="background:var(--G);color:#fff;font-size:10px" onclick="validarCobro(${cob.id})">✅</button><button class="btn sm D" style="font-size:10px" onclick="rechazarCobro(${cob.id})">❌</button>`:'';
           const compLink=cob.comprobante_url?`<a href="${cob.comprobante_url}" target="_blank" style="font-size:14px;margin-left:4px">📎</a>`:'';
           html+=`<tr><td style="font-weight:500">${cob.cliente||'?'}</td><td style="text-align:right;font-weight:700;color:var(--P)">${fmt(cob.importe)}</td><td style="font-size:11px;color:var(--txt2)">${cob.forma||'—'}</td><td>${badge}</td><td style="white-space:nowrap">${bots}${compLink}</td></tr>`;
+        }
+        html+=`</tbody></table></div>`;
+      }
+      // Remitos del mismo vendedor y día de esta rendición que todavía no
+      // tienen ningún cobro asociado — el faltante real de ese reparto.
+      const remitosSinCobrar=_remitos.filter(r=>
+        !r.anulado&&!r.cobrado&&
+        (r.vendedor||'').trim()===vendedor&&r.fecha===rend.fecha&&
+        !remitosImputados.has(r.id)
+      );
+      if(remitosSinCobrar.length){
+        html+=`<div style="padding:8px 14px 2px;font-size:11px;font-weight:700;color:var(--W);text-transform:uppercase;letter-spacing:.5px;background:var(--WL)">⚠️ Remitos de este reparto sin cobrar (${remitosSinCobrar.length})</div>`;
+        html+=`<div class="tbl-wrap"><table class="tbl" style="font-size:12px"><thead><tr><th>Cliente</th><th>Remito</th><th style="text-align:right">Saldo</th></tr></thead><tbody>`;
+        for(const r of remitosSinCobrar){
+          html+=`<tr style="cursor:pointer" onclick="verRemitoEnCobro(${r.id})"><td style="font-weight:500">${r.cliente||'?'}</td><td style="color:var(--A)">R-${String(r.id).padStart(4,'0')}</td><td style="text-align:right;font-weight:700;color:var(--D)">${fmt(r.saldo_pendiente??r.total)}</td></tr>`;
         }
         html+=`</tbody></table></div>`;
       }

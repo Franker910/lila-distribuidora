@@ -45,7 +45,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260726-05';
+const APP_VERSION = '20260726-06';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -201,19 +201,8 @@ function entrarApp(found){
       const dashBtn=document.querySelector('.sidebar-dash[data-p="dash"]');
       if(dashBtn){dashBtn.classList.add('on');}
       go('dash');
-      // Foco en el botón de hamburguesa para poder arrancar a navegar sin mouse
-      setTimeout(()=>document.getElementById('btn-menu')?.focus(),80);
-      // Navegación con flechas entre ítems del sidebar (solo mientras está abierto)
-      document.getElementById('sidebar').addEventListener('keydown',function(e){
-        if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
-        e.preventDefault();
-        const btns=[...this.querySelectorAll('.sidebar-dash,.sidebar-group-btn,.sidebar-item')]
-          .filter(b=>b.style.display!=='none');
-        const idx=btns.indexOf(document.activeElement);
-        if(idx===-1)return;
-        const next=e.key==='ArrowDown'?btns[idx+1]:btns[idx-1];
-        if(next)next.focus();
-      });
+      initSidebarKeyNav();
+      focoHamburguesa();
     });
   }
 }
@@ -458,6 +447,8 @@ function volverAdmin(){
   const btnAdmin = document.getElementById('btn-volver-admin');
   if(btnAdmin) btnAdmin.style.display = 'none';
   go('dash');
+  initSidebarKeyNav();
+  focoHamburguesa();
 }
 
 function toggleNavGroup(grupo){
@@ -565,6 +556,8 @@ document.addEventListener('keydown',e=>{
     const panelActual=document.querySelector('.panel.on')?.id?.replace('p-','');
     if(sidebarAbierto)cerrarMenu();
     if(panelActual&&panelActual!==home)go(home);
+    // Punto de partida: en escritorio, Escape siempre termina con foco en la hamburguesa
+    if(!esMovilNav)focoHamburguesa();
   }
 });
 
@@ -677,6 +670,11 @@ function go(p){
       document.getElementById('cob-movil').style.display='none';
       document.getElementById('cob-form-inline').style.display='block';
       limpiarModalCobro();
+      // "Imputar al guardar" solo tiene sentido para admin: es quien recibe el
+      // pago directo, sin la rendición física vendedor/repartidor → oficina.
+      const esAdminCob=usuarioActual?.esAdmin||usuarioActual?.rol==='admin'||usuarioActual?.rol_original==='admin';
+      const wrapImp=document.getElementById('cob-imputar-wrap');
+      if(wrapImp)wrapImp.style.display=esAdminCob?'block':'none';
     }
   }
   if(p==='vendedor-home'){
@@ -724,14 +722,39 @@ function go(p){
   const grupoMap={
     'clientes':'maestros','cuentas':'maestros','productos':'maestros','stock':'maestros','maestro-proveedores':'maestros','listas-precios':'maestros',
     'pedidos':'ventas','pedido-movil':'ventas','carga':'ventas','remitos':'ventas','remito-rapido':'ventas','nc':'ventas',
-    'cobranza':'tesoreria','tesoreria':'tesoreria','cheques':'tesoreria','contabilidad':'tesoreria',
-    'informes':'informes','rendicion':'informes','comisiones':'informes','contrib-zona':'informes','gastos-fijos':'informes','importar-historico':'informes'
+    'cobranza':'tesoreria','rendicion':'tesoreria','tesoreria':'tesoreria','cheques':'tesoreria','contabilidad':'tesoreria',
+    'informes':'informes','comisiones':'informes','contrib-zona':'informes','gastos-fijos':'informes','importar-historico':'informes'
   };
   const g=grupoMap[p];
   if(g){const sg=document.getElementById('sg-'+g);if(sg)sg.classList.add('active');}
 }
 
 // ─── MENÚ HAMBURGUESA (mostrar/ocultar sidebar) ───
+// Punto de partida para navegar sin mouse: foco inicial al entrar y destino
+// final de Escape. No hace nada si la hamburguesa está oculta (vista móvil).
+function focoHamburguesa(){
+  const btn=document.getElementById('btn-menu');
+  if(btn&&btn.style.display!=='none')btn.focus();
+}
+
+// Flechas arriba/abajo entre ítems del sidebar mientras está abierto. Se
+// registra una sola vez (no depende de qué camino de login lo abrió).
+let _sidebarKeyNavInit=false;
+function initSidebarKeyNav(){
+  if(_sidebarKeyNavInit)return;
+  _sidebarKeyNavInit=true;
+  document.getElementById('sidebar')?.addEventListener('keydown',function(e){
+    if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
+    e.preventDefault();
+    const btns=[...this.querySelectorAll('.sidebar-dash,.sidebar-group-btn,.sidebar-item')]
+      .filter(b=>b.style.display!=='none');
+    const idx=btns.indexOf(document.activeElement);
+    if(idx===-1)return;
+    const next=e.key==='ArrowDown'?btns[idx+1]:btns[idx-1];
+    if(next)next.focus();
+  });
+}
+
 function abrirMenu(){
   const sidebar=document.getElementById('sidebar');
   if(sidebar){sidebar.classList.add('open');sidebar.removeAttribute('inert');}
