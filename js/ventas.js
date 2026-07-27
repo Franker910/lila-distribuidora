@@ -1435,7 +1435,8 @@ function cargarMarcasMovil(){
     const enCarrito=_pmCarrito.filter(x=>{const prod=_productos.find(p=>p.id===x.id);return (prod?.proveedor_nom||prod?.rubro||'OTROS')===m;});
     const badge=enCarrito.length>0?`<span style="background:var(--P);color:#fff;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:700">${enCarrito.length} ✓</span>`:'';
 return `<div><div onclick="toggleMarcaMovil('${m.replace(/'/g,"\\'")}','${key}')" style="display:flex;justify-content:space-between;align-items:center;padding:16px 14px;border-bottom:1px solid var(--brd);cursor:pointer;background:var(--P);color:#fff;"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px;font-weight:700">${m}</span>${badge}</div><span id="pm-chevron-${key}" style="color:#fff;font-size:20px;font-weight:300">›</span></div><div id="pm-prods-${key}" style="display:none;background:var(--bg2)"></div></div>`;  
-
+}).join('');
+}
 function toggleMarcaMovil(marca,key){
   const div=document.getElementById('pm-prods-'+key);
   const chev=document.getElementById('pm-chevron-'+key);
