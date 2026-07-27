@@ -485,7 +485,7 @@ function selCliRR(id){
     <div style="font-size:12px;color:var(--txt2)">${c.direccion?'📍 '+c.direccion+', ':''} ${c.localidad||''} · ${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||''} | 📞 ${c.telefono||'—'} | Lista: <b>${c.lista||1}</b> | Dto: <b>${c.descuento||0}%</b> | Saldo CC: <b style="${(c.saldo||0)>0?'color:var(--D)':''}">${fmt(c.saldo)}</b>${dias!==null?` | Último rem: <b>${dias} días</b>`:''}</div>`;
   info.style.display='block';
 
-  // Pedido pendiente → popup obligatorio (no se puede saltear)
+  // Pedido pendiente → cartel compacto en el panel lateral (no tapa el remito)
   const pedPend=_pedidos.filter(p=>p.cliente_id===id&&p.estado==='pendiente');
   const pedPanel=document.getElementById('rr-pedido-panel');
   const pedInfo=document.getElementById('rr-pedido-info');
@@ -493,52 +493,28 @@ function selCliRR(id){
   if(pedPend.length){
     const ped=pedPend[0];
     if(pedPanel&&pedInfo&&pedBtn){
-      pedInfo.innerHTML=`<b>#${ped.id}</b> · ${ped.fecha}<br><span style="color:var(--txt2)">${(ped.items||[]).length} productos · ${fmt(ped.total)}</span>`;
-      pedBtn.onclick=()=>cargarItemsDePedido(ped.id);
+      const titEl=document.getElementById('rr-pedido-titulo');
+      if(titEl)titEl.textContent=`📋 Pedido pendiente — ${c.nombre}`;
+      const items=(ped.items||[]).slice(0,5).map(i=>`• ${i.nom} — ${i.cant} ${i.un||''}`).join('<br>');
+      const plus=(ped.items||[]).length>5?`<br>...y ${(ped.items||[]).length-5} más`:'';
+      pedInfo.innerHTML=`<b>#${ped.id}</b> · ${ped.fecha}<br><span style="color:var(--txt2)">${(ped.items||[]).length} productos · ${fmt(ped.total)}</span><div style="margin-top:6px;font-size:11px;color:var(--txt2)">${items}${plus}</div>`;
+      pedBtn.onclick=()=>{cargarItemsDePedido(ped.id);setTimeout(()=>{const f=document.getElementById('rr-cod');if(f){f.focus();f.select();}},120);};
+      const btnIgn=document.getElementById('rr-pedido-btn-ign');
+      if(btnIgn)btnIgn.onclick=()=>{
+        pedPanel.style.display='none';_rrPedidoId=null;
+        setTimeout(()=>{const f=document.getElementById('rr-cod');if(f){f.focus();f.select();}},120);
+      };
+      const btnCan=document.getElementById('rr-pedido-btn-can');
+      if(btnCan)btnCan.onclick=()=>{
+        limpiarRR();
+        setTimeout(()=>{const f=document.getElementById('rr-cli-cod');if(f){f.focus();f.select();}},80);
+      };
       pedPanel.style.display='block';
     }
-    mostrarPopupPedidoPendiente(ped);
   } else {
     if(pedPanel)pedPanel.style.display='none';
     setTimeout(()=>{const f=document.getElementById('rr-cod');if(f){f.focus();f.select();}},120);
   }
-}
-
-function mostrarPopupPedidoPendiente(ped){
-  document.getElementById('_popup-ped-pend')?.remove();
-  const ov=document.createElement('div');
-  ov.id='_popup-ped-pend';
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.68);z-index:9998;display:flex;align-items:center;justify-content:center;padding:16px';
-  const items=(ped.items||[]).slice(0,5).map(i=>`<div style="padding:3px 0;border-bottom:0.5px solid var(--brd);font-size:13px;color:var(--txt2)">• ${i.nom} — ${i.cant} ${i.un||''}</div>`).join('');
-  const plus=(ped.items||[]).length>5?`<div style="font-size:12px;color:var(--txt2);padding-top:3px">...y ${(ped.items||[]).length-5} producto(s) más</div>`:'';
-  ov.innerHTML=`<div style="background:var(--bg);border-radius:16px;padding:28px 24px;max-width:430px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.45)">
-    <div style="font-size:20px;font-weight:800;color:var(--W);margin-bottom:10px">⚠ Pedido pendiente</div>
-    <div style="font-size:16px;font-weight:700;margin-bottom:8px">Este cliente tiene el pedido #${ped.id} pendiente de facturar</div>
-    <div style="background:var(--bg2);border-radius:8px;padding:10px 12px;margin-bottom:8px">${items}${plus}</div>
-    <div style="font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:22px">Total estimado: <b style="color:var(--txt)">${fmt(ped.total)}</b></div>
-    <div style="font-size:15px;font-weight:700;margin-bottom:14px">¿Qué hacés?</div>
-    <button id="_ppb-car" style="display:block;width:100%;padding:15px;margin-bottom:9px;background:var(--P);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">📦 Cargar productos del pedido</button>
-    <button id="_ppb-ign" style="display:block;width:100%;padding:13px;margin-bottom:9px;background:var(--bg2);border:1.5px solid var(--brd);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer">📄 Ignorar y facturar aparte</button>
-    <button id="_ppb-can" style="display:block;width:100%;padding:13px;background:var(--bg2);border:1.5px solid var(--brd);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;color:var(--D)">✕ Cancelar — elegir otro cliente</button>
-  </div>`;
-  document.body.appendChild(ov);
-  ov.querySelector('#_ppb-car').onclick=()=>{
-    ov.remove();
-    cargarItemsDePedido(ped.id);
-    setTimeout(()=>{const f=document.getElementById('rr-cod');if(f){f.focus();f.select();}},120);
-  };
-  ov.querySelector('#_ppb-ign').onclick=()=>{
-    ov.remove();
-    const p=document.getElementById('rr-pedido-panel');if(p)p.style.display='none';
-    _rrPedidoId=null;
-    setTimeout(()=>{const f=document.getElementById('rr-cod');if(f){f.focus();f.select();}},120);
-  };
-  ov.querySelector('#_ppb-can').onclick=()=>{
-    ov.remove();
-    limpiarRR();
-    setTimeout(()=>{const f=document.getElementById('rr-cli-cod');if(f){f.focus();f.select();}},80);
-  };
-  setTimeout(()=>ov.querySelector('#_ppb-car')?.focus(),80);
 }
 
 function cargarItemsDePedido(pedId){
@@ -748,7 +724,7 @@ function renderItemsRR(){
       <button class="btn D sm" onclick="delItemRR(${i})">🗑</button>
     </div>`;
   }).join('');
-  const header=`<div style="display:flex;gap:6px;padding:2px 8px 3px;font-size:10px;color:var(--txt2);font-weight:600;text-transform:uppercase">
+  const header=`<div class="fx-grid-head" style="display:flex;gap:6px;padding:2px 8px 3px;font-size:10px;font-weight:700;text-transform:uppercase">
     <span style="flex:1">Producto</span>
     <span style="width:58px;text-align:center">Cant.</span>
     <span style="width:70px;text-align:center">Peso KG</span>
