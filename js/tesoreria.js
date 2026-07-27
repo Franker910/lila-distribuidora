@@ -1020,41 +1020,91 @@ async function rechazarTodoRendicion(ids){
 function imprimirRecibo(id){
   const r=_cobros.find(x=>x.id===id);if(!r)return;
   const nro=String(r.id).padStart(6,'0');
+  const imps=Array.isArray(r.imputaciones)?r.imputaciones:[];
+
+  const filasFacturas=imps.length?imps.map(imp=>{
+    const rem=_remitos.find(x=>x.id===imp.remito_id);
+    const num=rem?'R-'+String(rem.id).padStart(4,'0'):'R-'+String(imp.remito_id).padStart(4,'0');
+    const fechaEmision=rem?.fecha||'—';
+    const saldoPend=rem?fmt(rem.saldo_pendiente??rem.total):'—';
+    return `<tr>
+      <td style="border:1px solid #000;padding:5px 7px">${num}</td>
+      <td style="border:1px solid #000;padding:5px 7px">${fechaEmision}</td>
+      <td style="border:1px solid #000;padding:5px 7px;text-align:right">${saldoPend}</td>
+      <td style="border:1px solid #000;padding:5px 7px;text-align:right">${fmt(imp.monto)}</td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="4" style="border:1px solid #000;padding:8px;text-align:center;color:#555">Sin facturas imputadas</td></tr>`;
+
+  const medios=[];
+  if((r.efectivo||0)>0)medios.push(['Efectivo',r.efectivo]);
+  if((r.transferencia||0)>0)medios.push(['Transferencia',r.transferencia]);
+  if((r.cheque_propio||0)>0)medios.push(['Cheque propio',r.cheque_propio]);
+  if((r.cheque_terceros||0)>0)medios.push([`Cheque de terceros${r.banco_cheque?' ('+r.banco_cheque+')':''}${r.nro_cheque?' Nro:'+r.nro_cheque:''}`,r.cheque_terceros]);
+  if((r.retencion_ganancias||0)>0)medios.push(['Ret. Ganancias',r.retencion_ganancias]);
+  if((r.retencion_ing_brutos||0)>0)medios.push(['Ret. Ing. Brutos',r.retencion_ing_brutos]);
+  if((r.retencion_otras||0)>0)medios.push(['Otras retenciones',r.retencion_otras]);
+  const filasMedios=medios.map(([label,val])=>`
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #000;font-size:12px">
+      <span>${label}</span><span>${fmt(val)}</span>
+    </div>`).join('');
+
+  const totalImputado=imps.reduce((a,i)=>a+(i.monto||0),0);
+  const diferencia=Math.round((r.importe-totalImputado)*100)/100;
+
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><title>Recibo ${nro}</title>
   <style>
-    body{font-family:Arial,sans-serif;padding:30px;color:#000;max-width:500px;margin:0 auto}
-    .titulo{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:16px}
-    .empresa{font-size:18px;font-weight:bold}
-    .nro{font-size:14px;color:#555}
-    .row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;font-size:13px}
-    .row.total{font-weight:bold;font-size:15px;border-top:2px solid #000;border-bottom:none;margin-top:8px;padding-top:8px}
-    .detalle{background:#f9f9f9;border-radius:6px;padding:10px;margin:12px 0}
-    .firma{margin-top:40px;border-top:1px solid #000;padding-top:8px;text-align:center;font-size:12px;color:#555}
+    body{font-family:Arial,sans-serif;padding:26px;color:#000;background:#fff;max-width:760px;margin:0 auto}
+    table{border-collapse:collapse}
     @media print{button{display:none}}
   </style></head><body>
-  <div class="titulo">
-    <div class="empresa">🌸 DISTRIBUIDORA LILA</div>
-    <div class="nro">RECIBO N° ${nro}</div>
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px">
+    <div>
+      <div style="font-size:20px;font-weight:bold">DISTRIBUIDORA LILA</div>
+      <div style="font-size:15px;font-weight:bold;margin-top:4px">RECIBO DE COBRO Nro ${nro}</div>
+    </div>
+    <div style="text-align:right;font-size:13px">Fecha: <b>${r.fecha}</b></div>
   </div>
-  <div class="row"><span><b>Fecha:</b></span><span>${r.fecha}</span></div>
-  <div class="row"><span><b>Cliente:</b></span><span>${r.cliente} ${r.cliente_id?'<span style="color:#555;font-size:11px">(Cód: '+r.cliente_id+')</span>':''}</span></div>
-  ${r.vendedor?`<div class="row"><span><b>Vendedor:</b></span><span>${r.vendedor}</span></div>`:''}
-  ${r.reparto?`<div class="row"><span><b>Reparto:</b></span><span>${r.reparto}</span></div>`:''}
-  <div class="detalle">
-    <div style="font-weight:bold;margin-bottom:8px">Detalle del cobro:</div>
-    ${(r.efectivo||0)>0?`<div class="row"><span>Efectivo</span><span>${fmt(r.efectivo)}</span></div>`:''}
-    ${(r.transferencia||0)>0?`<div class="row"><span>Transferencia</span><span>${fmt(r.transferencia)}</span></div>`:''}
-    ${(r.cheque_propio||0)>0?`<div class="row"><span>Cheque propio</span><span>${fmt(r.cheque_propio)}</span></div>`:''}
-    ${(r.cheque_terceros||0)>0?`<div class="row"><span>Cheque de terceros ${r.banco_cheque?'('+r.banco_cheque+')':''} ${r.nro_cheque?'Nro:'+r.nro_cheque:''}</span><span>${fmt(r.cheque_terceros)}</span></div>`:''}
-    ${(r.retencion_ganancias||0)>0?`<div class="row"><span>Retención Ganancias</span><span>${fmt(r.retencion_ganancias)}</span></div>`:''}
-    ${(r.retencion_ing_brutos||0)>0?`<div class="row"><span>Retención Ing. Brutos</span><span>${fmt(r.retencion_ing_brutos)}</span></div>`:''}
-    ${(r.retencion_otras||0)>0?`<div class="row"><span>Otras retenciones</span><span>${fmt(r.retencion_otras)}</span></div>`:''}
-    <div class="row total"><span>TOTAL RECIBIDO</span><span>${fmt(r.importe)}</span></div>
+
+  <div style="font-size:13px;margin-bottom:14px">
+    <b>Cliente:</b> ${r.cliente}${r.cliente_id?' (Cód: '+r.cliente_id+')':''}<br>
+    ${r.vendedor?`<b>Vendedor:</b> ${r.vendedor}<br>`:''}
+    ${r.reparto?`<b>Reparto:</b> ${r.reparto}<br>`:''}
   </div>
-  ${r.observaciones?`<div style="font-size:12px;color:#555">Obs: ${r.observaciones}</div>`:''}
-  <div class="firma">Firma y aclaración: ____________________________</div>
-  <div style="text-align:center;margin-top:16px"><button onclick="window.print()" style="padding:8px 20px;background:#1a7a52;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">🖨️ Imprimir</button></div>
+
+  <div style="display:flex;gap:16px;align-items:flex-start">
+    <div style="flex:1.5">
+      <table style="width:100%;font-size:12px">
+        <thead><tr>
+          <th style="border:1px solid #000;padding:5px 7px;text-align:left">Factura</th>
+          <th style="border:1px solid #000;padding:5px 7px;text-align:left">Fecha Emisión</th>
+          <th style="border:1px solid #000;padding:5px 7px;text-align:right">Saldo Pendiente</th>
+          <th style="border:1px solid #000;padding:5px 7px;text-align:right">Monto Imputado</th>
+        </tr></thead>
+        <tbody>${filasFacturas}</tbody>
+      </table>
+    </div>
+    <div style="flex:1;border:1px solid #000;padding:9px 12px">
+      <div style="font-weight:bold;font-size:12px;border-bottom:1px solid #000;padding-bottom:5px;margin-bottom:5px">MEDIOS DE PAGO</div>
+      ${filasMedios||'<div style="font-size:12px;color:#555">—</div>'}
+    </div>
+  </div>
+
+  ${r.observaciones?`<div style="font-size:12px;margin-top:10px">Obs: ${r.observaciones}</div>`:''}
+
+  <div style="display:flex;justify-content:flex-end;margin-top:16px">
+    <table style="font-size:13px;min-width:260px">
+      <tr><td style="border:1px solid #000;padding:6px 10px">TOTAL</td><td style="border:1px solid #000;padding:6px 10px;text-align:right;font-weight:bold">${fmt(r.importe)}</td></tr>
+      <tr><td style="border:1px solid #000;padding:6px 10px">DIFERENCIA</td><td style="border:1px solid #000;padding:6px 10px;text-align:right">${fmt(diferencia)}</td></tr>
+    </table>
+  </div>
+
+  <div style="margin-top:60px;text-align:center;font-size:12px">
+    <div style="border-top:1px solid #000;width:260px;margin:0 auto;padding-top:6px">Firma del cliente</div>
+  </div>
+
+  <div style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:8px 20px;background:#1a7a52;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">🖨️ Imprimir</button></div>
   </body></html>`);
   w.document.close();
 }
