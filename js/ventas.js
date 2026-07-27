@@ -617,9 +617,9 @@ function dropProRR(){
     const stock=p.stock||0;
     const stockColor=stock<=0?'color:#C00000;font-weight:600':stock<=5?'color:#C55A11;font-weight:600':'color:var(--txt2)';
     const stockIcon=stock<=0?'❌ Sin stock':stock<=5?'⚠️ Bajo: '+stock:stock+' '+(p.unidad||'');
-    return `<div class="drop-item" onmousedown="selProRR(${p.id})">
-      <div style="font-weight:600">${p.nombre}</div>
-      <div style="display:flex;gap:8px;font-size:11px;margin-top:2px">
+    return `<div class="drop-item" onmousedown="selProRR(${p.id})" style="padding:9px 12px">
+      <div style="font-weight:600;font-size:14px">${p.nombre}</div>
+      <div style="display:flex;gap:8px;font-size:12px;margin-top:3px">
         <span style="color:var(--PD);font-weight:600">${fmt(p.precio)}</span>
         <span style="${stockColor}">${stockIcon}</span>
       </div>
@@ -677,9 +677,11 @@ function updStagingRR(campo,v,inputEl){
   renderItemsRR();
   if(!inputEl)return;
   // Mismo cuidado que updItemRR: restaurar el string crudo tipeado para no
-  // pisar un punto decimal a medio escribir con el valor ya parseado.
+  // pisar un punto decimal a medio escribir con el valor ya parseado, y
+  // dejar el cursor al final (si no, al reenfocar vuelve a la posición 0 y
+  // lo siguiente que tipeás se inserta ANTES de lo ya escrito).
   const el2=document.getElementById('rr-'+campo);
-  if(el2){el2.value=v;el2.focus();}
+  if(el2){el2.value=v;el2.focus();el2.setSelectionRange(v.length,v.length);}
 }
 
 function _rrCommitStaging(){
@@ -717,7 +719,7 @@ function _rrStagingRowHTML(){
   const q=esPeso?peso:cant;
   const neto=p&&q>0?precio*q*(1-dto/100):0;
   const pesoCol=p&&esPeso
-    ?`<input type="number" id="rr-peso" value="${_rrStagingVals.peso}" min="0.01" step="0.01" oninput="updStagingRR('peso',this.value,this)" onkeydown="_rrStagingKeydown(event,'peso')" style="width:70px;${peso<=0?'border-color:var(--D);background:#fdecea':''}" placeholder="kg real" title="Peso real de balanza">`
+    ?`<input type="text" inputmode="decimal" id="rr-peso" value="${_rrStagingVals.peso}" oninput="updStagingRR('peso',this.value,this)" onkeydown="_rrStagingKeydown(event,'peso')" style="width:70px;${peso<=0?'border-color:var(--D);background:#fdecea':''}" placeholder="kg real" title="Peso real de balanza">`
     :`<span style="width:70px;display:inline-block;text-align:center;font-size:12px;color:var(--txt2)">—</span>`;
   return `<div class="pitem rr-staging">
     <span class="drop-wrap" style="width:55px;flex-shrink:0;position:relative">
@@ -726,10 +728,10 @@ function _rrStagingRowHTML(){
       <div class="drop" id="rr-pro-drop" style="width:280px"></div>
     </span>
     <input id="rr-pro-q" readonly tabindex="-1" value="${p?p.nombre:''}" placeholder="— código o nombre (F2) —" style="flex:1">
-    <input type="number" id="rr-cant" value="${_rrStagingVals.cant}" min="0.01" step="0.01" oninput="updStagingRR('cant',this.value,this)" onkeydown="_rrStagingKeydown(event,'cant')" style="width:58px" title="Cantidad">
+    <input type="text" inputmode="decimal" id="rr-cant" value="${_rrStagingVals.cant}" oninput="updStagingRR('cant',this.value,this)" onkeydown="_rrStagingKeydown(event,'cant')" style="width:58px" title="Cantidad">
     ${pesoCol}
-    <input type="number" id="rr-precio" value="${_rrStagingVals.precio}" oninput="updStagingRR('precio',this.value,this)" onkeydown="_rrStagingKeydown(event,'precio')" style="width:88px;text-align:right">
-    <input type="number" id="rr-dto" value="${_rrStagingVals.dto}" oninput="updStagingRR('dto',this.value,this)" onkeydown="_rrStagingKeydown(event,'dto')" style="width:42px;text-align:center">
+    <input type="text" inputmode="decimal" id="rr-precio" value="${_rrStagingVals.precio}" oninput="updStagingRR('precio',this.value,this)" onkeydown="_rrStagingKeydown(event,'precio')" style="width:88px;text-align:right">
+    <input type="text" inputmode="decimal" id="rr-dto" value="${_rrStagingVals.dto}" oninput="updStagingRR('dto',this.value,this)" onkeydown="_rrStagingKeydown(event,'dto')" style="width:42px;text-align:center">
     <span class="ptot">${neto>0?fmt(neto):'—'}</span>
     <span style="width:32px"></span>
   </div>`;
@@ -745,14 +747,14 @@ function renderItemsRR(){
     const pedidoCant=it.pedido_cant?`<span style="color:var(--txt2);font-size:10px">(ped:${it.pedido_cant})</span>`:'';
     const codigo=_productos.find(p=>p.id===it.id)?.codigo||'';
     const pesoCol=it.esPeso
-      ?`<input type="number" data-idx="${i}" data-field="peso" value="${it.peso||''}" min="0.01" step="0.01" oninput="updItemRR(${i},'peso',this.value,this)" style="width:70px;${(it.peso||0)===0?'border-color:var(--W)':''}" placeholder="kg real" title="Peso real de balanza">`
+      ?`<input type="text" inputmode="decimal" data-idx="${i}" data-field="peso" value="${it.peso||''}" oninput="updItemRR(${i},'peso',this.value,this)" style="width:70px;${(it.peso||0)===0?'border-color:var(--W)':''}" placeholder="kg real" title="Peso real de balanza">`
       :`<span style="width:70px;display:inline-block;text-align:center;font-size:12px;color:var(--txt2)">—</span>`;
     return `<div class="pitem" style="${it.esPeso&&(it.peso||0)===0?'border:1px solid var(--W);background:var(--WL)':''}">
       <span style="width:55px;flex-shrink:0;text-align:center;font-size:11px;color:var(--txt2)">${codigo}</span>
       <span class="pnom">${it.nom}${it.esPeso?' <span class="b bA" style="font-size:10px">kg</span>':''} ${pedidoCant}</span>
-      <input type="number" data-idx="${i}" data-field="cant" value="${it.cant}" min="1" step="1" oninput="updItemRR(${i},'cant',this.value,this)" style="width:58px" title="Cantidad">
+      <input type="text" inputmode="decimal" data-idx="${i}" data-field="cant" value="${it.cant}" oninput="updItemRR(${i},'cant',this.value,this)" style="width:58px" title="Cantidad">
       ${pesoCol}
-      <input type="number" data-idx="${i}" data-field="precio" value="${it.precio}" oninput="updItemRR(${i},'precio',this.value,this)" style="width:88px;text-align:right">
+      <input type="text" inputmode="decimal" data-idx="${i}" data-field="precio" value="${it.precio}" oninput="updItemRR(${i},'precio',this.value,this)" style="width:88px;text-align:right">
       <span style="width:42px;text-align:center;font-size:11px;color:var(--txt2)">${it.dto?it.dto+'%':''}</span>
       <span class="ptot">${q>0?fmt(neto):'—'}</span>
       <button class="btn D sm" onclick="delItemRR(${i})">🗑</button>
@@ -782,11 +784,11 @@ function updItemRR(i,k,v,inputEl){
   _rrItems[i][k]=parseFloat(v)||0;
   renderItemsRR();
   if(!inputEl)return;
-  // Restaurar el string crudo tipeado (ej "1." antes de terminar "1.5"): el
-  // re-render usa el valor numérico del modelo y pisaría un punto decimal
-  // a medio escribir si reasignáramos el value parseado.
-  const nuevo=el2=>el2&&(el2.value=v,el2.focus());
-  nuevo(document.querySelector(`#rr-items input[data-idx="${i}"][data-field="${k}"]`));
+  // Restaurar el string crudo tipeado (ej "1." antes de terminar "1.5") y el
+  // cursor al final: sin esto, al reenfocar el cursor vuelve al principio y
+  // el siguiente caracter tipeado se inserta ANTES de lo ya escrito.
+  const el2=document.querySelector(`#rr-items input[data-idx="${i}"][data-field="${k}"]`);
+  if(el2){el2.value=v;el2.focus();el2.setSelectionRange(v.length,v.length);}
 }
 
 function delItemRR(i){_rrItems.splice(i,1);renderItemsRR();}
