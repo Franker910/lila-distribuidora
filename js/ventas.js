@@ -213,9 +213,11 @@ function cerrarMenuNuevoComp(){
 // ─── REMITO RÁPIDO ───
 let _rrItems=[], _rrProTemp=null, _rrPedidoId=null;
 
+let _rrListaId=null;
+
 function initRR(){
   document.getElementById('rr-fecha').value=new Date().toISOString().split('T')[0];
-  _rrItems=[];_rrProTemp=null;
+  _rrItems=[];_rrProTemp=null;_rrListaId=null;
   ['rr-cli-q','rr-pro-q','rr-obs','rr-lugar'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const cod=document.getElementById('rr-cod');if(cod){cod.value='';cod.style.borderColor='';}
   const codCli=document.getElementById('rr-cli-cod');if(codCli){codCli.value='';codCli.style.borderColor='';}
@@ -225,12 +227,34 @@ function initRR(){
   document.getElementById('rr-precio').value='0';
   document.getElementById('rr-dto').value='0';
   const info=document.getElementById('rr-cli-info');if(info)info.style.display='none';
+  const selLista=document.getElementById('rr-lista');
+  if(selLista)selLista.innerHTML='<option value="">Precio base</option>'+_listasPrecios.map(l=>`<option value="${l.id}">${l.nombre}</option>`).join('');
   renderItemsRR();
   // Foco al campo de código de cliente
   setTimeout(()=>{
     const codCli=document.getElementById('rr-cli-cod');
     if(codCli) codCli.focus();
   }, 100);
+}
+
+// Cambio manual de lista de precios: repricea el producto que se está por
+// agregar (si hay uno seleccionado) y los items ya cargados en el remito.
+function actualizarListaRR(){
+  const val=document.getElementById('rr-lista')?.value||'';
+  _rrListaId=val?parseInt(val):null;
+  if(_rrProTemp){
+    const precioLista=_rrListaId?getPrecioLista(_rrProTemp.id,_rrListaId):null;
+    const precioEl=document.getElementById('rr-precio');
+    if(precioEl)precioEl.value=precioLista!=null?precioLista:(_rrProTemp.precio||0);
+  }
+  if(_rrListaId){
+    let cambios=0;
+    _rrItems.forEach(it=>{
+      const nuevoPrecio=getPrecioLista(it.id,_rrListaId);
+      if(nuevoPrecio!=null){it.precio=nuevoPrecio;cambios++;}
+    });
+    if(cambios)renderItemsRR();
+  }
 }
 
 // ─── BUSCADOR POR NOMBRE (F1) ───
@@ -449,6 +473,11 @@ function selCliRR(id){
   const venNombre=c.vendedor||usuarioActual?.nombre||'';
   if(venEl) venEl.value=venNombre;
   if(venShow) venShow.textContent=venNombre||'Sin vendedor';
+  // Por defecto, la lista de precios asignada al cliente (se puede cambiar a mano)
+  const listaCliente=getListaCliente(c.id);
+  _rrListaId=listaCliente||null;
+  const selLista=document.getElementById('rr-lista');
+  if(selLista)selLista.value=listaCliente||'';
   const dias=diasDesde(c.ultimo_remito);
   const info=document.getElementById('rr-cli-info');
 
@@ -644,7 +673,8 @@ function selProRR(id){
   document.getElementById('rr-pro-q').value=_rrProTemp.nombre;
   document.getElementById('rr-pro-drop').style.display='none';
   const cp=document.getElementById('rr-cod');if(cp){cp.value=_rrProTemp.codigo||_rrProTemp.id;cp.style.borderColor='var(--P)';}
-  document.getElementById('rr-precio').value=_rrProTemp.precio||0;
+  const precioLista=_rrListaId?getPrecioLista(_rrProTemp.id,_rrListaId):null;
+  document.getElementById('rr-precio').value=precioLista!=null?precioLista:(_rrProTemp.precio||0);
   const cid=document.getElementById('rr-cli-id').value;
   const c=cid?_clientes.find(x=>x.id==cid):null;
   document.getElementById('rr-dto').value=Math.max(_rrProTemp.descuento||0,c?.descuento||0);
