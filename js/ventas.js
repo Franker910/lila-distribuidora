@@ -21,7 +21,7 @@ function renderPedidos(){
       <div onclick="toggleDetallePed(${p.id})" style="display:flex;justify-content:space-between;align-items:center;padding:14px;cursor:pointer;border-left:4px solid var(--P)">
         <div style="flex:1;min-width:0">
           <div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">#${p.id} — ${p.cliente}</div>
-          <div style="font-size:12px;color:var(--txt2);margin-top:2px">${p.localidad||''} · Z${p.zona||'?'} · ${p.vendedor||'—'} · ${p.fecha||''}</div>
+          <div style="font-size:12px;color:var(--txt2);margin-top:2px">${p.localidad||''} · ${(_zonas.find(z=>z.codigo===p.zona)?.descripcion||p.zona)||''} · ${p.vendedor||'—'} · ${p.fecha||''}</div>
           <div style="margin-top:4px;display:flex;align-items:center;gap:6px">${stBadge(p.estado)}<span style="font-size:11px;color:var(--txt2)">${(p.items||[]).length} producto${(p.items||[]).length!==1?'s':''}${p.visita?' · '+p.visita:''}</span></div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-left:12px;flex-shrink:0">
@@ -88,7 +88,7 @@ function dropCli(){
   const drop=document.getElementById('np-cli-drop');
   if(q.length<1){drop.style.display='none';return;}
   const m=_clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q)||(c.telefono||'').includes(q));
-  drop.innerHTML=m.map(c=>`<div onmousedown="selCli(${c.id})"><strong>${c.nombre}</strong> <span style="color:var(--txt2);font-size:11px">${c.localidad} · Z${c.zona}</span></div>`).join('');
+  drop.innerHTML=m.map(c=>`<div onmousedown="selCli(${c.id})"><strong>${c.nombre}</strong> <span style="color:var(--txt2);font-size:11px">${c.localidad} · ${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||''}</span></div>`).join('');
   drop.style.display=m.length?'block':'none';
 }
 
@@ -106,7 +106,7 @@ function selCli(id){
   const detalle=document.getElementById('np-cli-detalle');
   const saldoEl=document.getElementById('np-cli-saldo');
   if(nombre)nombre.textContent=c.nombre;
-  if(detalle)detalle.textContent=`📍 ${c.localidad||''} · Z${c.zona||'-'} · 📞 ${c.telefono||'—'} · Dto: ${c.descuento||0}%${dias!==null?' · Último rem: '+dias+' días':''}`;
+  if(detalle)detalle.textContent=`📍 ${c.localidad||''} · ${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||''} · 📞 ${c.telefono||'—'} · Dto: ${c.descuento||0}%${dias!==null?' · Último rem: '+dias+' días':''}`;
   if(saldoEl){
     saldoEl.textContent=fmt(c.saldo||0);
     saldoEl.style.color=(c.saldo||0)>0?'var(--D)':'var(--P)';
@@ -433,7 +433,7 @@ function dropCliRR(){
     if(!ven)return matchQ;
     return matchQ&&(c.vendedor||'').toLowerCase().includes(ven);
   });
-  drop.innerHTML=m.map(c=>`<div onmousedown="selCliRR(${c.id})"><strong>${c.nombre}</strong> <span style="color:var(--txt2);font-size:11px">${c.localidad} · Z${c.zona}</span></div>`).join('');
+  drop.innerHTML=m.map(c=>`<div onmousedown="selCliRR(${c.id})"><strong>${c.nombre}</strong> <span style="color:var(--txt2);font-size:11px">${c.localidad} · ${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||''}</span></div>`).join('');
   if(m.length){ajustarDrop(inp,drop);drop.style.display='block';}else{drop.style.display='none';}
 }
 
@@ -453,7 +453,7 @@ function selCliRR(id){
   const info=document.getElementById('rr-cli-info');
 
   info.innerHTML=`<div style="font-weight:600;font-size:13px;margin-bottom:3px">${c.nombre}</div>
-    <div style="font-size:12px;color:var(--txt2)">${c.direccion?'📍 '+c.direccion+', ':''} ${c.localidad||''} · Z${c.zona||'-'} | 📞 ${c.telefono||'—'} | Lista: <b>${c.lista||1}</b> | Dto: <b>${c.descuento||0}%</b> | Saldo CC: <b style="${(c.saldo||0)>0?'color:var(--D)':''}">${fmt(c.saldo)}</b>${dias!==null?` | Último rem: <b>${dias} días</b>`:''}</div>`;
+    <div style="font-size:12px;color:var(--txt2)">${c.direccion?'📍 '+c.direccion+', ':''} ${c.localidad||''} · ${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||''} | 📞 ${c.telefono||'—'} | Lista: <b>${c.lista||1}</b> | Dto: <b>${c.descuento||0}%</b> | Saldo CC: <b style="${(c.saldo||0)>0?'color:var(--D)':''}">${fmt(c.saldo)}</b>${dias!==null?` | Último rem: <b>${dias} días</b>`:''}</div>`;
   info.style.display='block';
 
   // Pedido pendiente → popup obligatorio (no se puede saltear)
