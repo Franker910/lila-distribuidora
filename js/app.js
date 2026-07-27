@@ -15,11 +15,13 @@ const sb = supabase.createClient(SB_URL, SB_KEY, {
 const EMAIL_DOMINIO = 'lila.local';
 
  // los emails son internos, no reciben correo
+// dualRolMovil: true → en el celular puede alternar Vendedor/Repartidor con
+// el botón "Cambiar a..." en vez de tener un solo rol fijo.
 const USUARIOS = [
-  {user:'mauricio',  nombre:'Mauricio',  rol:'vendedor',    rol_original:'admin'},
-  {user:'alexis',    nombre:'Alexis',    rol:'vendedor',    esAdmin:true},
+  {user:'mauricio',  nombre:'Mauricio',  rol:'vendedor',    rol_original:'admin', dualRolMovil:true},
+  {user:'alexis',    nombre:'Alexis',    rol:'vendedor',    esAdmin:true,         dualRolMovil:true},
   {user:'franco',    nombre:'Franco',    rol:'vendedor',    vendedor:'Franco'},
-  {user:'david',     nombre:'David',     rol:'vendedor',    vendedor:'David'},
+  {user:'david',     nombre:'David',     rol:'vendedor',    vendedor:'David',     dualRolMovil:true},
   {user:'emiliano',  nombre:'Emiliano',  rol:'repartidor',  vendedor:'Emiliano'},
   {user:'gaston',    nombre:'Gastón',    rol:'repartidor',  vendedor:'Gastón'},
 ];
@@ -45,7 +47,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260726-07';
+const APP_VERSION = '20260726-08';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -177,6 +179,11 @@ function entrarApp(found){
     if(found.rol_original==='admin' || found.user==='mauricio' || found.esAdmin){
       const btnAdmin = document.getElementById('btn-volver-admin');
       if(btnAdmin) btnAdmin.style.display='flex';
+    }
+    // Dual rol (vendedor/repartidor) en el mismo celular: mostrar el toggle
+    if(found.dualRolMovil){
+      const btnRol=document.getElementById('btn-cambiar-rol-movil');
+      if(btnRol){btnRol.style.display='flex';actualizarBtnRolMovil();}
     }
   } else {
     if(sidebar)sidebar.style.display='';
@@ -449,6 +456,25 @@ function volverAdmin(){
   go('dash');
   initSidebarKeyNav();
   focoHamburguesa();
+}
+
+// Alternar Vendedor/Repartidor en el mismo celular (mauricio, alexis, david:
+// dualRolMovil=true en USUARIOS). Reutiliza tal cual toda la UI que ya
+// distingue por usuarioActual.rol, sin tocar ningún otro chequeo del código.
+function toggleRolMovil(){
+  if(!usuarioActual)return;
+  usuarioActual.rol = usuarioActual.rol==='repartidor'?'vendedor':'repartidor';
+  actualizarBtnRolMovil();
+  renderVendedorHome();
+  if(usuarioActual.rol==='repartidor')cargarHojaRutaRepartidor();
+  toast(`📲 Ahora estás como ${usuarioActual.rol==='repartidor'?'Repartidor':'Vendedor'}`);
+}
+
+function actualizarBtnRolMovil(){
+  const btn=document.getElementById('btn-cambiar-rol-movil');
+  if(!btn)return;
+  const esRep=usuarioActual?.rol==='repartidor';
+  btn.textContent=esRep?'🔄 Cambiar a Vendedor':'🔄 Cambiar a Repartidor';
 }
 
 function toggleNavGroup(grupo){
