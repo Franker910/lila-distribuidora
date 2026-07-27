@@ -215,17 +215,18 @@ let _rrItems=[], _rrProTemp=null, _rrPedidoId=null;
 
 let _rrListaId=null;
 
+// Fila de carga (estilo FoxPro): valores crudos tipeados en la última fila de
+// #rr-items, todavía sin confirmar como ítem del remito. _rrProTemp guarda el
+// producto ya resuelto (por código o por el desplegable de nombre).
+let _rrStagingVals={cod:'',cant:'1',peso:'',precio:'0',dto:'0'};
+
 function initRR(){
   document.getElementById('rr-fecha').value=new Date().toISOString().split('T')[0];
   _rrItems=[];_rrProTemp=null;_rrListaId=null;
-  ['rr-cli-q','rr-pro-q','rr-obs','rr-lugar'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  const cod=document.getElementById('rr-cod');if(cod){cod.value='';cod.style.borderColor='';}
+  _rrStagingVals={cod:'',cant:'1',peso:'',precio:'0',dto:'0'};
+  ['rr-cli-q','rr-obs','rr-lugar'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const codCli=document.getElementById('rr-cli-cod');if(codCli){codCli.value='';codCli.style.borderColor='';}
   document.getElementById('rr-cli-id').value='';
-  document.getElementById('rr-cant').value='1';
-  document.getElementById('rr-peso').value='0';
-  document.getElementById('rr-precio').value='0';
-  document.getElementById('rr-dto').value='0';
   const info=document.getElementById('rr-cli-info');if(info)info.style.display='none';
   const selLista=document.getElementById('rr-lista');
   if(selLista)selLista.innerHTML='<option value="">Precio base</option>'+_listasPrecios.map(l=>`<option value="${l.id}">${l.nombre}</option>`).join('');
@@ -244,17 +245,15 @@ function actualizarListaRR(){
   _rrListaId=val?parseInt(val):null;
   if(_rrProTemp){
     const precioLista=_rrListaId?getPrecioLista(_rrProTemp.id,_rrListaId):null;
-    const precioEl=document.getElementById('rr-precio');
-    if(precioEl)precioEl.value=precioLista!=null?precioLista:(_rrProTemp.precio||0);
+    _rrStagingVals.precio=String(precioLista!=null?precioLista:(_rrProTemp.precio||0));
   }
   if(_rrListaId){
-    let cambios=0;
     _rrItems.forEach(it=>{
       const nuevoPrecio=getPrecioLista(it.id,_rrListaId);
-      if(nuevoPrecio!=null){it.precio=nuevoPrecio;cambios++;}
+      if(nuevoPrecio!=null)it.precio=nuevoPrecio;
     });
-    if(cambios)renderItemsRR();
   }
+  renderItemsRR();
 }
 
 // ─── BUSCADOR POR NOMBRE (F1) ───
@@ -522,9 +521,10 @@ function cargarItemsDePedido(pedId){
   _rrPedidoId=pedId;
   const cid=document.getElementById('rr-cli-id').value;
   const c=_clientes.find(x=>x.id==cid);
-  
-  // Cargar los items del pedido al remito rápido
+
+  // Cargar los items del pedido al remito rápido (limpio la fila de carga en curso)
   _rrItems=[];
+  _rrProTemp=null;_rrStagingVals={cod:'',cant:'1',peso:'',precio:'0',dto:'0'};
   (ped.items||[]).forEach(it=>{
     const prod=_productos.find(p=>p.id===it.id||p.nombre===it.nom);
     const precio=prod?.precio||it.precio||0;
@@ -563,10 +563,8 @@ function buscarPorCodigoRR(){
   const prod=_productos.find(p=>String(p.codigo).trim()===cod);
   if(prod){
     selProRR(prod.id);
-    document.getElementById('rr-cod').style.borderColor='var(--P)';
-    document.getElementById('rr-cant').focus();
   } else {
-    document.getElementById('rr-cod').style.borderColor='var(--D)';
+    const el=document.getElementById('rr-cod');if(el)el.style.borderColor='var(--D)';
   }
 }
 
@@ -590,46 +588,32 @@ function navDropProRR(e){
   if(idx>=0){items[idx].classList.add('active');items[idx].scrollIntoView({block:'nearest'});}
 }
 
-// Mejorar navegación Enter en campos de producto
-document.addEventListener('DOMContentLoaded',function(){
-  const campos = ['rr-cant','rr-peso','rr-precio','rr-dto'];
-  campos.forEach((id,i)=>{
-    const el = document.getElementById(id);
-    if(!el) return;
-    el.addEventListener('keydown',function(e){
-      if(e.key==='Enter'||e.key==='Tab'){
-        // Si es campo peso y el producto es por kg, no dejar salir sin valor
-        if(id==='rr-peso' && _rrProTemp){
-          const unidad=(_rrProTemp.unidad||'').toLowerCase().trim();
-          const esPeso=['kg','kilo','kilos','k','kilogramo','kilogramos'].includes(unidad);
-          if(esPeso && (parseFloat(this.value)||0)<=0){
-            e.preventDefault();
-            this.style.borderColor='var(--D)';
-            this.style.background='#fdecea';
-            this.focus();this.select();
-            return;
-          }
-        }
-        if(e.key==='Enter'){
-          e.preventDefault();
-          if(i < campos.length-1) document.getElementById(campos[i+1])?.focus();
-          else{ agregarItemRR(); setTimeout(()=>document.getElementById('rr-cod')?.focus(),50); }
-        }
-      }
-      if(e.key==='ArrowUp' && i===0){
-        e.preventDefault();
-        document.getElementById('rr-cod')?.focus();
-      }
-    });
-  });
-});
+// Celda Código de la fila de carga (estilo FoxPro): dígitos → código exacto
+// (Enter/Tab confirma), letras → autocompletar por nombre (dropdown abajo).
+function _rrCodKeydown(e){
+  if(e.key==='F2'){e.preventDefault();abrirBuscadorPro('rr');return;}
+  const drop=document.getElementById('rr-pro-drop');
+  const items=drop?.querySelectorAll('.drop-item');
+  if(items&&items.length&&drop.style.display!=='none'&&(e.key==='ArrowDown'||e.key==='ArrowUp'||e.key==='Enter'||e.key==='Escape')){
+    navDropProRR(e);
+    return;
+  }
+  if(e.key==='Enter'||(e.key==='Tab'&&e.target.value.trim())){
+    e.preventDefault();
+    buscarPorCodigoRR();
+  }
+}
 
 function dropProRR(){
-  const q=(document.getElementById('rr-pro-q').value||'').toLowerCase();
+  const val=(document.getElementById('rr-cod')?.value||'').trim();
   const drop=document.getElementById('rr-pro-drop');
-  if(q.length<1){drop.style.display='none';_rrProTemp=null;return;}
-  const m=_productos.filter(p=>p.activo!==false&&((p.nombre||'').toLowerCase().includes(q)||(p.codigo||'').toString().includes(q)));
-  drop.innerHTML=m.map(p=>{
+  if(!drop)return;
+  if(!val){drop.style.display='none';_rrProTemp=null;return;}
+  // Solo dígitos: es búsqueda por código exacto (Enter/Tab la resuelve), no autocompletar por nombre
+  if(/^[0-9]+$/.test(val)){drop.style.display='none';return;}
+  const q=val.toLowerCase();
+  const m=_productos.filter(p=>p.activo!==false&&(p.nombre||'').toLowerCase().includes(q));
+  drop.innerHTML=m.length?m.map(p=>{
     const stock=p.stock||0;
     const stockColor=stock<=0?'color:#C00000;font-weight:600':stock<=5?'color:#C55A11;font-weight:600':'color:var(--txt2)';
     const stockIcon=stock<=0?'❌ Sin stock':stock<=5?'⚠️ Bajo: '+stock:stock+' '+(p.unidad||'');
@@ -640,81 +624,131 @@ function dropProRR(){
         <span style="${stockColor}">${stockIcon}</span>
       </div>
     </div>`;
-  }).join('');
-  drop.style.display=m.length?'block':'none';
+  }).join(''):'<div style="padding:8px;color:var(--txt2);font-size:12px">Sin resultados</div>';
+  drop.style.display='block';
 }
 
+// Resuelve el producto (por código exacto o elegido del desplegable/buscador F2)
+// para la fila de carga: llena código/precio/dto en _rrStagingVals y re-renderiza.
 function selProRR(id){
   _rrProTemp=_productos.find(x=>x.id===id);if(!_rrProTemp)return;
-  document.getElementById('rr-pro-q').value=_rrProTemp.nombre;
-  document.getElementById('rr-pro-drop').style.display='none';
-  const cp=document.getElementById('rr-cod');if(cp){cp.value=_rrProTemp.codigo||_rrProTemp.id;cp.style.borderColor='var(--P)';}
+  const drop=document.getElementById('rr-pro-drop');if(drop)drop.style.display='none';
+  _rrStagingVals.cod=String(_rrProTemp.codigo||_rrProTemp.id);
   const precioLista=_rrListaId?getPrecioLista(_rrProTemp.id,_rrListaId):null;
-  document.getElementById('rr-precio').value=precioLista!=null?precioLista:(_rrProTemp.precio||0);
+  _rrStagingVals.precio=String(precioLista!=null?precioLista:(_rrProTemp.precio||0));
   const cid=document.getElementById('rr-cli-id').value;
   const c=cid?_clientes.find(x=>x.id==cid):null;
-  document.getElementById('rr-dto').value=Math.max(_rrProTemp.descuento||0,c?.descuento||0);
-  // Si es producto por peso, ir directo al campo peso y resaltarlo
+  _rrStagingVals.dto=String(Math.max(_rrProTemp.descuento||0,c?.descuento||0));
+  if(!_rrStagingVals.cant)_rrStagingVals.cant='1';
+  // Si es producto por peso, dejar el peso vacío para que se complete a mano
   const unidad=(_rrProTemp.unidad||'').toLowerCase().trim();
   const esPeso=['kg','kilo','kilos','k','kilogramo','kilogramos'].includes(unidad);
-  const pesoEl=document.getElementById('rr-peso');
-  if(esPeso){
-    pesoEl.value='';
-    pesoEl.style.borderColor='var(--P)';
-    pesoEl.style.background='#fffde7';
-    setTimeout(()=>{pesoEl.focus();pesoEl.select();},80);
-  } else {
-    pesoEl.value=0;
-    pesoEl.style.borderColor='';
-    pesoEl.style.background='';
-    setTimeout(()=>{document.getElementById('rr-cant').focus();document.getElementById('rr-cant').select();},80);
-  }
+  _rrStagingVals.peso=esPeso?'':'0';
+  renderItemsRR();
+  setTimeout(()=>{
+    const f=document.getElementById('rr-'+(esPeso?'peso':'cant'));
+    if(f){f.focus();f.select();}
+  },80);
 }
 
-function agregarItemRR(){
-  if(!_rrProTemp){const q=(document.getElementById('rr-pro-q').value||'').toLowerCase();_rrProTemp=_productos.find(p=>(p.nombre||'').toLowerCase().includes(q));}
-  if(!_rrProTemp){alert('Seleccioná un producto');return;}
-  const cant=parseFloat(document.getElementById('rr-cant').value)||1;
-  const peso=parseFloat(document.getElementById('rr-peso').value)||0;
-  const precio=parseFloat(document.getElementById('rr-precio').value)||0;
-  const dto=parseFloat(document.getElementById('rr-dto').value)||0;
-  
-  // Validar peso obligatorio para productos por kg
-  const unidad = (_rrProTemp.unidad||'').toLowerCase().trim();
-  const esPorPeso = ['kg','kilo','kilos','k','kilogramo','kilogramos'].includes(unidad);
-  if(esPorPeso && peso <= 0){
-    alert('⚠️ ' + _rrProTemp.nombre + ' se vende por kg. Ingresá el peso real de la balanza.');
-    document.getElementById('rr-peso').focus();
-    document.getElementById('rr-peso').select();
-    document.getElementById('rr-peso').style.borderColor = 'var(--D)';
-    setTimeout(()=>{ const el=document.getElementById('rr-peso'); if(el) el.style.borderColor=''; }, 3000);
+// Navegación Código→Cant/Peso→Precio→Dto de la fila de carga. Al completar la
+// última celda, confirma el ítem y deja lista una fila nueva vacía (sin botón Agregar).
+function _rrStagingKeydown(e,campo){
+  if(e.key!=='Enter'&&e.key!=='Tab')return;
+  e.preventDefault();
+  if(campo==='peso'){
+    const peso=parseFloat(e.target.value)||0;
+    if(peso<=0){
+      e.target.style.borderColor='var(--D)';e.target.style.background='#fdecea';
+      e.target.focus();e.target.select();
+      return;
+    }
+  }
+  const esPeso=_rrProTemp&&['kg','kilo','kilos','k','kilogramo','kilogramos'].includes((_rrProTemp.unidad||'').toLowerCase().trim());
+  const orden=esPeso?['peso','precio','dto']:['cant','precio','dto'];
+  const idx=orden.indexOf(campo);
+  if(idx<0||idx>=orden.length-1){_rrCommitStaging();return;}
+  const f=document.getElementById('rr-'+orden[idx+1]);
+  if(f){f.focus();f.select();}
+}
+
+function updStagingRR(campo,v,inputEl){
+  _rrStagingVals[campo]=v;
+  renderItemsRR();
+  if(!inputEl)return;
+  // Mismo cuidado que updItemRR: restaurar el string crudo tipeado para no
+  // pisar un punto decimal a medio escribir con el valor ya parseado.
+  const el2=document.getElementById('rr-'+campo);
+  if(el2){el2.value=v;el2.focus();}
+}
+
+function _rrCommitStaging(){
+  if(!_rrProTemp){alert('Seleccioná un producto (código o nombre)');return;}
+  const cant=parseFloat(_rrStagingVals.cant)||1;
+  const peso=parseFloat(_rrStagingVals.peso)||0;
+  const precio=parseFloat(_rrStagingVals.precio)||0;
+  const dto=parseFloat(_rrStagingVals.dto)||0;
+  const unidad=(_rrProTemp.unidad||'').toLowerCase().trim();
+  const esPorPeso=['kg','kilo','kilos','k','kilogramo','kilogramos'].includes(unidad);
+  if(esPorPeso&&peso<=0){
+    alert('⚠️ '+_rrProTemp.nombre+' se vende por kg. Ingresá el peso real de la balanza.');
+    const f=document.getElementById('rr-peso');
+    if(f){f.focus();f.select();f.style.borderColor='var(--D)';}
     return;
   }
-  
   const unFinal=esPorPeso?'kg':(_rrProTemp.unidad||'un');
   const ex=_rrItems.find(i=>i.id===_rrProTemp.id);
   if(ex){ex.cant+=cant;if(esPorPeso)ex.peso=(ex.peso||0)+peso;}
   else{_rrItems.push({id:_rrProTemp.id,nom:_rrProTemp.nombre,un:unFinal,cant,peso:esPorPeso?peso:0,precio,dto,iva:_rrProTemp.iva||21,esPeso:esPorPeso});}
   _rrProTemp=null;
-  document.getElementById('rr-pro-q').value='';
-  document.getElementById('rr-cant').value='1';
-  document.getElementById('rr-peso').value='0';
+  _rrStagingVals={cod:'',cant:'1',peso:'',precio:'0',dto:'0'};
   renderItemsRR();
+  setTimeout(()=>{const f=document.getElementById('rr-cod');if(f)f.focus();},80);
+}
+
+function _rrStagingRowHTML(){
+  const p=_rrProTemp;
+  const unidad=p?(p.unidad||'').toLowerCase().trim():'';
+  const esPeso=p?['kg','kilo','kilos','k','kilogramo','kilogramos'].includes(unidad):false;
+  const cant=parseFloat(_rrStagingVals.cant)||0;
+  const peso=parseFloat(_rrStagingVals.peso)||0;
+  const precio=parseFloat(_rrStagingVals.precio)||0;
+  const dto=parseFloat(_rrStagingVals.dto)||0;
+  const q=esPeso?peso:cant;
+  const neto=p&&q>0?precio*q*(1-dto/100):0;
+  const pesoCol=p&&esPeso
+    ?`<input type="number" id="rr-peso" value="${_rrStagingVals.peso}" min="0.01" step="0.01" oninput="updStagingRR('peso',this.value,this)" onkeydown="_rrStagingKeydown(event,'peso')" style="width:70px;${peso<=0?'border-color:var(--D);background:#fdecea':''}" placeholder="kg real" title="Peso real de balanza">`
+    :`<span style="width:70px;display:inline-block;text-align:center;font-size:12px;color:var(--txt2)">—</span>`;
+  return `<div class="pitem rr-staging">
+    <span class="drop-wrap" style="width:55px;flex-shrink:0;position:relative">
+      <input id="rr-cod" value="${_rrStagingVals.cod}" placeholder="Cód." autocomplete="off" title="Código de producto — F2 para buscar por nombre"
+        oninput="dropProRR()" onkeydown="_rrCodKeydown(event)" style="width:100%;text-align:center">
+      <div class="drop" id="rr-pro-drop" style="width:280px"></div>
+    </span>
+    <input id="rr-pro-q" readonly tabindex="-1" value="${p?p.nombre:''}" placeholder="— código o nombre (F2) —" style="flex:1">
+    <input type="number" id="rr-cant" value="${_rrStagingVals.cant}" min="0.01" step="0.01" oninput="updStagingRR('cant',this.value,this)" onkeydown="_rrStagingKeydown(event,'cant')" style="width:58px" title="Cantidad">
+    ${pesoCol}
+    <input type="number" id="rr-precio" value="${_rrStagingVals.precio}" oninput="updStagingRR('precio',this.value,this)" onkeydown="_rrStagingKeydown(event,'precio')" style="width:88px;text-align:right">
+    <input type="number" id="rr-dto" value="${_rrStagingVals.dto}" oninput="updStagingRR('dto',this.value,this)" onkeydown="_rrStagingKeydown(event,'dto')" style="width:42px;text-align:center">
+    <span class="ptot">${neto>0?fmt(neto):'—'}</span>
+    <span style="width:32px"></span>
+  </div>`;
 }
 
 function renderItemsRR(){
   const el=document.getElementById('rr-items'),tb=document.getElementById('rr-totbar');
-  if(!_rrItems.length){el.innerHTML='<div class="empty" style="padding:14px">Agregá productos al remito</div>';tb.style.display='none';return;}
   let sub=0,dtoT=0,tot=0;
   const rows=_rrItems.map((it,i)=>{
     const q=it.esPeso?(it.peso||0):it.cant;
     const base=it.precio*q,dtoA=base*(it.dto/100),neto=base-dtoA;
     sub+=base;dtoT+=dtoA;tot+=neto;
     const pedidoCant=it.pedido_cant?`<span style="color:var(--txt2);font-size:10px">(ped:${it.pedido_cant})</span>`:'';
+    const codigo=_productos.find(p=>p.id===it.id)?.codigo||'';
     const pesoCol=it.esPeso
       ?`<input type="number" data-idx="${i}" data-field="peso" value="${it.peso||''}" min="0.01" step="0.01" oninput="updItemRR(${i},'peso',this.value,this)" style="width:70px;${(it.peso||0)===0?'border-color:var(--W)':''}" placeholder="kg real" title="Peso real de balanza">`
       :`<span style="width:70px;display:inline-block;text-align:center;font-size:12px;color:var(--txt2)">—</span>`;
     return `<div class="pitem" style="${it.esPeso&&(it.peso||0)===0?'border:1px solid var(--W);background:var(--WL)':''}">
+      <span style="width:55px;flex-shrink:0;text-align:center;font-size:11px;color:var(--txt2)">${codigo}</span>
       <span class="pnom">${it.nom}${it.esPeso?' <span class="b bA" style="font-size:10px">kg</span>':''} ${pedidoCant}</span>
       <input type="number" data-idx="${i}" data-field="cant" value="${it.cant}" min="1" step="1" oninput="updItemRR(${i},'cant',this.value,this)" style="width:58px" title="Cantidad">
       ${pesoCol}
@@ -725,6 +759,7 @@ function renderItemsRR(){
     </div>`;
   }).join('');
   const header=`<div class="fx-grid-head" style="display:flex;gap:6px;padding:2px 8px 3px;font-size:10px;font-weight:700;text-transform:uppercase">
+    <span style="width:55px;text-align:center">Cód.</span>
     <span style="flex:1">Producto</span>
     <span style="width:58px;text-align:center">Cant.</span>
     <span style="width:70px;text-align:center">Peso KG</span>
@@ -733,12 +768,12 @@ function renderItemsRR(){
     <span style="min-width:80px;text-align:right">Subtotal</span>
     <span style="width:32px"></span>
   </div>`;
-  el.innerHTML=header+rows;
+  el.innerHTML=header+rows+_rrStagingRowHTML();
   const sinPeso=_rrItems.filter(it=>it.esPeso&&(it.peso||0)===0).length;
   if(sinPeso){
     el.innerHTML+=`<div style="background:var(--WL);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--W);margin-top:6px">⚠️ ${sinPeso} producto(s) por kg sin peso. Completá el peso real de la balanza.</div>`;
   }
-  tb.style.display='flex';
+  tb.style.display=_rrItems.length?'flex':'none';
   document.getElementById('rr-desglose').textContent=`Sub ${fmt(sub)}${dtoT>0?' | Dto '+fmt(dtoT):''}`;
   document.getElementById('rr-total').textContent=fmt(tot);
 }
@@ -758,6 +793,7 @@ function delItemRR(i){_rrItems.splice(i,1);renderItemsRR();}
 
 function limpiarRR(){
   _rrItems=[];_rrProTemp=null;_rrPedidoId=null;
+  _rrStagingVals={cod:'',cant:'1',peso:'',precio:'0',dto:'0'};
   document.getElementById('rr-cli-q').value='';
   document.getElementById('rr-cli-id').value='';
   const cc=document.getElementById('rr-cli-cod');if(cc){cc.value='';cc.style.borderColor='';}

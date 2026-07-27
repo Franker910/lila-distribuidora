@@ -47,7 +47,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260727-06';
+const APP_VERSION = '20260727-07';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -668,7 +668,7 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('#np-pro-q')&&!e.target.closest('#np-pro-drop'))hide('np-pro-drop');
   if(!e.target.closest('#cob-cli-q')&&!e.target.closest('#cob-cli-drop'))hide('cob-cli-drop');
   if(!e.target.closest('#rr-cli-q')&&!e.target.closest('#rr-cli-drop'))hide('rr-cli-drop');
-  if(!e.target.closest('#rr-pro-q')&&!e.target.closest('#rr-pro-drop'))hide('rr-pro-drop');
+  if(!e.target.closest('#rr-cod')&&!e.target.closest('#rr-pro-drop'))hide('rr-pro-drop');
   if(!e.target.closest('#nc-cli-q')&&!e.target.closest('#nc-cli-drop'))hide('nc-cli-drop');
   if(!e.target.closest('#nc-pro-q')&&!e.target.closest('#nc-pro-drop'))hide('nc-pro-drop');
   if(!e.target.closest('#hr-cli-q')&&!e.target.closest('#hr-cli-drop'))hide('hr-cli-drop');

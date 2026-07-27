@@ -183,9 +183,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pitem input[type=number]{width:70px;padding:4px 6px;border:1px solid var(--brd);border-radius:6px;font-size:13px;text-align:center;font-family:inherit}
 .pitem .ptot{min-width:80px;text-align:right;font-weight:600;color:var(--P)}
 
-/* Remito rápido — estilo FoxPro: bordes negros duros, sin redondeos ni gris */
-.rr-fx .fg input,.rr-fx .fg select{border:1.5px solid #000;border-radius:0;background:#fff;color:#000}
-.rr-fx .fg label{color:#000}
+/* Remito rápido — estilo FoxPro: bordes negros duros, sin redondeos ni gris.
+   La última fila de #rr-items es la fila de carga (fondo tinte, sin botón Agregar). */
 #rr-items{border:1.5px solid #000;background:#fff}
 #rr-items .fx-grid-head{border-bottom:1.5px solid #000;color:#000;background:#e8e8e8}
 #rr-items .fx-grid-head>*{border-right:1px solid #000;padding:3px 6px}
@@ -194,7 +193,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #rr-items .pitem>*{border-right:1px solid #000;padding-right:6px}
 #rr-items .pitem>*:last-child{border-right:none}
 #rr-items .pitem .ptot{color:#000}
-#rr-items .pitem input[type=number]{border:1px solid #000;border-radius:0;color:#000;background:#fff}
+#rr-items .pitem input{border:1px solid #000;border-radius:0;color:#000;background:#fff;font-family:inherit;font-size:13px}
+#rr-items .pitem input[readonly]{background:#eee;color:#333}
+#rr-items .pitem.rr-staging{background:var(--PL)}
 
 /* Totbar */
 .totbar{background:var(--PL);border-radius:8px;padding:11px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:8px}
@@ -1704,31 +1705,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           </div>
         </div>
 
-        <!-- Sección agregar producto — estilo FoxPro: bordes negros duros, alto contraste -->
-        <div class="rr-fx" style="background:var(--PL);border:1px solid var(--brd);border-radius:10px;padding:12px;margin-bottom:10px">
-          <div style="font-size:11px;font-weight:700;color:var(--PD);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px">+ Agregar producto</div>
-          <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:nowrap">
-            <div class="fg" style="width:80px;flex-shrink:0">
-              <label>Código &nbsp;<span style="font-size:10px;color:var(--txt2)">[F2]</span></label>
-              <div style="display:flex;gap:3px">
-                <input id="rr-cod" placeholder="102" tabindex="2" onkeydown="if(event.key==='F2'){event.preventDefault();abrirBuscadorPro('rr');}else if(event.key==='Enter'||(event.key==='Tab'&&this.value.trim())){event.preventDefault();buscarPorCodigoRR();}" autocomplete="off" style="width:100%;min-width:0">
-                <button class="btn sm" onclick="abrirBuscadorPro('rr')" title="Buscar por nombre (F2)" style="padding:4px 5px;font-size:12px">🔍</button>
-              </div>
-            </div>
-            <div class="fg drop-wrap" style="flex:1;min-width:0">
-              <label>Producto</label>
-              <input id="rr-pro-q" placeholder="Buscar..." tabindex="3" oninput="dropProRR()" autocomplete="off" onkeydown="navDropProRR(event)">
-              <div class="drop" id="rr-pro-drop"></div>
-            </div>
-            <div class="fg" style="width:58px;flex-shrink:0"><label>Cant.</label><input id="rr-cant" type="number" value="1" min="0.01" step="0.01" tabindex="4" style="width:100%"></div>
-            <div class="fg" style="width:62px;flex-shrink:0"><label>Peso kg</label><input id="rr-peso" type="number" value="0" min="0" step="0.01" placeholder="0" title="Solo para productos por kg" tabindex="5" style="width:100%"></div>
-            <div class="fg" style="width:76px;flex-shrink:0"><label>Precio ($)</label><input id="rr-precio" type="number" value="0" tabindex="6" style="width:100%"></div>
-            <div class="fg" style="width:52px;flex-shrink:0"><label>Dto%</label><input id="rr-dto" type="number" value="0" tabindex="7" style="width:100%"></div>
-            <button class="btn P" onclick="agregarItemRR()" style="align-self:flex-end;flex-shrink:0" tabindex="8">+ Agregar</button>
-          </div>
-        </div>
-
-        <!-- Lista de productos cargados -->
+        <!-- Grilla de productos — estilo FoxPro: la última fila es la de carga, sin botón Agregar -->
         <div id="rr-items"></div>
 
       </div>
@@ -3428,13 +3405,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260727-06"></script>
-<script src="js/maestros.js?v=20260727-06"></script>
-<script src="js/ventas.js?v=20260727-06"></script>
-<script src="js/tesoreria.js?v=20260727-06"></script>
-<script src="js/contabilidad.js?v=20260727-06"></script>
-<script src="js/informes.js?v=20260727-06"></script>
-<script src="js/logistica.js?v=20260727-06"></script>
+<script src="js/app.js?v=20260727-07"></script>
+<script src="js/maestros.js?v=20260727-07"></script>
+<script src="js/ventas.js?v=20260727-07"></script>
+<script src="js/tesoreria.js?v=20260727-07"></script>
+<script src="js/contabilidad.js?v=20260727-07"></script>
+<script src="js/informes.js?v=20260727-07"></script>
+<script src="js/logistica.js?v=20260727-07"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
