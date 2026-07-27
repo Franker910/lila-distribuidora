@@ -1878,7 +1878,8 @@ function renderDashCharts() {
     const z = cli?.zona || 'Sin zona';
     zonas[z] = (zonas[z] || 0) + (r.total || 0);
   });
-  const zonLabels = Object.keys(zonas).sort((a,b) => zonas[b]-zonas[a]).slice(0,8);
+  const zonKeys = Object.keys(zonas).sort((a,b) => zonas[b]-zonas[a]).slice(0,8);
+  const zonLabels = zonKeys.map(z => z === 'Sin zona' ? z : nombreZona(z));
   const ctxZ = document.getElementById('dash-chart-zonas');
   if (ctxZ) {
     _dashCharts.zonas?.destroy();
@@ -1886,7 +1887,7 @@ function renderDashCharts() {
       type: 'doughnut',
       data: {
         labels: zonLabels,
-        datasets: [{ data: zonLabels.map(z => zonas[z]),
+        datasets: [{ data: zonKeys.map(z => zonas[z]),
           backgroundColor: COLORS.slice(0, zonLabels.length), borderWidth: 1 }]
       },
       options: {

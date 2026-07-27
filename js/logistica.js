@@ -654,7 +654,7 @@ function imprimirHojaRuta(){
       +'<td style="padding:5px 7px;border:1px solid #ccc;font-weight:700;color:#1a7a52;text-align:center">'+nroRem+'</td>'
       +'<td style="padding:5px 7px;border:1px solid #ccc;font-size:11px;color:#555">'+dir+'</td>'
       +'<td style="padding:5px 7px;border:1px solid #ccc;font-size:11px">'+loc+'</td>'
-      +'<td style="padding:5px 7px;border:1px solid #ccc;text-align:center;font-size:11px">'+(c.zona||p.zona||'')+'</td>'
+      +'<td style="padding:5px 7px;border:1px solid #ccc;text-align:center;font-size:11px">'+((c.zona||p.zona)?nombreZona(c.zona||p.zona):'')+'</td>'
       +'<td style="padding:5px 7px;border:1px solid #ccc;text-align:right;font-weight:600">'+fmt(p.total)+'</td>'
       +'<td style="padding:5px 7px;border:1px solid #ccc;text-align:center">☐</td>'
       +'<td style="padding:5px 7px;border:1px solid #ccc;min-width:80px"></td>'
