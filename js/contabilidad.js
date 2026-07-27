@@ -829,7 +829,7 @@ function initComisiones(){
   const sel=document.getElementById('com-zona-fil');
   if(sel&&sel.options.length<=1){
     const zonas=[...new Set(_clientes.map(c=>c.zona||'').filter(Boolean))].sort();
-    zonas.forEach(z=>{const o=document.createElement('option');o.value=z;o.textContent='Zona '+z;sel.appendChild(o);});
+    zonas.forEach(z=>{const o=document.createElement('option');o.value=z;o.textContent=nombreZona(z);sel.appendChild(o);});
   }
   document.getElementById('com-res-panel').style.display='none';
 }

@@ -193,7 +193,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #rr-items .pitem>*{border-right:1px solid #000;padding-right:6px}
 #rr-items .pitem>*:last-child{border-right:none}
 #rr-items .pitem .ptot{color:#000}
-#rr-items .pitem input{border:1px solid #000;border-radius:0;color:#000;background:#fff;font-family:inherit;font-size:13px}
+#rr-items .pitem input,#rr-items .pitem select{border:1px solid #000;border-radius:0;color:#000;background:#fff;font-family:inherit;font-size:13px}
 #rr-items .pitem input[readonly]{background:#eee;color:#333}
 #rr-items .pitem.rr-staging{background:var(--PL)}
 
@@ -1690,12 +1690,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
               <input id="rr-cli-q" placeholder="Buscar cliente..." oninput="dropCliRR()" autocomplete="off">
               <div class="drop" id="rr-cli-drop"></div>
               <input type="hidden" id="rr-cli-id">
-            </div>
-            <div class="fg" style="width:135px;flex-shrink:0">
-              <label style="font-size:11px">Lista de precios</label>
-              <select id="rr-lista" onchange="actualizarListaRR()" style="width:100%">
-                <option value="">Precio base</option>
-              </select>
             </div>
           </div>
           <div id="rr-cli-info" style="display:none;background:var(--bg2);border-radius:8px;padding:8px 11px;font-size:12px;color:var(--txt2);margin-top:8px"></div>
@@ -3405,13 +3399,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260727-09"></script>
-<script src="js/maestros.js?v=20260727-09"></script>
-<script src="js/ventas.js?v=20260727-09"></script>
-<script src="js/tesoreria.js?v=20260727-09"></script>
-<script src="js/contabilidad.js?v=20260727-09"></script>
-<script src="js/informes.js?v=20260727-09"></script>
-<script src="js/logistica.js?v=20260727-09"></script>
+<script src="js/app.js?v=20260727-10"></script>
+<script src="js/maestros.js?v=20260727-10"></script>
+<script src="js/ventas.js?v=20260727-10"></script>
+<script src="js/tesoreria.js?v=20260727-10"></script>
+<script src="js/contabilidad.js?v=20260727-10"></script>
+<script src="js/informes.js?v=20260727-10"></script>
+<script src="js/logistica.js?v=20260727-10"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

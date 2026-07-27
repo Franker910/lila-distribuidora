@@ -15,7 +15,7 @@ function mostrarNuevaCarga(){
   const locs=[...new Set(_pedidos.filter(p=>p.estado==='pendiente').map(p=>p.localidad||'').filter(Boolean))].sort();
   const vens=[...new Set(_pedidos.filter(p=>p.estado==='pendiente').map(p=>p.vendedor||'').filter(Boolean))].sort();
   const selZ=document.getElementById('car-fil-zona');
-  selZ.innerHTML='<option value="">Todas las zonas</option>'+zonas.map(z=>`<option value="${z}">Zona ${z}</option>`).join('');
+  selZ.innerHTML='<option value="">Todas las zonas</option>'+zonas.map(z=>`<option value="${z}">${nombreZona(z)}</option>`).join('');
   const selL=document.getElementById('car-fil-loc');
   selL.innerHTML='<option value="">Todas las localidades</option>'+locs.map(l=>`<option value="${l}">${l}</option>`).join('');
   const selV=document.getElementById('car-fil-ven');
@@ -758,7 +758,7 @@ function imprimirRemito(){
       <div style="background:#f4f8f6;border:1.5px solid #c8e6d5;border-radius:5px;padding:8px 12px;margin-bottom:10px">
         <div style="font-weight:700;font-size:13px;color:#1a1a1a">${d.cliente}</div>
         ${dir?'<div style="color:#555;font-size:10px;margin-top:3px">📍 '+dir+'</div>':''}
-        <div style="color:#666;font-size:10px;margin-top:2px">${d.localidad||''}${d.zona?' · Zona '+d.zona:''}${tel?' · Tel: '+tel:''}</div>
+        <div style="color:#666;font-size:10px;margin-top:2px">${d.localidad||''}${d.zona?' · Zona '+(_zonas.find(z=>z.codigo===d.zona)?.descripcion||d.zona):''}${tel?' · Tel: '+tel:''}</div>
       </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:8px;table-layout:fixed">
         <colgroup>
@@ -1016,7 +1016,7 @@ function hrRenderLista(){
       <span style="font-size:18px;font-weight:700;color:var(--txt2);min-width:24px">${i+1}</span>
       <div style="flex:1;min-width:0">
         <div style="font-weight:600;font-size:14px">${r.nombre}</div>
-        <div style="font-size:11px;color:var(--txt2)">${r.direccion||''}${r.localidad?' · '+r.localidad:''}${r.zona?' · Z'+r.zona:''}</div>
+        <div style="font-size:11px;color:var(--txt2)">${r.direccion||''}${r.localidad?' · '+r.localidad:''}${r.zona?' · '+(_zonas.find(z=>z.codigo===r.zona)?.descripcion||r.zona):''}</div>
         ${r.telefono?`<div style="font-size:11px;color:var(--P)">${r.telefono}</div>`:''}
       </div>
       <div style="display:flex;gap:4px;flex-shrink:0">
@@ -1042,7 +1042,7 @@ function hrFiltrarClientes(){
   drop.innerHTML = res.length ? res.map(c=>`
     <div style="padding:8px 12px;cursor:pointer;border-bottom:0.5px solid var(--brd)" onmousedown="hrSelCli(${c.id})">
       <div style="font-weight:600;font-size:13px">${c.nombre}</div>
-      <div style="font-size:11px;color:var(--txt2)">${c.direccion||''}${c.localidad?' · '+c.localidad:''}${c.zona?' · Z'+c.zona:''} ${c.telefono?'· '+c.telefono:''}</div>
+      <div style="font-size:11px;color:var(--txt2)">${c.direccion||''}${c.localidad?' · '+c.localidad:''}${c.zona?' · '+(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona):''} ${c.telefono?'· '+c.telefono:''}</div>
     </div>`).join('') : '<div style="padding:10px;color:var(--txt2);font-size:13px">Sin resultados</div>';
 }
 

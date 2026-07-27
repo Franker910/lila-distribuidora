@@ -213,23 +213,22 @@ function cerrarMenuNuevoComp(){
 // ─── REMITO RÁPIDO ───
 let _rrItems=[], _rrProTemp=null, _rrPedidoId=null;
 
-let _rrListaId=null;
-
 // Fila de carga (estilo FoxPro): valores crudos tipeados en la última fila de
 // #rr-items, todavía sin confirmar como ítem del remito. _rrProTemp guarda el
-// producto ya resuelto (por código o por el desplegable de nombre).
-let _rrStagingVals={cod:'',cant:'1',peso:'',precio:'0',dto:'0'};
+// producto ya resuelto (por código o por el desplegable de nombre). "lista"
+// es la lista de precios elegida PARA ESTA FILA (cada producto puede llevar
+// una distinta dentro del mismo remito) — se mantiene entre filas para no
+// tener que reelegirla cada vez, pero se puede cambiar fila por fila.
+let _rrStagingVals={cod:'',cant:'1',peso:'',precio:'0',dto:'0',lista:''};
 
 function initRR(){
   document.getElementById('rr-fecha').value=new Date().toISOString().split('T')[0];
-  _rrItems=[];_rrProTemp=null;_rrListaId=null;
-  _rrStagingVals={cod:'',cant:'1',peso:'',precio:'0',dto:'0'};
+  _rrItems=[];_rrProTemp=null;
+  _rrStagingVals={cod:'',cant:'1',peso:'',precio:'0',dto:'0',lista:''};
   ['rr-cli-q','rr-obs','rr-lugar'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const codCli=document.getElementById('rr-cli-cod');if(codCli){codCli.value='';codCli.style.borderColor='';}
   document.getElementById('rr-cli-id').value='';
   const info=document.getElementById('rr-cli-info');if(info)info.style.display='none';
-  const selLista=document.getElementById('rr-lista');
-  if(selLista)selLista.innerHTML='<option value="">Precio base</option>'+_listasPrecios.map(l=>`<option value="${l.id}">${l.nombre}</option>`).join('');
   renderItemsRR();
   // Foco al campo de código de cliente
   setTimeout(()=>{
@@ -238,20 +237,29 @@ function initRR(){
   }, 100);
 }
 
-// Cambio manual de lista de precios: repricea el producto que se está por
-// agregar (si hay uno seleccionado) y los items ya cargados en el remito.
-function actualizarListaRR(){
-  const val=document.getElementById('rr-lista')?.value||'';
-  _rrListaId=val?parseInt(val):null;
+// Opciones <option> de lista de precios para la columna "Lista" de la grilla.
+function _rrListaOptions(selectedListaId){
+  const sel=String(selectedListaId||'');
+  return '<option value="">Base</option>'+_listasPrecios.map(l=>`<option value="${l.id}"${String(l.id)===sel?' selected':''}>${l.nombre}</option>`).join('');
+}
+
+// Cambio de lista de precios de un ítem YA cargado en el remito: reprecia
+// solo esa fila, no todo el remito.
+function actualizarListaItemRR(i,val){
+  const it=_rrItems[i];if(!it)return;
+  it.listaId=val?parseInt(val):null;
+  const nuevoPrecio=it.listaId?getPrecioLista(it.id,it.listaId):null;
+  if(nuevoPrecio!=null)it.precio=nuevoPrecio;
+  renderItemsRR();
+}
+
+// Cambio de lista de precios de la fila de carga (todavía sin confirmar).
+function actualizarListaStagingRR(val){
+  _rrStagingVals.lista=val;
   if(_rrProTemp){
-    const precioLista=_rrListaId?getPrecioLista(_rrProTemp.id,_rrListaId):null;
-    _rrStagingVals.precio=String(precioLista!=null?precioLista:(_rrProTemp.precio||0));
-  }
-  if(_rrListaId){
-    _rrItems.forEach(it=>{
-      const nuevoPrecio=getPrecioLista(it.id,_rrListaId);
-      if(nuevoPrecio!=null)it.precio=nuevoPrecio;
-    });
+    const listaId=val?parseInt(val):null;
+    const nuevoPrecio=listaId?getPrecioLista(_rrProTemp.id,listaId):null;
+    _rrStagingVals.precio=String(nuevoPrecio!=null?nuevoPrecio:(_rrProTemp.precio||0));
   }
   renderItemsRR();
 }
@@ -472,11 +480,10 @@ function selCliRR(id){
   const venNombre=c.vendedor||usuarioActual?.nombre||'';
   if(venEl) venEl.value=venNombre;
   if(venShow) venShow.textContent=venNombre||'Sin vendedor';
-  // Por defecto, la lista de precios asignada al cliente (se puede cambiar a mano)
+  // Por defecto para la fila de carga, la lista de precios asignada al
+  // cliente (cada ítem la puede cambiar a mano en su propia columna).
   const listaCliente=getListaCliente(c.id);
-  _rrListaId=listaCliente||null;
-  const selLista=document.getElementById('rr-lista');
-  if(selLista)selLista.value=listaCliente||'';
+  _rrStagingVals.lista=listaCliente?String(listaCliente):'';
   const dias=diasDesde(c.ultimo_remito);
   const info=document.getElementById('rr-cli-info');
 
@@ -634,7 +641,8 @@ function selProRR(id){
   _rrProTemp=_productos.find(x=>x.id===id);if(!_rrProTemp)return;
   const drop=document.getElementById('rr-pro-drop');if(drop)drop.style.display='none';
   _rrStagingVals.cod=String(_rrProTemp.codigo||_rrProTemp.id);
-  const precioLista=_rrListaId?getPrecioLista(_rrProTemp.id,_rrListaId):null;
+  const listaId=_rrStagingVals.lista?parseInt(_rrStagingVals.lista):null;
+  const precioLista=listaId?getPrecioLista(_rrProTemp.id,listaId):null;
   _rrStagingVals.precio=String(precioLista!=null?precioLista:(_rrProTemp.precio||0));
   const cid=document.getElementById('rr-cli-id').value;
   const c=cid?_clientes.find(x=>x.id==cid):null;
@@ -699,11 +707,14 @@ function _rrCommitStaging(){
     return;
   }
   const unFinal=esPorPeso?'kg':(_rrProTemp.unidad||'un');
+  const listaId=_rrStagingVals.lista?parseInt(_rrStagingVals.lista):null;
   const ex=_rrItems.find(i=>i.id===_rrProTemp.id);
   if(ex){ex.cant+=cant;if(esPorPeso)ex.peso=(ex.peso||0)+peso;}
-  else{_rrItems.push({id:_rrProTemp.id,nom:_rrProTemp.nombre,un:unFinal,cant,peso:esPorPeso?peso:0,precio,dto,iva:_rrProTemp.iva||21,esPeso:esPorPeso});}
+  else{_rrItems.push({id:_rrProTemp.id,nom:_rrProTemp.nombre,un:unFinal,cant,peso:esPorPeso?peso:0,precio,dto,iva:_rrProTemp.iva||21,esPeso:esPorPeso,listaId});}
   _rrProTemp=null;
-  _rrStagingVals={cod:'',cant:'1',peso:'',precio:'0',dto:'0'};
+  // Se mantiene "lista" para la próxima fila (uso típico: mismo cliente,
+  // misma lista casi siempre) — el resto de los campos sí se limpia.
+  _rrStagingVals={cod:'',cant:'1',peso:'',precio:'0',dto:'0',lista:_rrStagingVals.lista};
   renderItemsRR();
   setTimeout(()=>{const f=document.getElementById('rr-cod');if(f)f.focus();},80);
 }
@@ -728,6 +739,7 @@ function _rrStagingRowHTML(){
       <div class="drop" id="rr-pro-drop" style="width:280px"></div>
     </span>
     <input id="rr-pro-q" readonly tabindex="-1" value="${p?p.nombre:''}" placeholder="— código o nombre (F2) —" style="flex:1">
+    <select id="rr-item-lista" onchange="actualizarListaStagingRR(this.value)" style="width:72px;font-size:11px" title="Lista de precios para este producto">${_rrListaOptions(_rrStagingVals.lista)}</select>
     <input type="text" inputmode="decimal" id="rr-cant" value="${_rrStagingVals.cant}" oninput="updStagingRR('cant',this.value,this)" onkeydown="_rrStagingKeydown(event,'cant')" style="width:58px" title="Cantidad">
     ${pesoCol}
     <input type="text" inputmode="decimal" id="rr-precio" value="${_rrStagingVals.precio}" oninput="updStagingRR('precio',this.value,this)" onkeydown="_rrStagingKeydown(event,'precio')" style="width:88px;text-align:right">
@@ -752,6 +764,7 @@ function renderItemsRR(){
     return `<div class="pitem" style="${it.esPeso&&(it.peso||0)===0?'border:1px solid var(--W);background:var(--WL)':''}">
       <span style="width:55px;flex-shrink:0;text-align:center;font-size:11px;color:var(--txt2)">${codigo}</span>
       <span class="pnom">${it.nom}${it.esPeso?' <span class="b bA" style="font-size:10px">kg</span>':''} ${pedidoCant}</span>
+      <select onchange="actualizarListaItemRR(${i},this.value)" style="width:72px;font-size:11px" title="Lista de precios para este producto">${_rrListaOptions(it.listaId)}</select>
       <input type="text" inputmode="decimal" data-idx="${i}" data-field="cant" value="${it.cant}" oninput="updItemRR(${i},'cant',this.value,this)" style="width:58px" title="Cantidad">
       ${pesoCol}
       <input type="text" inputmode="decimal" data-idx="${i}" data-field="precio" value="${it.precio}" oninput="updItemRR(${i},'precio',this.value,this)" style="width:88px;text-align:right">
@@ -763,6 +776,7 @@ function renderItemsRR(){
   const header=`<div class="fx-grid-head" style="display:flex;gap:6px;padding:2px 8px 3px;font-size:10px;font-weight:700;text-transform:uppercase">
     <span style="width:55px;text-align:center">Cód.</span>
     <span style="flex:1">Producto</span>
+    <span style="width:72px;text-align:center">Lista</span>
     <span style="width:58px;text-align:center">Cant.</span>
     <span style="width:70px;text-align:center">Peso KG</span>
     <span style="width:88px;text-align:right">Precio</span>

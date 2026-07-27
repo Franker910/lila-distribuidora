@@ -85,7 +85,7 @@ function detalleHTML(d,isRem){
       <div style="text-align:right;border-left:3px solid #1a7a52;padding-left:12px">
         <div style="font-weight:700;font-size:14px">${d.cliente}</div>
         ${dir?`<div style="color:#555">${dir}</div>`:''}
-        <div style="color:#555">${d.localidad||''} · Zona ${d.zona||'-'}</div>
+        <div style="color:#555">${d.localidad||''} · Zona ${_zonas.find(z=>z.codigo===d.zona)?.descripcion||d.zona||'-'}</div>
         ${tel?`<div style="color:#555">Tel: ${tel}</div>`:''}
         ${d.lugar_entrega?`<div style="color:#c07000;font-weight:600">📍 Entrega: ${d.lugar_entrega}</div>`:''}
       </div>
@@ -1216,7 +1216,7 @@ function histCliente(id){
       <span>📍 ${c.direccion||'—'}, ${c.localidad||''}</span>
       <span>📞 ${c.telefono||'—'}</span>
       <span>Vendedor: <b>${c.vendedor||'—'}</b></span>
-      <span>Zona: <b>${c.zona||'—'}</b></span>
+      <span>Zona: <b>${_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona||'—'}</b></span>
       <span>Cond. pago: <b>${c.condicion_pago?c.condicion_pago+' días':'Contado'}</b></span>
       <span>Dto: <b>${c.descuento||0}%</b></span>
       ${dias!==null?`<span>Días deuda: <b style="${colorDias(dias,c.condicion_pago)}">${dias}d</b></span>`:''}
@@ -1448,7 +1448,7 @@ function initSaldosZona(){
   const sel=document.getElementById('sz-zona');
   if(sel&&sel.options.length<=1){
     const zonas=[...new Set(_clientes.map(c=>c.zona||'Sin zona').filter(Boolean))].sort();
-    zonas.forEach(z=>{const o=document.createElement('option');o.value=z;o.textContent='Zona '+z;sel.appendChild(o);});
+    zonas.forEach(z=>{const o=document.createElement('option');o.value=z;o.textContent=z==='Sin zona'?z:nombreZona(z);sel.appendChild(o);});
   }
 }
 
@@ -1486,7 +1486,7 @@ function renderSaldosZona(){
     <div class="stat" style="flex:0 0 auto"><div class="n" style="color:var(--D)">${fmt(totalSaldo)}</div><div class="l">Deuda total</div></div>
     <div class="stat" style="flex:0 0 auto"><div class="n">${totalClientes}</div><div class="l">Clientes con deuda</div></div>
     ${Object.entries(porZona).sort((a,b)=>b[1].total-a[1].total).map(([z,v])=>
-      `<div class="stat" style="flex:0 0 auto"><div class="n" style="color:var(--D);font-size:15px">${fmt(v.total)}</div><div class="l">Zona ${z} (${v.cant})</div></div>`
+      `<div class="stat" style="flex:0 0 auto"><div class="n" style="color:var(--D);font-size:15px">${fmt(v.total)}</div><div class="l">${z==='Sin zona'?z:nombreZona(z)} (${v.cant})</div></div>`
     ).join('')}
   `;
 
@@ -1512,7 +1512,7 @@ function renderSaldosZona(){
     const totalZ=clientes.reduce((s,c)=>s+(c.saldo||0),0);
     html+=`<div style="margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;background:var(--PD);color:#fff;padding:8px 14px;border-radius:8px 8px 0 0">
-        <span style="font-weight:700">🗺️ Zona ${zona}</span>
+        <span style="font-weight:700">🗺️ ${zona==='Sin zona'?zona:nombreZona(zona)}</span>
         <span style="font-weight:700">${fmt(totalZ)} · ${clientes.length} cliente${clientes.length!==1?'s':''}</span>
       </div>
       <div class="tbl-wrap"><table class="tbl" style="border-radius:0 0 8px 8px">
@@ -1545,7 +1545,8 @@ function renderSaldosZona(){
 }
 
 function imprimirSaldosZona(){
-  const titulo=document.getElementById('sz-zona')?.value?'Zona '+document.getElementById('sz-zona').value:'Todas las zonas';
+  const szVal=document.getElementById('sz-zona')?.value;
+  const titulo=szVal?(szVal==='Sin zona'?szVal:nombreZona(szVal)):'Todas las zonas';
   const body=document.getElementById('sz-tabla').innerHTML;
   const resumen=document.getElementById('sz-resumen').innerHTML;
   const w=window.open('','_blank');
@@ -1704,7 +1705,7 @@ function renderMorososMovil(){
       style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg2);border-radius:12px;margin-bottom:6px;cursor:pointer;border:1.5px solid var(--brd);-webkit-tap-highlight-color:transparent">
       <div style="flex:1;min-width:0">
         <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nombre}</div>
-        <div style="font-size:11px;color:var(--txt2);margin-top:2px">${c.localidad||''}${c.zona?' · Z'+c.zona:''}</div>
+        <div style="font-size:11px;color:var(--txt2);margin-top:2px">${c.localidad||''}${c.zona?' · '+(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona):''}</div>
         <div style="font-size:11px;color:${diasColor};font-weight:600;margin-top:2px">${diasTxt}</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
