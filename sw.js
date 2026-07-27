@@ -1,7 +1,7 @@
 /* ─── LILA DISTRIBUIDORA — SERVICE WORKER ─────────────────────────────────
    Actualizar CACHE_VERSION en cada deploy (igual que APP_VERSION en index.html)
    ───────────────────────────────────────────────────────────────────────── */
-const CACHE_VERSION = '20260727-03';
+const CACHE_VERSION = '20260727-04';
 const CACHE_NAME    = 'lila-v' + CACHE_VERSION;
 const SCOPE         = '/lila-distribuidora/';
 
