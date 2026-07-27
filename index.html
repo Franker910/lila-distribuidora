@@ -200,12 +200,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pill.on{background:var(--P);color:#fff;border-color:var(--P)}
 
 /* Ccard */
-.ccard{border:1px solid var(--brd);border-radius:8px;padding:11px 13px;margin-bottom:8px;background:var(--bg)}
+.ccard{border:1px solid var(--brd);border-radius:8px;padding:8px 11px;margin-bottom:6px;background:var(--bg)}
 .ccard-h{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-.ccard-nm{font-size:13px;font-weight:600}
-.ccard-sub{font-size:11px;color:var(--txt2);margin-top:2px}
+.ccard-nm{font-size:12px;font-weight:600;color:var(--txt2)}
+.ccard-num{font-size:18px;font-weight:800;color:var(--PD)}
+.ccard-fecha{font-size:13px;font-weight:700;color:var(--txt)}
+.ccard-sub{font-size:11px;color:var(--txt2);margin-top:1px}
 .ccard-tot{font-size:16px;font-weight:600;color:var(--P)}
-.ccard-acts{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+.ccard-acts{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
 
 /* Empty */
 .empty{text-align:center;padding:36px 20px;color:var(--txt2);font-size:13px}
@@ -791,16 +793,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="btn P" onclick="mostrarNuevaCarga()">+ Nueva carga</button>
     </div>
     <div class="tb">
-      <input id="car-q" placeholder="Buscar vendedor o cliente..." oninput="renderCargas()" style="flex:1;min-width:120px">
+      <input id="car-q" placeholder="Buscar cliente o Nº..." oninput="renderCargas()" style="flex:1;min-width:120px">
       <input type="date" id="car-fd" title="Desde" oninput="renderCargas()" style="width:130px">
       <input type="date" id="car-fh" title="Hasta" oninput="renderCargas()" style="width:130px">
+      <select id="car-ven" onchange="renderCargas()" style="min-width:130px">
+        <option value="">Todos los vendedores</option>
+      </select>
       <select id="car-est" onchange="renderCargas()" style="min-width:100px">
         <option value="">Todos los estados</option>
         <option value="armando">Armando</option>
         <option value="lista">Lista</option>
         <option value="emitida">Emitida</option>
       </select>
-      <button class="btn sm" onclick="document.getElementById('car-q').value='';document.getElementById('car-fd').value='';document.getElementById('car-fh').value='';document.getElementById('car-est').value='';renderCargas()">✕ Limpiar</button>
+      <button class="btn sm" onclick="document.getElementById('car-q').value='';document.getElementById('car-fd').value='';document.getElementById('car-fh').value='';document.getElementById('car-ven').value='';document.getElementById('car-est').value='';renderCargas()">✕ Limpiar</button>
     </div>
     <div id="carga-lista"><div class="loading">Cargando...</div></div>
   </div>
@@ -3408,13 +3413,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260727-04"></script>
-<script src="js/maestros.js?v=20260727-04"></script>
-<script src="js/ventas.js?v=20260727-04"></script>
-<script src="js/tesoreria.js?v=20260727-04"></script>
-<script src="js/contabilidad.js?v=20260727-04"></script>
-<script src="js/informes.js?v=20260727-04"></script>
-<script src="js/logistica.js?v=20260727-04"></script>
+<script src="js/app.js?v=20260727-05"></script>
+<script src="js/maestros.js?v=20260727-05"></script>
+<script src="js/ventas.js?v=20260727-05"></script>
+<script src="js/tesoreria.js?v=20260727-05"></script>
+<script src="js/contabilidad.js?v=20260727-05"></script>
+<script src="js/informes.js?v=20260727-05"></script>
+<script src="js/logistica.js?v=20260727-05"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

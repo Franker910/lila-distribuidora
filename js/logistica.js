@@ -93,24 +93,27 @@ function renderCargas(){
   const q=(document.getElementById('car-q')?.value||'').toLowerCase();
   const fd=document.getElementById('car-fd')?.value||'';
   const fh=document.getElementById('car-fh')?.value||'';
+  const ven=document.getElementById('car-ven')?.value||'';
   const est=document.getElementById('car-est')?.value||'';
+  // Filtro de vendedor: solo los que efectivamente tienen cargas (no todos los de _clientes)
+  poblarSelectValores('car-ven',_cargas.map(cg=>(cg.vendedor||'').trim()));
   let cargas=_cargas.filter(cg=>{
     if(est&&cg.estado!==est)return false;
     if(fd&&(cg.fecha||'')<fd)return false;
     if(fh&&(cg.fecha||'')>fh)return false;
+    if(ven&&(cg.vendedor||'').trim()!==ven)return false;
     if(q){
-      const ven=(cg.vendedor||'').toLowerCase();
       const nom=(cg.nombre||'').toLowerCase();
       const peds=_pedidos.filter(p=>(cg.pedidos||[]).includes(p.id));
       const cliMatch=peds.some(p=>(p.cliente||'').toLowerCase().includes(q));
-      if(!ven.includes(q)&&!nom.includes(q)&&!cliMatch&&!String(cg.id).includes(q))return false;
+      if(!nom.includes(q)&&!cliMatch&&!String(cg.id).includes(q))return false;
     }
     return true;
-  });
-  if(!cargas.length){el.innerHTML='<div class="empty">Sin cargas'+(q||fd||fh||est?' para los filtros seleccionados':'')+'</div>';return;}
+  }).sort((a,b)=>b.id-a.id);
+  if(!cargas.length){el.innerHTML='<div class="empty">Sin cargas'+(q||fd||fh||ven||est?' para los filtros seleccionados':'')+'</div>';return;}
   el.innerHTML=cargas.map(cg=>{
     const peds=_pedidos.filter(p=>(cg.pedidos||[]).includes(p.id));
-    const titulo=cg.nombre?`<b>${cg.nombre}</b> — Carga #${cg.id}`:`Carga #${cg.id}`;
+    const fechaFmt=cg.fecha?cg.fecha.split('-').reverse().join('/'):'—';
     // Detectar si hay remitos vinculados a esta carga
     const pedIds=(cg.pedidos||[]);
     const remsCarga=_remitos.filter(r=>pedIds.includes(r.pedido_id));
@@ -121,9 +124,13 @@ function renderCargas(){
     return `<div class="ccard">
       <div class="ccard-h">
         <div>
-          <div class="ccard-nm">${titulo} ${cg.vendedor?'— '+cg.vendedor:''}</div>
-          <div class="ccard-sub">${cg.fecha} · ${(cg.pedidos||[]).length} pedidos</div>
-          <div style="font-size:11px;color:var(--txt2);margin-top:2px">${peds.map(p=>p.cliente).join(' · ')}</div>
+          <div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
+            <span class="ccard-num">Carga #${cg.id}</span>
+            <span class="ccard-fecha">📅 ${fechaFmt}</span>
+            ${cg.nombre?`<span class="ccard-nm">${cg.nombre}</span>`:''}
+            ${cg.vendedor?`<span class="ccard-nm">— ${cg.vendedor}</span>`:''}
+          </div>
+          <div class="ccard-sub">${(cg.pedidos||[]).length} pedidos · ${peds.map(p=>p.cliente).join(' · ')}</div>
         </div>
         <div style="text-align:right"><div class="ccard-tot">${fmt(cg.total)}</div><span class="b ${cg.estado==='armando'?'bW':cg.estado==='lista'?'bA':cg.estado==='emitida'?'bP':'bP'}">${cg.estado}</span></div>
       </div>
