@@ -739,7 +739,7 @@ function calcularContribMarginal(){
       const pct=d.ventas>0?margen/d.ventas*100:0;
       const pctVentas=totVentas>0?Math.round(d.ventas/totVentas*100):0;
       return `<tr>
-        <td><span class="b bA">Z${z}</span></td>
+        <td><span class="b bA">${_zonas.find(x=>x.codigo===z)?.descripcion||z}</span></td>
         <td style="text-align:right;font-weight:600">${fmt(d.ventas)}
           <div style="height:4px;background:var(--PL);border-radius:2px;margin-top:3px"><div style="height:4px;background:var(--P);border-radius:2px;width:${pctVentas}%"></div></div>
         </td>
@@ -908,7 +908,7 @@ function calcularComisionesPorPersona(){
         const pctTotal=totalZ>0?Math.round(d.ventas/totalZ*100):0;
         const pctCob=d.ventas>0?Math.round(d.cobranza/d.ventas*100):0;
         return `<tr>
-          <td><span class="b bA">Z${z}</span></td>
+          <td><span class="b bA">${_zonas.find(x=>x.codigo===z)?.descripcion||z}</span></td>
           <td style="text-align:right;font-weight:600">${fmt(d.ventas)}</td>
           <td style="text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
             <div style="background:var(--PL);border-radius:3px;height:8px;width:${pctTotal}px;max-width:80px"></div>

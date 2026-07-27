@@ -63,7 +63,7 @@ async function loadPedsCarga(){
       <input type="checkbox" id="chk-${p.id}" value="${p.id}" checked onchange="actualizarResumenCarga()" style="width:22px;height:22px;cursor:pointer;flex-shrink:0">
       <label for="chk-${p.id}" style="flex:1;cursor:pointer">
         <span style="font-weight:600">${p.cliente}</span>
-        <span style="color:var(--txt2);font-size:11px;margin-left:8px">${p.localidad||''} · Z${p.zona||'-'} · ${p.vendedor||'—'} · ${p.fecha}</span>
+        <span style="color:var(--txt2);font-size:11px;margin-left:8px">${p.localidad||''} · ${(_zonas.find(z=>z.codigo===p.zona)?.descripcion||p.zona)||''} · ${p.vendedor||'—'} · ${p.fecha}</span>
         ${c?.direccion?`<span style="color:var(--txt2);font-size:11px;margin-left:8px">📍 ${c.direccion}</span>`:''}
       </label>
       <span style="color:var(--P);font-weight:600;white-space:nowrap">${fmt(p.total)}</span>

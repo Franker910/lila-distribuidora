@@ -81,7 +81,7 @@ function renderClientes(){
    <td style="font-weight:600"><span style="font-size:10px;color:var(--txt2);margin-right:4px">${c.codigo||''}</span>${c.nombre}</td>
     <td>${c.localidad||'—'}</td>
     <td>${c.telefono||'—'}</td>
-    <td><span class="b bA">Z${c.zona||'-'}</span></td>
+    <td><span class="b bA">${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||'-'}</span></td>
     <td>${(c.vendedor||'').trim()||'—'}</td>
     <td>${c.descuento||0}%</td>
     <td style="${(c.saldo||0)>0?'color:var(--D);font-weight:600':''}">${fmt(c.saldo)}</td>

@@ -801,7 +801,7 @@ function renderGrillaRendicion(){
   const selZona=document.getElementById('rend-f-zona');
   if(selZona){
     const zonas=[...new Set(filas.map(f=>f.zona).filter(Boolean))].sort();
-    if(selZona.dataset.hoja!==fecha+vendedor){selZona.innerHTML='<option value="">Todas</option>'+zonas.map(z=>`<option value="${z}">Z${z}</option>`).join('');selZona.dataset.hoja=fecha+vendedor;}
+    if(selZona.dataset.hoja!==fecha+vendedor){selZona.innerHTML='<option value="">Todas</option>'+zonas.map(z=>`<option value="${z}">${_zonas.find(x=>x.codigo===z)?.descripcion||z}</option>`).join('');selZona.dataset.hoja=fecha+vendedor;}
   }
   const selForma=document.getElementById('rend-f-forma');
   if(selForma){
@@ -831,7 +831,7 @@ function renderGrillaRendicion(){
     return `<tr>
       <td>${chk}</td>
       <td style="font-weight:500">${nombre}</td>
-      <td>${f.zona?`<span class="b bA">Z${f.zona}</span>`:'—'}</td>
+      <td>${f.zona?`<span class="b bA">${_zonas.find(z=>z.codigo===f.zona)?.descripcion||f.zona}</span>`:'—'}</td>
       <td>${vendedor}</td>
       <td style="text-align:right">${f.importeRemito?fmt(f.importeRemito):'—'}</td>
       <td style="text-align:center">${f.cobs.length?'✅ Sí':'—'}</td>
@@ -1119,7 +1119,7 @@ function renderCC(){
     return `<tr style="${venc?'background:var(--DL)':''};cursor:pointer" onclick="histCliente(${c.id})">
       <td style="font-weight:600">${c.nombre}<div style="font-size:10px;color:var(--txt2)">${c.telefono||''}</div></td>
       <td>${c.localidad||''}</td>
-      <td><span class="b bA">Z${c.zona||'-'}</span></td>
+      <td><span class="b bA">${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||'-'}</span></td>
       <td>${c.vendedor||'—'}</td>
       <td style="color:var(--txt2);font-size:12px">${c.ultimo_remito||'—'}</td>
       <td style="${dColor}">${dias!==null?dias+'d':'—'}</td>
