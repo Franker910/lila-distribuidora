@@ -841,6 +841,9 @@ async function emitirRemitoRapido(){
     </div>`;
   document.body.appendChild(toast);
   setTimeout(()=>{ if(toast.parentNode) toast.remove(); }, 8000);
+  // Facturación secuencial por carga (pesaje real, cajón por cajón): avanzar
+  // al siguiente pedido pendiente en vez de dejar el formulario en blanco.
+  if(_facturandoCargaId)_facturarSiguientePedidoCarga();
   return rem.id;
 }
 

@@ -47,7 +47,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260727-01';
+const APP_VERSION = '20260727-02';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -682,6 +682,10 @@ function go(p){
   actualizarNavActivo(p);
   // Cerrar dropdowns
   document.querySelectorAll('.nav-group').forEach(g=>g.classList.remove('open'));
+  // Si el usuario se va de Remito rápido a otro lado, cancelar la
+  // facturación secuencial por carga en curso (evita que un remito suelto
+  // más tarde siga saltando al próximo cajón de una carga ya abandonada).
+  if(p!=='remito-rapido'&&typeof _facturandoCargaId!=='undefined'&&_facturandoCargaId)cancelarFacturarCarga();
   if(p==='remito-rapido')initRR();
   if(p==='informes')initInformes();
   if(p==='rendicion')initRendicion();

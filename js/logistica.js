@@ -130,6 +130,7 @@ function renderCargas(){
       <div class="ccard-acts">
         ${cg.estado==='armando'?`<button class="btn P sm" onclick="marcarLista(${cg.id})">✓ Marcar lista</button>`:''}
         ${cg.estado==='lista'?`<button class="btn A sm" onclick="emitirRemitos(${cg.id})">📄 Emitir remitos</button>`:''}
+        ${cg.estado==='lista'?`<button class="btn P sm" onclick="facturarCargaConPesaje(${cg.id})" title="Cargar el peso real de cada cajón y emitir el remito uno por uno">⚖️ Facturar con pesaje real</button>`:''}
         <button class="btn sm" onclick="editarCarga(${cg.id})">✏️</button>
         <button class="btn sm" onclick="resumenCarga(${cg.id})">📋 Resumen</button>
         ${tieneRemitos?`<button class="btn A sm" onclick="imprimirRemitosCarga(${cg.id})">🖨️ Remitos (${remsDisp.length})</button>`:''}
@@ -324,6 +325,56 @@ async function emitirRemitos(cargaId){
   await sb.from('cargas').update({estado:'emitida'}).eq('id',cargaId);
   await cargarTodo();renderCargas();renderRemitos();renderDash();
   toast(`${peds.length} remito(s) emitido(s).`);go('remitos');
+}
+
+// ─── Facturación secuencial de una carga con peso real ────────────────────
+// Cajón por cajón: carga el pedido en Remito Rápido (con el peso a
+// completar), y al emitir avanza solo al siguiente pendiente de la carga.
+let _facturandoCargaId = null;
+
+function facturarCargaConPesaje(cargaId){
+  _facturandoCargaId = cargaId;
+  _facturarSiguientePedidoCarga();
+}
+
+function _pedidosPendientesDeCarga(cargaId){
+  const cg=_cargas.find(x=>x.id===cargaId);if(!cg)return [];
+  return _pedidos.filter(p=>(cg.pedidos||[]).includes(p.id)&&p.estado!=='remitado'&&!p.remito_id);
+}
+
+function _facturarSiguientePedidoCarga(){
+  const cg=_cargas.find(x=>x.id===_facturandoCargaId);
+  if(!cg){_facturandoCargaId=null;return;}
+  const peds=_pedidosPendientesDeCarga(cg.id);
+  if(!peds.length){
+    toast(`✅ Terminaste de facturar la carga #${cg.id} con pesaje real.`);
+    _facturandoCargaId=null;
+    cargarCargas().then(renderCargas);
+    go('carga');
+    return;
+  }
+  const ped=peds[0];
+  go('remito-rapido');
+  limpiarRR();
+  selCliRR(ped.cliente_id);
+  cargarItemsDePedido(ped.id);
+  _actualizarBannerFacturarCarga(peds.length);
+}
+
+function _actualizarBannerFacturarCarga(cantPend){
+  const el=document.getElementById('rr-banner-carga');
+  if(!el)return;
+  if(!_facturandoCargaId){el.style.display='none';return;}
+  el.style.display='flex';
+  el.innerHTML=`<span>📦 Facturando carga #${_facturandoCargaId} con pesaje real — quedan ${cantPend} cajón(es)</span>
+    <button class="btn D sm" onclick="cancelarFacturarCarga()">✕ Salir</button>`;
+}
+
+function cancelarFacturarCarga(){
+  _facturandoCargaId=null;
+  const el=document.getElementById('rr-banner-carga');
+  if(el)el.style.display='none';
+  toast('Facturación por carga cancelada — podés seguir emitiendo remitos sueltos.');
 }
 
 function resumenCarga(id){
