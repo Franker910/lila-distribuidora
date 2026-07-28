@@ -696,10 +696,32 @@ async function cargarProveedores(){
 
 function navProvTabla(e){navTablaGen(e,'prov-tbody','tr',r=>{const b=r.querySelector('button.btn');if(b)b.click();});}
 
+let _provOrden='az'; // 'az' | 'saldo_desc' | 'saldo_asc'
+
 function renderProveedores(){
   resetNav('prov-tbody');
   const q = (document.getElementById('prov-q')?.value||'').toLowerCase();
-  const data = _proveedores.filter(p => !q || (p.nombre||'').toLowerCase().includes(q)||(p.cuit||'').includes(q)||(p.codigo||'').toString().includes(q)||(p.contacto||'').toLowerCase().includes(q));
+  const fNom=document.getElementById('prov-f-nom')?.value||'';
+  const fCuit=document.getElementById('prov-f-cuit')?.value||'';
+  const fCont=document.getElementById('prov-f-cont')?.value||'';
+  const fPlazo=document.getElementById('prov-f-plazo')?.value||'';
+  const fSaldo=document.getElementById('prov-f-saldo')?.value||'';
+  let data = _proveedores
+    .filter(p => !q || (p.nombre||'').toLowerCase().includes(q)||(p.cuit||'').includes(q)||(p.codigo||'').toString().includes(q)||(p.contacto||'').toLowerCase().includes(q))
+    .filter(p => matchFiltroCol(p.nombre,fNom)&&matchFiltroCol(p.cuit,fCuit)&&matchFiltroCol(p.contacto,fCont)&&matchFiltroCol(p.plazo_pago_dias,fPlazo))
+    .map(p=>({...p,_saldo:_saldoProveedor(p.id)}))
+    .filter(p=>matchFiltroCol(p._saldo,fSaldo));
+
+  if(_provOrden==='saldo_desc') data.sort((a,b)=>b._saldo-a._saldo);
+  else if(_provOrden==='saldo_asc') data.sort((a,b)=>a._saldo-b._saldo);
+  else data.sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'','es'));
+
+  const totalesEl=document.getElementById('prov-totales');
+  if(totalesEl){
+    const totalSaldo=data.reduce((s,p)=>s+p._saldo,0);
+    totalesEl.innerHTML=`<div class="stat" style="padding:8px 12px;display:inline-block"><div class="n" style="font-size:16px;color:var(--D)">${fmt(totalSaldo)}</div><div class="l">Saldo total (lo que debemos)</div></div>`;
+  }
+
   const tbody = document.getElementById('prov-tbody');
   if(!tbody) return;
   tbody.innerHTML = data.length ? data.map(p => `<tr>
@@ -710,9 +732,10 @@ function renderProveedores(){
     <td>${p.email||'—'}</td>
     <td>${p.condicion_pago||'—'}</td>
     <td>${p.plazo_pago_dias!=null?`<span class="b bP">${p.plazo_pago_dias}d</span>`:'—'}</td>
+    <td style="text-align:right;font-weight:600;color:${p._saldo>0?'var(--D)':'var(--txt2)'};cursor:pointer" onclick="histProveedor(${p.id})" title="Ver cuenta corriente">${fmt(p._saldo)}</td>
     <td><button class="btn sm" onclick="editarProveedor(${p.id})">✏️</button>
         <button class="btn D sm" onclick="eliminarProveedor(${p.id})">🗑</button></td>
-  </tr>`).join('') : '<tr><td colspan="8"><div class="empty">Sin proveedores</div></td></tr>';
+  </tr>`).join('') : '<tr><td colspan="9"><div class="empty">Sin proveedores</div></td></tr>';
 }
 
 function abrirProveedor(){

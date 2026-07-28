@@ -1559,11 +1559,69 @@ async function guardarCargaArticulos(){
   cerrar('m-carga-articulos');
 }
 
+// ─── CUENTA CORRIENTE DE PROVEEDORES ────────────────────────────────────────
+// Movimientos: cada comprobante es un DEBE en su fecha; si ya está pagado,
+// el mismo importe entra como HABER en su fecha_pago (o la fecha del
+// comprobante si es más vieja y no tiene fecha_pago cargada).
+function histProveedor(id){
+  const p=_proveedores.find(x=>x.id===id); if(!p)return;
+  const comps=_comprobantes.filter(c=>String(c.proveedor_id)===String(id));
+  let movs=[];
+  comps.forEach(c=>{
+    movs.push({id:c.id,fecha:c.fecha,tipo:'COMPRA',nro:c.nro_comprobante||'#'+c.id,debe:c.importe||0,haber:0,obs:c.descripcion||''});
+    if(c.estado==='pagado'){
+      movs.push({id:c.id,fecha:c.fecha_pago||c.fecha,tipo:'PAGO',nro:c.nro_comprobante||'#'+c.id,debe:0,haber:c.importe||0,obs:''});
+    }
+  });
+  movs.sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  let saldo=0;
+  movs=movs.map(m=>{saldo+=m.debe-m.haber;return {...m,saldo};});
+  const saldoFinal=saldo;
+
+  document.getElementById('m-ver-title').textContent='Cuenta corriente — '+p.nombre;
+  const mvp=document.getElementById('m-ver-print'); if(mvp)mvp.style.display='none';
+  const mvp2=document.getElementById('m-ver-print2'); if(mvp2)mvp2.style.display='none';
+  const anu=document.getElementById('m-ver-anular'); if(anu)anu.style.display='none';
+
+  document.getElementById('m-ver-body').innerHTML=`
+    <div style="background:var(--bg2);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--txt2)">
+      <span>CUIT: ${p.cuit||'—'}</span>
+      <span>📞 ${p.telefono||'—'}</span>
+      <span>Plazo pago: <b>${p.plazo_pago_dias!=null?p.plazo_pago_dias+' días':'—'}</b></span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;background:${saldoFinal>0?'var(--DL)':'var(--PL)'};border-radius:8px;padding:10px 14px;margin-bottom:12px">
+      <span style="font-weight:600;font-size:13px">Saldo actual — lo que le debemos</span>
+      <span style="font-size:20px;font-weight:700;color:${saldoFinal>0?'var(--D)':'var(--P)'}">${fmt(saldoFinal)}</span>
+    </div>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--bg2)">
+        <th style="padding:7px 8px;text-align:left;border-bottom:1px solid var(--brd)">Fecha</th>
+        <th style="padding:7px 8px;text-align:left;border-bottom:1px solid var(--brd)">Tipo</th>
+        <th style="padding:7px 8px;text-align:left;border-bottom:1px solid var(--brd)">Comprobante</th>
+        <th style="padding:7px 8px;text-align:right;border-bottom:1px solid var(--brd);color:var(--D)">Debe</th>
+        <th style="padding:7px 8px;text-align:right;border-bottom:1px solid var(--brd);color:var(--P)">Haber</th>
+        <th style="padding:7px 8px;text-align:right;border-bottom:1px solid var(--brd)">Saldo</th>
+      </tr></thead>
+      <tbody>${movs.length?movs.map(m=>`<tr>
+        <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd)">${m.fecha}</td>
+        <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd);font-weight:500">${m.tipo}</td>
+        <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd);color:var(--A)">${m.nro}</td>
+        <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd);text-align:right;color:var(--D)">${m.debe>0?fmt(m.debe):''}</td>
+        <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd);text-align:right;color:var(--P)">${m.haber>0?fmt(m.haber):''}</td>
+        <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd);text-align:right;font-weight:600;color:${m.saldo>0?'var(--D)':'var(--P)'}">${fmt(m.saldo)}</td>
+      </tr>`).join(''):'<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--txt2)">Sin comprobantes registrados</td></tr>'}</tbody>
+    </table>
+    </div>`;
+  document.getElementById('m-ver').classList.add('on');
+}
+
 async function pagarComprobante(id){
   const comp = _comprobantes.find(x => x.id === id);
   if(!comp) return;
   if(!confirm(`¿Marcar como pagado el comprobante ${comp.nro_comprobante || id}?`)) return;
-  await sb.from('comprobantes_compras').update({estado: 'pagado'}).eq('id', id);
+  const hoy=new Date().toISOString().split('T')[0];
+  await sb.from('comprobantes_compras').update({estado: 'pagado', fecha_pago: hoy}).eq('id', id);
   await cargarComprobantes();
   renderComprobantes();
 }
