@@ -101,19 +101,13 @@ function detalleHTML(d,isRem){
 }
 
 // ─── COBROS ───
-function selForma(forma){
-  const map={efectivo:'ef',transferencia:'tr',cheque:'ch'};
-  const key=map[forma]||'ef';
-  ['ef','tr','ch'].forEach(f=>{
-    const b=document.getElementById('cob-bloque-'+f);if(b)b.style.display='none';
-    const btn=document.getElementById('cob-forma-'+f);
-    if(btn){btn.style.background='';btn.style.color='';btn.style.borderColor='';}
-  });
-  const b=document.getElementById('cob-bloque-'+key);if(b)b.style.display='block';
-  const btn=document.getElementById('cob-forma-'+key);
-  if(btn){btn.style.background='var(--P)';btn.style.color='#fff';btn.style.borderColor='var(--P)';}
-  const ids={ef:'cob-efectivo',tr:'cob-transferencia',ch:'cob-cheque3'};
-  setTimeout(()=>{const el=document.getElementById(ids[key]);if(el){el.focus();el.select();}},50);
+function toggleTrDetalle(){
+  const v=parseFloat(document.getElementById('cob-transferencia')?.value)||0;
+  const el=document.getElementById('cob-tr-detalle');if(el)el.style.display=v>0?'block':'none';
+}
+function toggleChDetalle(){
+  const v=parseFloat(document.getElementById('cob-cheque3')?.value)||0;
+  const el=document.getElementById('cob-ch-detalle');if(el)el.style.display=v>0?'block':'none';
 }
 
 function focusImprimerInput(){
@@ -177,18 +171,18 @@ function limpiarModalCobro(){
   const td=document.getElementById('cob-total-display');if(td)td.textContent='$0';
   const ti=document.getElementById('cob-total-imputar');if(ti)ti.value='0';
   const fecEl=document.getElementById('cob-fecha');if(fecEl)fecEl.value=new Date().toISOString().split('T')[0];
-  const rp=document.getElementById('cob-remitos-pendientes');
-  if(rp)rp.innerHTML='<span style="font-size:12px;color:var(--txt2);font-style:italic">Seleccioná un cliente</span>';
+  const rp=document.getElementById('cob-remitos-pendientes');if(rp)rp.innerHTML='';
+  const rEmpty=document.getElementById('cob-remitos-empty');
+  if(rEmpty){rEmpty.textContent='Seleccioná un cliente para ver sus facturas';rEmpty.style.display='block';}
+  const rWrap=document.getElementById('cob-remitos-tablewrap');if(rWrap)rWrap.style.display='none';
   const rs2=document.getElementById('cob-resto-section');if(rs2)rs2.style.display='none';
   const av=document.getElementById('cob-saldo-favor-aviso');if(av)av.style.display='none';
   const ci=document.getElementById('cob-cli-info');if(ci)ci.style.display='none';
   const elImp=document.getElementById('cob-imputado-monto');if(elImp)elImp.textContent='$0';
   const elRec=document.getElementById('cob-recibido-monto');if(elRec)elRec.textContent='$0';
   const elRes=document.getElementById('cob-resto-display');if(elRes){elRes.textContent='$0';elRes.style.color='var(--W)';}
-  ['ef','tr','ch'].forEach(f=>{
-    const b=document.getElementById('cob-bloque-'+f);if(b)b.style.display='none';
-    const btn=document.getElementById('cob-forma-'+f);if(btn){btn.style.background='';btn.style.color='';btn.style.borderColor='';}
-  });
+  const trDet=document.getElementById('cob-tr-detalle');if(trDet)trDet.style.display='none';
+  const chDet=document.getElementById('cob-ch-detalle');if(chDet)chDet.style.display='none';
   const codEl=document.getElementById('cob-cli-cod');if(codEl)codEl.style.borderColor='';
   _cobRestoSaldoFavor=0;
   clearComprobante();
@@ -262,28 +256,35 @@ function selCliCob(id){
   }
   // Mostrar remitos pendientes
   const remsPend=_remitos.filter(r=>String(r.cliente_id)===String(id)&&!r.cobrado).sort((a,b)=>a.fecha.localeCompare(b.fecha));
-  const seccion=document.getElementById('cob-imputacion-section');
+  const rEmpty=document.getElementById('cob-remitos-empty');
+  const rWrap=document.getElementById('cob-remitos-tablewrap');
   const lista=document.getElementById('cob-remitos-pendientes');
   if(remsPend.length){
-    if(seccion)seccion.style.display='block';
-     if(lista)lista.innerHTML=remsPend.map(r=>`
-       <div style="display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--brd)">
-         <button onclick="verRemitoEnCobro(${r.id})" title="Ver detalle" style="background:none;border:none;font-size:13px;font-weight:700;color:var(--P);cursor:pointer;padding:0 4px;white-space:nowrap;text-decoration:underline">R-${String(r.id).padStart(4,'0')}</button>
-         <span style="font-size:11px;color:var(--txt2);min-width:72px">${r.fecha}</span>
-         <span style="font-size:14px;font-weight:700;color:var(--D);min-width:80px;text-align:right">${fmt(r.saldo_pendiente||r.total)}</span>
-         <input type="number" id="imp-rem-${r.id}" value="0" min="0" max="${r.saldo_pendiente||r.total}" step="0.01"
-           style="width:100px;padding:6px 8px;border:2px solid var(--brd);border-radius:8px;text-align:right;font-size:15px;font-weight:700"
-           placeholder="0" oninput="limitarImputacion(this,${r.saldo_pendiente||r.total});calcTotalDesdeImputacion()"
-           ondblclick="imputarTotal(${r.id},${r.saldo_pendiente||r.total});this.select();"
-           title="F = todo · → o Tab = botón Todo · Inicio = ver factura"
-           onkeydown="cobImpKeydown(event,${r.id},${r.saldo_pendiente||r.total})">
-         <button id="todo-rem-${r.id}" class="btn P" onclick="imputarTotal(${r.id},${r.saldo_pendiente||r.total})"
-           style="padding:6px 10px;font-size:12px;white-space:nowrap"
-           onkeydown="cobTodoKeydown(event,${r.id})">✓ Todo</button>
-       </div>`).join('');
+    if(rEmpty)rEmpty.style.display='none';
+    if(rWrap)rWrap.style.display='block';
+    if(lista)lista.innerHTML=remsPend.map(r=>`
+       <tr>
+         <td style="border:1px solid #000;padding:5px 7px"><button onclick="verRemitoEnCobro(${r.id})" title="Ver detalle" style="background:none;border:none;font-size:12px;font-weight:700;color:var(--P);cursor:pointer;padding:0;white-space:nowrap;text-decoration:underline">R-${String(r.id).padStart(4,'0')}</button></td>
+         <td style="border:1px solid #000;padding:5px 7px;font-size:11px;color:var(--txt2)">${r.fecha}</td>
+         <td style="border:1px solid #000;padding:5px 7px;text-align:right;font-weight:700;color:var(--D)">${fmt(r.saldo_pendiente||r.total)}</td>
+         <td style="border:1px solid #000;padding:3px 5px">
+           <div style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
+             <input type="number" id="imp-rem-${r.id}" value="0" min="0" max="${r.saldo_pendiente||r.total}" step="0.01"
+               style="width:90px;padding:5px 6px;border:1.5px solid var(--brd);border-radius:5px;text-align:right;font-size:13px;font-weight:700"
+               placeholder="0" oninput="limitarImputacion(this,${r.saldo_pendiente||r.total});calcTotalDesdeImputacion()"
+               ondblclick="imputarTotal(${r.id},${r.saldo_pendiente||r.total});this.select();"
+               title="F = todo · → o Tab = botón Todo · Inicio = ver factura"
+               onkeydown="cobImpKeydown(event,${r.id},${r.saldo_pendiente||r.total})">
+             <button id="todo-rem-${r.id}" class="btn P" onclick="imputarTotal(${r.id},${r.saldo_pendiente||r.total})"
+               style="padding:5px 8px;font-size:11px;white-space:nowrap"
+               onkeydown="cobTodoKeydown(event,${r.id})">✓</button>
+           </div>
+         </td>
+       </tr>`).join('');
   } else {
-    if(seccion)seccion.style.display='none';
-    if(lista)lista.innerHTML='<span style="font-size:12px;color:var(--txt2);font-style:italic">Sin facturas pendientes</span>';
+    if(rEmpty){rEmpty.textContent='Sin facturas pendientes';rEmpty.style.display='block';}
+    if(rWrap)rWrap.style.display='none';
+    if(lista)lista.innerHTML='';
   }
   // Sugerir saldo en efectivo y sincronizar total a imputar
   const ef=document.getElementById('cob-efectivo');
