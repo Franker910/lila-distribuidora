@@ -9,6 +9,19 @@ const sb = supabase.createClient(SB_URL, SB_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, storageKey: 'lila-auth' }
 });
 
+// Si falla la renovación automática del token (sesión vieja/corrupta tras un
+// "borrar caché" parcial, o token ya usado), Supabase cierra la sesión sola.
+// Sin este listener la app seguía "andando" con la sesión rota: las consultas
+// a las tablas fallaban en silencio (ej: zonas quedaban vacías sin ningún aviso).
+sb.auth.onAuthStateChange((event)=>{
+  if(event==='SIGNED_OUT' && usuarioActual){
+    usuarioActual=null;
+    localStorage.removeItem('lila-sesion');
+    alert('Tu sesión expiró. Volvé a iniciar sesión.');
+    location.reload();
+  }
+});
+
 // ─── USUARIOS ───
 // Las contraseñas ya NO viven acá: las valida Supabase Auth.
 // Esta lista solo mapea usuario → email y define el rol dentro de la app.
@@ -47,7 +60,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260727-12';
+const APP_VERSION = '20260728-01';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el

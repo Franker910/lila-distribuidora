@@ -786,7 +786,8 @@ async function eliminarProveedor(id){
 let _zonas = [];
 
 async function cargarZonas(){
-  const {data} = await sb.from('zonas').select('*').order('codigo');
+  const {data,error} = await sb.from('zonas').select('*').order('codigo');
+  if(error) console.error('Error cargando zonas:', error.message);
   _zonas = data || [];
 }
 
