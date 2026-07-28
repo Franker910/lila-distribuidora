@@ -2026,43 +2026,39 @@ async function importarCSVAfip(input){
   toast(`✅ ${aInsertar.length} comprobantes importados`);
 }
 
-// ─── LECTURA DE FACTURA CON IA ────────────────────────────────
+// ─── LECTURA DE FACTURA CON IA (Gemini) ────────────────────────────────
 function cargarFacturaIA(){
-  let key=localStorage.getItem('lila_anth_key');
+  let key=localStorage.getItem('lila_gemini_key');
   if(!key){
-    key=prompt('Ingresá tu API key de Anthropic (se guarda solo en este dispositivo):');
+    key=prompt('Ingresá tu API key de Gemini (Google AI Studio — se guarda solo en este dispositivo):');
     if(!key)return;
-    localStorage.setItem('lila_anth_key',key.trim());
+    localStorage.setItem('lila_gemini_key',key.trim());
   }
   document.getElementById('comp-ia-file').click();
 }
 
 async function leerFacturaConIA(input){
   const file=input.files[0];if(!file)return;
-  const key=localStorage.getItem('lila_anth_key');if(!key){toast('Falta API key','err');return;}
+  const key=localStorage.getItem('lila_gemini_key');if(!key){toast('Falta API key de Gemini','err');return;}
   const status=document.getElementById('comp-ia-status');
-  status.style.display='block';status.textContent='🤖 Leyendo factura con IA...';
+  status.style.display='block';status.textContent='✨ Leyendo factura con IA...';
   try{
     const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
-    const esPdf=(file.type||'').includes('pdf')||/\.pdf$/i.test(file.name||'');
-    const contenidoArchivo=esPdf
-      ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}}
-      :{type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:b64}};
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    const mimeType=file.type||'image/jpeg';
+    const resp=await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`,{
       method:'POST',
-      headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      headers:{'content-type':'application/json'},
       body:JSON.stringify({
-        model:'claude-haiku-4-5-20251001',
-        max_tokens:1024,
-        messages:[{role:'user',content:[
-          contenidoArchivo,
-          {type:'text',text:'Extraé los datos de esta factura/comprobante y respondé SOLO con JSON válido (sin markdown ni texto extra):\n{"proveedor":"...","nro_comprobante":"...","fecha":"YYYY-MM-DD","importe":0,"descripcion":"...","tipo":"factura|recibo|ticket|otro","productos":[{"nombre":"...","cantidad":1,"costo_unitario":0}]}'}
-        ]}]
+        contents:[{role:'user',parts:[
+          {inlineData:{mimeType,data:b64}},
+          {text:'Extraé los datos de esta factura/comprobante y respondé SOLO con JSON válido (sin markdown ni texto extra):\n{"proveedor":"...","nro_comprobante":"...","fecha":"YYYY-MM-DD","importe":0,"descripcion":"...","tipo":"factura|recibo|ticket|otro","productos":[{"nombre":"...","cantidad":1,"costo_unitario":0}]}'}
+        ]}],
+        generationConfig:{responseMimeType:'application/json'}
       })
     });
-    if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||'Error API');}
+    if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||('Error API Gemini ('+resp.status+')'));}
     const data=await resp.json();
-    const txt=data.content[0]?.text||'{}';
+    const txt=data.candidates?.[0]?.content?.parts?.[0]?.text||'{}';
     let parsed;
     try{parsed=JSON.parse(txt);}catch{const m=txt.match(/\{[\s\S]*\}/);parsed=m?JSON.parse(m[0]):{};}
     // Rellenar formulario
