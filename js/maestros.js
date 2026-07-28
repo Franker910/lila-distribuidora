@@ -696,7 +696,13 @@ async function cargarProveedores(){
 
 function navProvTabla(e){navTablaGen(e,'prov-tbody','tr',r=>{const b=r.querySelector('button.btn');if(b)b.click();});}
 
-let _provOrden='az'; // 'az' | 'saldo_desc' | 'saldo_asc'
+let _provOrden='az'; // 'az' | 'za' | 'saldo_desc' | 'saldo_asc'
+
+function toggleOrdenProv(campo){
+  if(campo==='nombre') _provOrden=_provOrden==='az'?'za':'az';
+  else _provOrden=_provOrden==='saldo_desc'?'saldo_asc':'saldo_desc';
+  renderProveedores();
+}
 
 function renderProveedores(){
   resetNav('prov-tbody');
@@ -714,7 +720,13 @@ function renderProveedores(){
 
   if(_provOrden==='saldo_desc') data.sort((a,b)=>b._saldo-a._saldo);
   else if(_provOrden==='saldo_asc') data.sort((a,b)=>a._saldo-b._saldo);
+  else if(_provOrden==='za') data.sort((a,b)=>(b.nombre||'').localeCompare(a.nombre||'','es'));
   else data.sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'','es'));
+
+  const sortNom=document.getElementById('prov-sort-nombre');
+  if(sortNom)sortNom.textContent=_provOrden==='az'?'▲':_provOrden==='za'?'▼':'';
+  const sortSaldo=document.getElementById('prov-sort-saldo');
+  if(sortSaldo)sortSaldo.textContent=_provOrden==='saldo_desc'?'▼':_provOrden==='saldo_asc'?'▲':'';
 
   const totalesEl=document.getElementById('prov-totales');
   if(totalesEl){
