@@ -1189,11 +1189,62 @@ function histNavFila(e,tr,tipo,id){
   if(e.key==='Home'||e.key==='Enter'){e.preventDefault();histAbrirDetalle(tipo,id);return;}
   if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
   e.preventDefault();
-  const filas=[...tr.parentElement.querySelectorAll('tr[tabindex]')];
+  // [tabindex] genérico: sirve tanto para las filas <tr> de la vista de PC
+  // como para las tarjetas <div> de la vista angosta (celular).
+  const filas=[...tr.parentElement.querySelectorAll('[tabindex]')];
   const idx=filas.indexOf(tr);
   const next=e.key==='ArrowDown'?Math.min(idx+1,filas.length-1):Math.max(idx-1,0);
   filas[next]?.focus();
   filas[next]?.scrollIntoView({block:'nearest'});
+}
+
+// La cuenta corriente tiene 8 columnas: en un celular eso obliga a arrastrar
+// para los costados. Por debajo de 760px se muestra una tarjeta por movimiento.
+function _ccAngosta(){
+  return window.innerWidth < 760;
+}
+
+function _ccTarjetasHTML(movs,c){
+  if(!movs.length){
+    return `<div style="padding:20px;text-align:center;color:var(--txt2);font-size:13px">Sin movimientos registrados en el sistema nuevo.<br><small>El saldo inicial refleja la historia anterior.</small></div>`;
+  }
+  const totDebe=movs.reduce((a,m)=>a+m.debe,0);
+  const totHaber=movs.reduce((a,m)=>a+m.haber,0);
+  const filas=movs.map(m=>{
+    const esHaber=m.haber>0;
+    const monto=esHaber?'−'+fmt(m.haber):'+'+fmt(m.debe);
+    const sub=[m.fecha,m.forma||'',m.reparto?'Rep: '+m.reparto:''].filter(Boolean).join(' · ');
+    return `<div tabindex="0" onclick="histAbrirDetalle('${m.tipo}',${m.id})"
+      onkeydown="histNavFila(event,this,'${m.tipo}',${m.id})"
+      onfocus="this.style.outline='2px solid var(--P)'" onblur="this.style.outline=''"
+      title="↑↓ navegar · Inicio o Enter para ver el detalle"
+      style="padding:10px 12px;border-bottom:1px solid var(--brd);cursor:pointer;${m.tipo==='RECIBO'?'background:#f0faf5':m.tipo==='N.CRED'?'background:#fef9f0':'background:#fff'}">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+        <div style="min-width:0">
+          <div style="font-size:13px;font-weight:700">${m.tipo} <span style="color:var(--A)">${m.nro}</span></div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:2px">${sub}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:16px;font-weight:700;color:${esHaber?'var(--P)':'var(--D)'}">${monto}</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:2px">Saldo: <b style="color:${m.saldo>0?'var(--D)':'var(--P)'}">${fmt(m.saldo)}</b></div>
+        </div>
+      </div>
+      ${m.obs?`<div style="font-size:11px;color:var(--txt2);margin-top:5px;word-break:break-word">${m.obs}</div>`:''}
+    </div>`;
+  }).join('');
+  return `
+    <div style="border:1px solid var(--brd);border-radius:8px;overflow:hidden">${filas}</div>
+    <div style="margin-top:10px;background:var(--bg2);border-radius:8px;padding:10px 12px;font-size:12px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span>Total facturado</span><b style="color:var(--D)">${fmt(totDebe)}</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span>Total pagado</span><b style="color:var(--P)">${fmt(totHaber)}</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--brd);padding-top:6px">
+        <b>Saldo</b><b style="font-size:15px;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo)}</b>
+      </div>
+    </div>`;
 }
 
 function histCliente(id){
@@ -1255,6 +1306,7 @@ function histCliente(id){
       <span style="font-size:20px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo)}</span>
     </div>
     ${saldoInicial>0?`<div style="font-size:12px;color:var(--txt2);margin-bottom:8px;padding:6px 10px;background:var(--bg2);border-radius:6px">Saldo inicial al inicio del sistema: <b>${fmt(saldoInicial)}</b></div>`:''}
+    ${_ccAngosta()?_ccTarjetasHTML(movs,c):`
     <div style="overflow-x:auto">
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead>
@@ -1291,14 +1343,14 @@ function histCliente(id){
         </tr>
       </tfoot>`:''}
     </table>
-    </div>
+    </div>`}
   `;
   document.getElementById('m-ver').classList.add('on');
   // Foco automático en el movimiento más reciente para poder navegar con
   // ↑↓ y abrir el comprobante con Inicio/Enter sin tocar el mouse.
   if(movs.length){
     setTimeout(()=>{
-      const filas=document.querySelectorAll('#m-ver-body tr[tabindex]');
+      const filas=document.querySelectorAll('#m-ver-body [tabindex]');
       filas[filas.length-1]?.focus();
     },80);
   }
@@ -1852,6 +1904,7 @@ function limpiarCobMovil(){
   const lEl=document.getElementById('cobm-cli-lista');if(lEl){lEl.innerHTML='';lEl.style.display='none';}
   const nEl=document.getElementById('cobm-cli-nombre');if(nEl)nEl.textContent='Seleccioná un cliente';
   const sEl=document.getElementById('cobm-cli-saldo');if(sEl)sEl.textContent='';
+  const bcc=document.getElementById('cobm-btn-cc');if(bcc)bcc.style.display='none';
   const pc=document.getElementById('cobm-paso-cliente');if(pc)pc.style.display='block';
   const pp=document.getElementById('cobm-paso-cobro');if(pp)pp.style.display='none';
   poblarSelectZona('cobm-cli-zon');
@@ -1949,6 +2002,7 @@ function selClienteCobMovil(id){
   const pcc=document.getElementById('cobm-panel-cc');if(pcc)pcc.style.display='none';
   const pmc=document.getElementById('cobm-panel-miscobranzas');if(pmc)pmc.style.display='none';
   const pa=document.getElementById('cobm-acciones');if(pa)pa.style.display='none';
+  const bcc=document.getElementById('cobm-btn-cc');if(bcc)bcc.style.display='block';
   const pp=document.getElementById('cobm-paso-cobro');if(pp)pp.style.display='block';
   const remsPend=_remitos.filter(r=>String(r.cliente_id)===String(id)&&!r.cobrado).sort((a,b)=>a.fecha.localeCompare(b.fecha));
   const wrap=document.getElementById('cobm-facturas-wrap');
@@ -1966,6 +2020,13 @@ function selClienteCobMovil(id){
     </div>`).join('');
   }
   setTimeout(()=>document.getElementById('cobm-importe')?.focus(),100);
+}
+
+// Ver la cuenta corriente del cliente que se está cobrando, sin perder
+// lo que ya se cargó en el formulario (se abre en el modal de siempre).
+function cobmVerCCActual(){
+  if(!_cobMovilCliId){toast('Seleccioná un cliente primero','warn');return;}
+  histCliente(_cobMovilCliId);
 }
 
 function cobmImputarTodo(remId,monto){const inp=document.getElementById('cobm-imp-'+remId);if(inp){inp.value=monto;calcCobMovil();}}
