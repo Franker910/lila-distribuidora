@@ -1915,6 +1915,8 @@ function limpiarCobMovil(){
   const cw=document.getElementById('cobm-comp-wrap');if(cw)cw.style.display='none';
   clearComprobanteMov();
   const tn=document.getElementById('cobm-transf-nombre');if(tn)tn.value='';
+  const chw=document.getElementById('cobm-cheque-wrap');if(chw)chw.style.display='none';
+  const nc=document.getElementById('cobm-nrocheque');if(nc)nc.value='';
   ['cobm-btn-ef','cobm-btn-tr','cobm-btn-ch'].forEach(id=>{const b=document.getElementById(id);if(b){b.style.background='#fff';b.style.borderColor='var(--brd)';b.style.color='';}});
   // Volver a pantalla principal de cobranza (botones)
   const acc=document.getElementById('cobm-acciones');if(acc)acc.style.display='block';
@@ -2042,6 +2044,9 @@ function selFormaCobMovil(forma){
   const cw=document.getElementById('cobm-comp-wrap');
   if(cw)cw.style.display=forma==='transferencia'?'block':'none';
   if(forma!=='transferencia')clearComprobanteMov();
+  const chw=document.getElementById('cobm-cheque-wrap');
+  if(chw)chw.style.display=forma==='cheque'?'block':'none';
+  if(forma!=='cheque'){const nc=document.getElementById('cobm-nrocheque');if(nc)nc.value='';}
 }
 
 function calcCobMovil(){
@@ -2080,8 +2085,16 @@ async function guardarCobMovil(){
     if(compFile) comprobante_url=await _subirComprobante(compFile, _cobMovilCliId);
   }
 
+  // Cheque: el número es lo único imprescindible para identificarlo después.
+  let nroCheque='';
+  if(_cobMovilForma==='cheque'){
+    nroCheque=(document.getElementById('cobm-nrocheque')?.value||'').trim();
+    if(!nroCheque){alert('Ingresá el número del cheque');reactivar();return;}
+  }
+
   const nombreTransf=_cobMovilForma==='transferencia'?(document.getElementById('cobm-transf-nombre')?.value||'').trim():'';
   const {error:cobErr}=await sb.from('cobros').insert({
+    nro_cheque:nroCheque||null,
     cliente_id:_cobMovilCliId,cliente:c?.nombre||'?',
     fecha:new Date().toISOString().split('T')[0],
     forma:_cobMovilForma,importe,
