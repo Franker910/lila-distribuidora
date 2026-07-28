@@ -2672,14 +2672,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <!-- MODAL PRODUCTO -->
 <div class="mbg" id="m-producto">
-<div class="mdl" style="width:540px">
+<div class="mdl" style="width:800px;max-width:98vw">
   <div class="mh"><h3 id="m-pro-title">Nuevo producto</h3><button class="btn sm" onclick="cerrar('m-producto')">✕</button></div>
-  <div class="fr x2">
-    <div class="fg"><label>Código</label><input id="pro-cod" style="width:100%" placeholder="Código"></div>
-    <div class="fg"><label>IVA %</label>
-      <select id="pro-iva" style="width:100%"><option value="21">21%</option><option value="10.5">10.5%</option><option value="0">0%</option></select>
+
+  <!-- Bloque 1: Información general -->
+  <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Información general</div>
+  <div style="display:flex;gap:12px;margin-bottom:12px">
+    <div class="fg" style="width:140px;flex-shrink:0"><label>Código</label><input id="pro-cod" style="width:100%" placeholder="Código"></div>
+    <div class="fg" style="flex:1"><label>Nombre</label><input id="pro-nom" style="width:100%" placeholder="Nombre del producto"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
+    <div class="fg"><label>Categoría</label>
+      <select id="pro-cat-modal" style="width:100%" onchange="poblarSubcats('pro-cat-modal','pro-subcat-modal')">
+        <option value="">— Sin categoría —</option>
+        ${Object.keys(CATS).map(c=>`<option value="${c}">${c}</option>`).join('')}
+      </select>
     </div>
-    <div class="fg" style="grid-column:1/-1"><label>Nombre</label><input id="pro-nom" style="width:100%" placeholder="Nombre del producto"></div>
+    <div class="fg"><label>Subcategoría</label>
+      <select id="pro-subcat-modal" style="width:100%" disabled>
+        <option value="">— Sin subcategoría —</option>
+      </select>
+    </div>
     <div class="fg"><label>Unidad</label>
       <input id="pro-unidad" style="width:100%" placeholder="Kg / Un / Docena" list="pro-unidad-list" autocomplete="off">
       <datalist id="pro-unidad-list">
@@ -2693,38 +2706,45 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <option value="bandeja">
       </datalist>
     </div>
-    <div class="fg"><label>Categoría</label>
-      <select id="pro-cat-modal" style="width:100%" onchange="poblarSubcats('pro-cat-modal','pro-subcat-modal')">
-        <option value="">— Sin categoría —</option>
-        ${Object.keys(CATS).map(c=>`<option value="${c}">${c}</option>`).join('')}
-      </select>
+  </div>
+
+  <!-- Bloque 2: Precios y rentabilidad -->
+  <div style="background:var(--bg2);border-radius:12px;padding:14px 16px;margin-bottom:20px">
+    <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Precios y rentabilidad</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="fg"><label>Costo</label><input type="number" id="pro-costo" value="0" step="0.01" style="width:100%" oninput="recalcPrecioSugerido()"></div>
+      <div class="fg"><label>IVA %</label>
+        <select id="pro-iva" style="width:100%"><option value="21">21%</option><option value="10.5">10.5%</option><option value="0">0%</option></select>
+      </div>
     </div>
-    <div class="fg"><label>Subcategoría</label>
-      <select id="pro-subcat-modal" style="width:100%" disabled>
-        <option value="">— Sin subcategoría —</option>
-      </select>
-    </div>
-    <div class="fg"><label>Costo</label><input type="number" id="pro-costo" value="0" step="0.01" style="width:100%" oninput="recalcPrecioSugerido()"></div>
-    <div class="fg"><label>Margen objetivo %</label><input type="number" id="pro-margen" value="30" min="0" max="99" step="0.5" style="width:100%" oninput="recalcPrecioSugerido()"></div>
-    <div class="fg" style="grid-column:1/-1">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;align-items:end">
+      <div class="fg"><label>Margen objetivo %</label><input type="number" id="pro-margen" value="30" min="0" max="99" step="0.5" style="width:100%" oninput="recalcPrecioSugerido()"></div>
       <div style="background:var(--PL);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <span style="font-size:12px;color:var(--PD);font-weight:600">Precio sugerido:</span>
         <span id="pro-precio-sug" style="font-size:18px;font-weight:700;color:var(--P)">—</span>
         <button type="button" class="btn P sm" onclick="usarPrecioSugerido()" style="margin-left:auto">↑ Usar este precio</button>
       </div>
     </div>
-    <div class="fg"><label>Precio venta</label><input type="number" id="pro-precio" value="0" step="0.01" style="width:100%"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="fg"><label>Precio venta</label><input type="number" id="pro-precio" value="0" step="0.01" style="width:100%"></div>
+      <div class="fg"><label>Descuento máx %</label><input type="number" id="pro-dto" value="0" step="0.1" style="width:100%"></div>
+    </div>
+  </div>
+
+  <!-- Bloque 3: Inventario y estado -->
+  <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Inventario y estado</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;margin-bottom:14px">
     <div class="fg"><label>Stock actual</label><input type="number" id="pro-stock" value="0" step="0.01" style="width:100%"></div>
-    <div class="fg"><label>Descuento máx %</label><input type="number" id="pro-dto" value="0" step="0.1" style="width:100%"></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg2);border-radius:8px;height:38px;box-sizing:border-box">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap">
+        <input type="checkbox" id="pro-activo-chk" checked style="width:18px;height:18px;accent-color:var(--P)">
+        Producto activo
+      </label>
+      <span style="font-size:11px;color:var(--txt2)">Los inactivos no aparecen en pedidos ni remitos</span>
+    </div>
   </div>
+
   <input type="hidden" id="pro-edit-id">
-  <div style="display:flex;align-items:center;gap:10px;margin-top:10px;padding:8px 12px;background:var(--bg2);border-radius:8px">
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:600">
-      <input type="checkbox" id="pro-activo-chk" checked style="width:18px;height:18px;accent-color:var(--P)">
-      Producto activo
-    </label>
-    <span style="font-size:12px;color:var(--txt2)">Los inactivos no aparecen en pedidos ni remitos</span>
-  </div>
   <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
     <button class="btn" onclick="cerrar('m-producto')">Cancelar</button>
     <button class="btn P" onclick="guardarProducto()">✓ Guardar</button>
@@ -3435,13 +3455,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260728-22"></script>
-<script src="js/maestros.js?v=20260728-22"></script>
-<script src="js/ventas.js?v=20260728-22"></script>
-<script src="js/tesoreria.js?v=20260728-22"></script>
-<script src="js/contabilidad.js?v=20260728-22"></script>
-<script src="js/informes.js?v=20260728-22"></script>
-<script src="js/logistica.js?v=20260728-22"></script>
+<script src="js/app.js?v=20260728-23"></script>
+<script src="js/maestros.js?v=20260728-23"></script>
+<script src="js/ventas.js?v=20260728-23"></script>
+<script src="js/tesoreria.js?v=20260728-23"></script>
+<script src="js/contabilidad.js?v=20260728-23"></script>
+<script src="js/informes.js?v=20260728-23"></script>
+<script src="js/logistica.js?v=20260728-23"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
