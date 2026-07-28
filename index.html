@@ -668,7 +668,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="mh"><h3 id="m-comp-title">Nuevo comprobante</h3>
     <div style="display:flex;gap:6px;align-items:center">
       <button class="btn sm A" onclick="cargarFacturaIA()" title="Sacar foto de la factura y que la IA extraiga los datos automáticamente">📷 Leer con IA</button>
-      <input type="file" id="comp-ia-file" accept="image/*" style="display:none" onchange="leerFacturaConIA(this)">
+      <input type="file" id="comp-ia-file" accept="image/*,application/pdf" style="display:none" onchange="leerFacturaConIA(this)">
       <button class="btn sm" onclick="cerrar('m-comprobante')">✕</button>
     </div>
   </div>
@@ -686,7 +686,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <input id="comp-prov-q" placeholder="Nombre del proveedor..." autocomplete="off" style="width:100%"
               oninput="dropProvComp()"
               onkeydown="if(event.key==='F2'){event.preventDefault();abrirBuscadorProv();}else if(event.key==='Tab'){event.preventDefault();document.getElementById('comp-prov-drop').style.display='none';document.getElementById('comp-nro').focus();}else if(event.key==='Escape'){document.getElementById('comp-prov-drop').style.display='none';}">
-            <div id="comp-prov-drop" class="drop-list" style="display:none;position:absolute;z-index:200;width:100%;background:var(--bg);border:1px solid var(--brd);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);max-height:200px;overflow-y:auto;top:100%;left:0"></div>
+            <div id="comp-prov-drop" class="drop-list" style="display:none;position:absolute;z-index:200;width:100%;background:var(--bg);border:1px solid var(--brd);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;top:100%;left:0"></div>
           </div>
           <button class="btn sm" onclick="abrirBuscadorProv()" title="Buscar proveedor (F2)" style="padding:4px 8px;font-size:13px">🔍</button>
         </div>
@@ -3160,9 +3160,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-      <button class="btn sm" onclick="hrAgregarCliente()">+ Agregar cliente a ruta</button>
-      <button class="btn P sm" onclick="hrGuardarRuta()">💾 Guardar ruta</button>
-      <button class="btn A sm" onclick="hrCerrarYGenerarRendicion()">🔒 Cerrar y generar rendición</button>
+      <button onclick="hrAgregarCliente()"
+        style="min-height:46px;padding:10px 16px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;border:1.5px solid var(--brd);background:var(--bg);color:var(--txt)">+ Agregar cliente a ruta</button>
+      <button onclick="hrGuardarRuta()"
+        style="min-height:46px;padding:10px 16px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--P);background:var(--P);color:#fff">💾 Guardar ruta</button>
+      <button onclick="hrCerrarYGenerarRendicion()"
+        style="min-height:46px;padding:10px 16px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--A);background:var(--A);color:#fff">🔒 Cerrar y generar rendición</button>
       <span id="hr-estado-badge" style="font-size:12px"></span>
     </div>
     <!-- Buscador para agregar clientes -->
@@ -3185,7 +3188,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
     <div id="hr-mia-agregar-wrap" style="margin-bottom:12px">
-      <button class="btn sm" id="hr-mia-btn-agregar" onclick="hrMiRutaAgregarToggle()">+ Agregar cliente sobre la marcha</button>
+      <button id="hr-mia-btn-agregar" onclick="hrMiRutaAgregarToggle()"
+        style="width:100%;min-height:48px;padding:10px 16px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--brd);background:var(--bg);color:var(--txt);-webkit-tap-highlight-color:transparent">+ Agregar cliente sobre la marcha</button>
       <div id="hr-mia-buscador" style="display:none;margin-top:8px;position:relative">
         <input id="hr-mia-cli-q" type="text" placeholder="Buscar cliente por nombre..." autocomplete="off"
           style="width:100%;padding:12px 14px;border:2px solid var(--P);border-radius:8px;font-size:15px;box-sizing:border-box;font-family:inherit"

@@ -944,7 +944,7 @@ function dropProvComp(){
   const q=(document.getElementById('comp-prov-q')?.value||'').toLowerCase();
   const drop=document.getElementById('comp-prov-drop');if(!drop)return;
   if(q.length<1){drop.style.display='none';return;}
-  const m=_proveedores.filter(p=>(p.nombre||'').toLowerCase().includes(q));
+  const m=_proveedores.filter(p=>(p.nombre||'').toLowerCase().includes(q)).sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'','es'));
   drop.innerHTML=m.map(p=>`<div style="padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--brd);font-size:13px"
     onmousedown="selProvComp(${p.id})"><strong>${p.nombre}</strong>
     ${p.cuit?'<span style="font-size:11px;color:var(--txt2);margin-left:6px">CUIT: '+p.cuit+'</span>':''}</div>`).join('');
@@ -981,29 +981,53 @@ function abrirBuscadorProv(){
         style="padding:8px 12px;border:1px solid var(--brd);border-radius:8px;font-size:14px;margin-bottom:10px"
         oninput="filtrarBusqProv()"
         onkeydown="navBusqProv(event)">
-      <div id="busq-prov-list" style="overflow-y:auto;flex:1;max-height:50vh"></div>
+      <div style="display:flex;gap:6px;margin-bottom:10px" id="busq-prov-orden-row"></div>
+      <div id="busq-prov-list" style="overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;flex:1;max-height:50vh"></div>
     </div>`;
   document.body.appendChild(div);
   div.addEventListener('click',e=>{if(e.target===div)div.remove();});
+  _busqProvOrden='az';
+  renderBusqProvOrden();
   setTimeout(()=>{document.getElementById('busq-prov-q')?.focus();filtrarBusqProv();},50);
 }
 
 let _busqProvIdx=-1;
+let _busqProvOrden='az'; // 'az' | 'saldo_desc' | 'saldo_asc'
+
+function renderBusqProvOrden(){
+  const row=document.getElementById('busq-prov-orden-row');if(!row)return;
+  const opciones=[['az','A-Z'],['saldo_desc','↓ Mayor saldo'],['saldo_asc','↑ Menor saldo']];
+  const activo='flex:1;padding:6px 8px;border-radius:8px;border:1.5px solid var(--P);background:var(--P);color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit';
+  const inactivo='flex:1;padding:6px 8px;border-radius:8px;border:1.5px solid var(--brd);background:var(--bg);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit';
+  row.innerHTML=opciones.map(([val,label])=>
+    `<button onclick="_busqProvOrden='${val}';renderBusqProvOrden();filtrarBusqProv()" style="${_busqProvOrden===val?activo:inactivo}">${label}</button>`
+  ).join('');
+}
+
+// Lo que le debemos a un proveedor: comprobantes de compra aún no pagados.
+function _saldoProveedor(provId){
+  return (_comprobantes||[]).filter(c=>String(c.proveedor_id)===String(provId)&&c.estado!=='pagado')
+    .reduce((s,c)=>s+(c.importe||0),0);
+}
 
 function filtrarBusqProv(){
   _busqProvIdx=-1;
   const q=(document.getElementById('busq-prov-q')?.value||'').toLowerCase();
   const lista=document.getElementById('busq-prov-list');if(!lista)return;
-  const res=_proveedores.filter(p=>
+  let res=_proveedores.filter(p=>
     !q||(p.nombre||'').toLowerCase().includes(q)||String(p.cuit||'').includes(q)||String(p.codigo||p.id).includes(q)
-  ).slice(0,20);
+  ).map(p=>({...p,_saldo:_saldoProveedor(p.id)}));
+  if(_busqProvOrden==='saldo_desc') res=res.sort((a,b)=>b._saldo-a._saldo);
+  else if(_busqProvOrden==='saldo_asc') res=res.sort((a,b)=>a._saldo-b._saldo);
+  else res=res.sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'','es'));
   lista.innerHTML=res.length?res.map(p=>`
-    <div style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:10px"
+    <div style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;gap:10px"
       onmousedown="selProvComp(${p.id});document.getElementById('modal-busq-prov').remove();setTimeout(()=>document.getElementById('comp-nro')?.focus(),50)">
       <div>
         <div style="font-weight:600;font-size:13px">${p.nombre}</div>
         ${p.cuit?'<div style="font-size:11px;color:var(--txt2)">CUIT: '+p.cuit+'</div>':''}
       </div>
+      ${p._saldo?`<div style="font-size:12px;font-weight:700;color:var(--D);flex-shrink:0">${fmt(p._saldo)}</div>`:''}
     </div>`).join(''):'<div style="padding:16px;text-align:center;color:var(--txt2);font-size:13px">Sin resultados</div>';
 }
 
@@ -1625,7 +1649,10 @@ async function leerFacturaConIA(input){
   status.style.display='block';status.textContent='🤖 Leyendo factura con IA...';
   try{
     const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
-    const mediaType=file.type||'image/jpeg';
+    const esPdf=(file.type||'').includes('pdf')||/\.pdf$/i.test(file.name||'');
+    const contenidoArchivo=esPdf
+      ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}}
+      :{type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:b64}};
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
@@ -1633,7 +1660,7 @@ async function leerFacturaConIA(input){
         model:'claude-haiku-4-5-20251001',
         max_tokens:1024,
         messages:[{role:'user',content:[
-          {type:'image',source:{type:'base64',media_type:mediaType,data:b64}},
+          contenidoArchivo,
           {type:'text',text:'Extraé los datos de esta factura/comprobante y respondé SOLO con JSON válido (sin markdown ni texto extra):\n{"proveedor":"...","nro_comprobante":"...","fecha":"YYYY-MM-DD","importe":0,"descripcion":"...","tipo":"factura|recibo|ticket|otro","productos":[{"nombre":"...","cantidad":1,"costo_unitario":0}]}'}
         ]}]
       })
