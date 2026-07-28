@@ -933,6 +933,7 @@ function calcularComisionesPorPersona(){
 
 // ─── COMPROBANTES DE COMPRAS ───
 let _comprobantes = [], _compPg = 1;
+let _cargaArtCompId = null;
 
 async function cargarComprobantes(){
   const {data} = await sb.from('comprobantes_compras').select('*').order('fecha', {ascending:false});
@@ -1322,6 +1323,126 @@ function mostrarPrecioSugComp(inp){
   }
 }
 
+// ─── CARGA DE ARTÍCULOS SOBRE UN COMPROBANTE YA GUARDADO ───────────────────
+// (útil sobre todo para los importados de AFIP, que no traen detalle de productos)
+function abrirCargaArticulos(compId){
+  const comp=_comprobantes.find(c=>c.id===compId); if(!comp)return;
+  _cargaArtCompId=compId;
+  const info=document.getElementById('carga-art-info');
+  if(info)info.innerHTML=`<b>${comp.proveedor_nom||''}</b> · ${comp.nro_comprobante||'#'+comp.id} · ${comp.fecha||''} · ${fmt(comp.importe)}`;
+  document.getElementById('carga-art-lista').innerHTML='';
+  document.getElementById('m-carga-articulos').classList.add('on');
+  agregarItemCargaArt();
+}
+
+function agregarItemCargaArt(){
+  const lista=document.getElementById('carga-art-lista');
+  const opts=_productos.map(p=>`<option value="${p.id}">${p.codigo?p.codigo+' — ':''}${p.nombre}</option>`).join('');
+  const row=document.createElement('div');
+  row.className='carga-art-row';
+  row.style.cssText='display:grid;grid-template-columns:1fr 72px 130px 90px 20px;gap:4px;align-items:center';
+  row.innerHTML=`
+    <select class="carga-art-sel" style="padding:5px 6px;border:1px solid var(--brd);border-radius:6px;font-size:12px;width:100%"
+      onchange="this.closest('.carga-art-row').dataset.prodId=this.value;actualizarCostoAnteriorArt(this)">
+      <option value="">— Producto —</option>${opts}
+    </select>
+    <input type="number" class="carga-art-cant" placeholder="0" min="0" step="0.001"
+      style="padding:5px 6px;border:2px solid var(--P);border-radius:6px;font-size:13px;font-weight:700;text-align:right;width:100%;box-sizing:border-box"
+      title="Cantidad recibida (actualiza stock)">
+    <div style="display:flex;flex-direction:column;gap:1px">
+      <span class="carga-art-ant" style="font-size:9px;color:var(--txt2);white-space:nowrap">Anterior: —</span>
+      <input type="number" class="carga-art-val" placeholder="$ costo" min="0" step="0.01"
+        style="padding:5px 6px;border:1px solid var(--brd);border-radius:6px;font-size:12px;width:100%;box-sizing:border-box"
+        oninput="mostrarPrecioSugArt(this)">
+    </div>
+    <span class="carga-art-sug" style="font-size:11px;color:var(--P);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    <button type="button" onclick="this.closest('.carga-art-row').remove()"
+      style="background:none;border:none;cursor:pointer;color:var(--D);font-size:16px;padding:0;line-height:1">✕</button>`;
+  lista.appendChild(row);
+  row.dataset.prodId='';
+  row.querySelector('.carga-art-cant').focus();
+}
+
+function actualizarCostoAnteriorArt(sel){
+  const prod=_productos.find(x=>String(x.id)===sel.value);
+  const ant=sel.closest('.carga-art-row').querySelector('.carga-art-ant');
+  if(ant)ant.textContent=prod?`Costo anterior: ${fmt(prod.costo||0)}`:'Costo anterior: —';
+}
+
+function mostrarPrecioSugArt(inp){
+  const row=inp.closest('.carga-art-row');
+  const prodId=row.dataset.prodId;
+  const prod=_productos.find(x=>String(x.id)===String(prodId));
+  const margen=prod?.margen_objetivo||30;
+  const precioFact=parseFloat(inp.value)||0;
+  const comp=_comprobantes.find(c=>c.id===_cargaArtCompId);
+  const prov=_proveedores.find(p=>String(p.id)===String(comp?.proveedor_id));
+  const costoReal=precioFact>0?calcCostoReal(precioFact,prov?.condicion_fiscal||'factura_todo',prov?.pct_factura||100):0;
+  const sug=costoReal>0&&margen>0&&margen<100?Math.ceil(costoReal/(1-margen/100)):0;
+  const el=row.querySelector('.carga-art-sug');
+  if(el){
+    if(costoReal>0&&costoReal!==precioFact){
+      el.innerHTML=`<span style="color:var(--txt2);font-size:10px">Real: ${fmt(costoReal)}</span>${sug>0?`<br>→ ${fmt(sug)}`:''}`;
+    } else {
+      el.textContent=sug>0?`→ ${fmt(sug)}`:'';
+    }
+  }
+}
+
+async function guardarCargaArticulos(){
+  const compId=_cargaArtCompId; if(!compId)return;
+  const comp=_comprobantes.find(c=>c.id===compId); if(!comp)return;
+  const prov=_proveedores.find(p=>String(p.id)===String(comp.proveedor_id));
+  const condFiscal=prov?.condicion_fiscal||'factura_todo';
+  const pctFact=prov?.pct_factura||100;
+  const rows=[...document.querySelectorAll('.carga-art-row')];
+  let costosCambiados=0, stockActualizado=0;
+  const nuevos=[];
+  for(const row of rows){
+    const prodId=row.dataset.prodId; if(!prodId)continue;
+    const prod=_productos.find(x=>String(x.id)===String(prodId)); if(!prod)continue;
+    const precioFacturado=parseFloat(row.querySelector('.carga-art-val')?.value)||0;
+    const cantidad=parseFloat(row.querySelector('.carga-art-cant')?.value)||0;
+    if(precioFacturado<=0&&cantidad<=0)continue;
+
+    const upd={};
+    if(precioFacturado>0){
+      const costoReal=calcCostoReal(precioFacturado, condFiscal, pctFact);
+      const stockActual=prod.stock||0;
+      const costoActual=prod.costo||costoReal;
+      const costoPromedio=stockActual>0&&cantidad>0
+        ?Math.round((stockActual*costoActual+cantidad*costoReal)/(stockActual+cantidad)*100)/100
+        :Math.round(costoReal*100)/100;
+      upd.costo=costoPromedio;
+      const margen=prod.margen_objetivo||30;
+      upd.precio=margen>0&&margen<100?Math.ceil(costoPromedio/(1-margen/100)):prod.precio;
+      costosCambiados++;
+    }
+    if(cantidad>0){
+      upd.stock=(prod.stock||0)+cantidad;
+      stockActualizado++;
+    }
+    await sb.from('productos').update(upd).eq('id',prodId);
+    nuevos.push({
+      producto_id:parseInt(prodId), producto_nom:prod.nombre||'', codigo:prod.codigo||'',
+      cantidad, costo_unitario:upd.costo||0, subtotal:cantidad*(upd.costo||0)
+    });
+  }
+
+  if(!nuevos.length){ toast('Agregá al menos un producto con cantidad o costo','warn'); return; }
+
+  const items=[...(comp.items||[]), ...nuevos];
+  await sb.from('comprobantes_compras').update({items}).eq('id',compId);
+  await cargarProductos(); renderProductos();
+  await cargarComprobantes(); renderComprobantes();
+
+  const partes=[];
+  if(costosCambiados>0)partes.push(`${costosCambiados} costo${costosCambiados>1?'s':''} actualizado${costosCambiados>1?'s':''}`);
+  if(stockActualizado>0)partes.push(`${stockActualizado} producto${stockActualizado>1?'s':''} con stock sumado`);
+  toast(`✅ ${partes.join(' · ')}`);
+  cerrar('m-carga-articulos');
+}
+
 async function pagarComprobante(id){
   const comp = _comprobantes.find(x => x.id === id);
   if(!comp) return;
@@ -1449,6 +1570,7 @@ function renderComprobantes(){
       <td><span class="b ${badgeClass}">${estado}</span></td>
       <td style="display:flex;gap:3px;flex-wrap:wrap">
         ${estado!=='pagado'?`<button class="btn P sm" onclick="pagarComprobante(${c.id})">✓ Pagar</button>`:''}
+        <button class="btn sm" onclick="abrirCargaArticulos(${c.id})" title="Cargar los productos recibidos: actualiza stock y costo">📦 Artículos${c.items&&c.items.length?` (${c.items.length})`:''}</button>
         <button class="btn sm" onclick="abrirAjusteComp(${c.id},'nc')" title="Nota de crédito del proveedor" style="background:#dbeafe;color:#1e40af;border:none">NC</button>
         <button class="btn sm" onclick="abrirAjusteComp(${c.id},'nd')" title="Nota de débito del proveedor" style="background:#fef3c7;color:#92400e;border:none">ND</button>
         <button class="btn sm" onclick="imprimirComprobante(${c.id})" title="Imprimir">🖨</button>
@@ -1586,7 +1708,7 @@ async function importarCSVAfip(input){
   }
 
   const hoy=new Date().toISOString().split('T')[0];
-  const aInsertar=[]; let dup=0, sinProv=0;
+  const aInsertar=[]; let dup=0, sinProv=0, sinCuenta=0;
   for(const f of filas){
     if(!f.prov){sinProv++;continue;}
     if(yaCargados.has(String(f.prov.id)+'|'+f.nro)){dup++;continue;}
@@ -1595,6 +1717,9 @@ async function importarCSVAfip(input){
     const venc=plazo>0
       ? new Date(new Date(f.fecha).getTime()+plazo*86400000).toISOString().split('T')[0]
       : f.fecha;
+    // Cuenta contable: la que tenga configurada el proveedor por defecto (Maestros → Proveedores).
+    const [cuentaCod,cuentaNom]=(f.prov.cuenta_defecto||'').split('|');
+    if(!cuentaCod) sinCuenta++;
     aInsertar.push({
       proveedor_id:f.prov.id, proveedor_nom:f.prov.nombre,
       fecha:f.fecha, nro_comprobante:f.nro, tipo:f.tipo,
@@ -1602,6 +1727,7 @@ async function importarCSVAfip(input){
       importe:f.importe, condicion_pago:plazo,
       fecha_vencimiento:venc,
       estado:plazo===0?'pendiente':(venc<hoy?'vencido':'pendiente'),
+      cuenta_cod:cuentaCod||null, cuenta_nom:cuentaNom||null,
       observaciones:'Importado del CSV de AFIP'
     });
     yaCargados.add(String(f.prov.id)+'|'+f.nro);
@@ -1614,20 +1740,43 @@ async function importarCSVAfip(input){
 
   const total=aInsertar.reduce((a,c)=>a+c.importe,0);
   if(!confirm(`Se van a importar ${aInsertar.length} comprobante(s) por ${fmt(total)}.\n`+
-    `${dup?`(${dup} ya estaban cargados y se saltean)\n`:''}${sinProv?`(${sinProv} se saltean por no tener proveedor)\n`:''}\n¿Continuar?`)) {
+    `${dup?`(${dup} ya estaban cargados y se saltean)\n`:''}${sinProv?`(${sinProv} se saltean por no tener proveedor)\n`:''}`+
+    `${sinCuenta?`(${sinCuenta} sin cuenta contable por defecto — no van a generar asiento hasta que se la asignes al proveedor)\n`:''}\n¿Continuar?`)) {
     _afipStatus('Importación cancelada.');
     return;
   }
 
   _afipStatus('Importando '+aInsertar.length+' comprobante(s)...');
-  const {error}=await sb.from('comprobantes_compras').insert(aInsertar);
+  const {data:insertados,error}=await sb.from('comprobantes_compras').insert(aInsertar).select();
   if(error){_afipStatus('<b style="color:var(--D)">Error al importar: '+error.message+'</b>');return;}
+
+  // Asiento contable (debe: cuenta del proveedor · haber: Cuenta Corriente Proveedores) —
+  // solo para los que tienen cuenta asignada. Sin esto no aparecen en el Libro Mayor.
+  const conCuenta=(insertados||[]).filter(c=>c.cuenta_cod);
+  if(conCuenta.length){
+    const {data:asientosIns,error:errAs}=await sb.from('asientos').insert(conCuenta.map(c=>({
+      fecha:c.fecha,
+      descripcion:`${(c.tipo||'').toUpperCase()} ${c.nro_comprobante} - ${c.proveedor_nom} - ${c.descripcion}`,
+      tipo:'COMPRA', referencia_id:c.id, referencia_tipo:'comprobante_compra'
+    }))).select();
+    if(!errAs&&asientosIns){
+      const detalles=[];
+      conCuenta.forEach((c,i)=>{
+        const asientoId=asientosIns[i]?.id; if(!asientoId)return;
+        detalles.push(
+          {asiento_id:asientoId, cuenta_cod:c.cuenta_cod, cuenta_nom:c.cuenta_nom, debe:c.importe, haber:0},
+          {asiento_id:asientoId, cuenta_cod:'21001', cuenta_nom:'Cuenta Corriente Prov.', debe:0, haber:c.importe}
+        );
+      });
+      if(detalles.length) await sb.from('asientos_detalle').insert(detalles);
+    }
+  }
 
   await cargarComprobantes();
   renderComprobantes();
   _afipStatus(`<b style="color:var(--P)">✅ ${aInsertar.length} comprobante(s) importados por ${fmt(total)}.</b>`+
-    `<br><span style="color:var(--txt2);font-size:12px">${dup?dup+' ya estaban cargados. ':''}${sinProv?sinProv+' sin proveedor. ':''}`+
-    `Recordá que el detalle de productos no viene en el CSV: eso se carga desde la Recepción de mercadería.</span>`);
+    `<br><span style="color:var(--txt2);font-size:12px">${dup?dup+' ya estaban cargados. ':''}${sinProv?sinProv+' sin proveedor. ':''}${sinCuenta?sinCuenta+' sin cuenta contable por defecto (no generaron asiento). ':''}`+
+    `Recordá que el detalle de productos no viene en el CSV: cargalo con el botón "📦 Artículos" en cada comprobante.</span>`);
   toast(`✅ ${aInsertar.length} comprobantes importados`);
 }
 

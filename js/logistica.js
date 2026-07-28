@@ -59,14 +59,13 @@ async function loadPedsCarga(){
   if(!pends.length){el.innerHTML='<div class="empty">Sin pedidos pendientes con esos filtros</div>';actualizarResumenCarga();return;}
   el.innerHTML=pends.map(p=>{
     const c=_clientes.find(x=>x.id===p.cliente_id);
-    return `<div style="display:flex;align-items:center;gap:8px;padding:12px 8px;border-bottom:1px solid var(--brd);font-size:13px">
-      <input type="checkbox" id="chk-${p.id}" value="${p.id}" checked onchange="actualizarResumenCarga()" style="width:22px;height:22px;cursor:pointer;flex-shrink:0">
-      <label for="chk-${p.id}" style="flex:1;cursor:pointer">
+    return `<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;border-bottom:1px solid var(--brd);font-size:12px">
+      <input type="checkbox" id="chk-${p.id}" value="${p.id}" checked onchange="actualizarResumenCarga()" style="width:18px;height:18px;cursor:pointer;flex-shrink:0">
+      <label for="chk-${p.id}" style="flex:1;cursor:pointer;line-height:1.3">
         <span style="font-weight:600">${p.cliente}</span>
         <span style="color:var(--txt2);font-size:11px;margin-left:8px">${p.localidad||''} · ${(_zonas.find(z=>z.codigo===p.zona)?.descripcion||p.zona)||''} · ${p.vendedor||'—'} · ${p.fecha}</span>
         ${c?.direccion?`<span style="color:var(--txt2);font-size:11px;margin-left:8px">📍 ${c.direccion}</span>`:''}
       </label>
-      <span style="color:var(--P);font-weight:600;white-space:nowrap">${fmt(p.total)}</span>
     </div>`;
   }).join('');
   actualizarResumenCarga();

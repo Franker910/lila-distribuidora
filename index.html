@@ -777,6 +777,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 </div>
 
+<!-- MODAL CARGA DE ARTÍCULOS (sobre un comprobante ya guardado, típicamente importado de AFIP) -->
+<div class="mbg" id="m-carga-articulos">
+<div class="mdl" style="width:520px">
+  <div class="mh"><h3>📦 Cargar artículos recibidos</h3>
+    <button class="btn sm" onclick="cerrar('m-carga-articulos')">✕</button>
+  </div>
+  <div class="mb">
+    <div id="carga-art-info" style="font-size:13px;color:var(--txt2);margin-bottom:10px"></div>
+    <div style="display:grid;grid-template-columns:1fr 72px 130px 90px 20px;gap:4px;font-size:10px;font-weight:600;color:var(--txt2);text-transform:uppercase;padding:0 2px;margin-bottom:4px">
+      <span>Producto</span><span style="text-align:center">Cant.</span><span>Costo unitario</span><span>Precio sugerido</span><span></span>
+    </div>
+    <div id="carga-art-lista" style="display:flex;flex-direction:column;gap:5px"></div>
+    <button type="button" class="btn sm A" onclick="agregarItemCargaArt()" style="margin-top:8px">+ Agregar producto</button>
+  </div>
+  <div class="mf">
+    <button class="btn" onclick="cerrar('m-carga-articulos')">Cancelar</button>
+    <button class="btn P" onclick="guardarCargaArticulos()">✓ Guardar y actualizar stock</button>
+  </div>
+</div>
+</div>
+
 <!-- COBRANZA HOY VENDEDOR -->
 <div class="panel" id="p-cobranza-hoy">
   <div style="background:var(--PD);color:#fff;padding:12px 14px;position:sticky;top:0;z-index:10;margin:-14px -14px 14px -14px">
