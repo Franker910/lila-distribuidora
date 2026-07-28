@@ -114,6 +114,17 @@ function selCli(id){
   info.style.display='block';
 }
 
+// Indicador de stock con el mismo criterio en toda la app (PC y celular):
+// sin stock en rojo, 5 o menos en naranja como aviso, y el resto con tilde.
+function _stockInfo(p){
+  const s=p.stock||0;
+  return {
+    color: s<=0?'#C00000':s<=5?'#C55A11':'var(--P)',
+    peso:  s<=5?'700':'600',
+    txt:   s<=0?'❌ Sin stock':s<=5?'⚠️ Quedan '+s+' '+(p.unidad||''):'✓ '+s+' '+(p.unidad||'')
+  };
+}
+
 function dropPro(){
   const q=(document.getElementById('np-pro-q').value||'').toLowerCase();
   const drop=document.getElementById('np-pro-drop');
@@ -1523,7 +1534,7 @@ function toggleMarcaMovil(marca,key,pref){
   else{
     const items=_pmItemsActuales()||[];
     const prods=_productos.filter(p=>_pmMarcaDe(p)===marca&&p.activo!==false);
-    div.innerHTML=prods.map(p=>{const enCarrito=items.find(x=>x.id===p.id);return `<div onclick="abrirPopupMovil(${p.id})" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--brd);cursor:pointer;background:${enCarrito?'var(--PL)':'#fff'};border-left:${enCarrito?'4px solid var(--P)':'4px solid transparent'}"><div style="flex:1"><div style="font-size:15px;font-weight:${enCarrito?'700':'500'}">${p.nombre}</div>${enCarrito?`<div style="font-size:12px;color:var(--P);font-weight:600">✓ ${enCarrito.cant} ${p.unidad||''} en pedido</div>`:''}</div><div style="text-align:right;margin-left:12px"><div style="font-size:15px;font-weight:700;color:var(--PD)">${fmt(p.precio||0)}</div><div style="width:30px;height:30px;border-radius:50%;background:var(--P);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;margin-left:auto;margin-top:2px">+</div></div></div>`;}).join('')||`<div style="padding:14px 18px;color:var(--txt2);font-size:13px">Sin productos</div>`;
+    div.innerHTML=prods.map(p=>{const enCarrito=items.find(x=>x.id===p.id);const si=_stockInfo(p);return `<div onclick="abrirPopupMovil(${p.id})" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--brd);cursor:pointer;background:${enCarrito?'var(--PL)':'#fff'};border-left:${enCarrito?'4px solid var(--P)':'4px solid transparent'}"><div style="flex:1"><div style="font-size:15px;font-weight:${enCarrito?'700':'500'}">${p.nombre}</div><div style="font-size:12px;color:${si.color};font-weight:${si.peso};margin-top:2px">${si.txt}</div>${enCarrito?`<div style="font-size:12px;color:var(--P);font-weight:600">✓ ${enCarrito.cant} ${p.unidad||''} en pedido</div>`:''}</div><div style="text-align:right;margin-left:12px"><div style="font-size:15px;font-weight:700;color:var(--PD)">${fmt(p.precio||0)}</div><div style="width:30px;height:30px;border-radius:50%;background:var(--P);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;margin-left:auto;margin-top:2px">+</div></div></div>`;}).join('')||`<div style="padding:14px 18px;color:var(--txt2);font-size:13px">Sin productos</div>`;
     div.style.display='block';if(chev)chev.textContent='⌄';
     div.scrollIntoView({behavior:'smooth',block:'nearest'});
   }
@@ -1541,7 +1552,8 @@ function abrirPopupMovil(prodId){
   const _lpPrecioBase=p.precio||0;
   const _lpPrecioMostrar=_lpPrecioLista!=null?_lpPrecioLista:_lpPrecioBase;
   const _lpListaNom=_pmCliId&&getListaCliente(_pmCliId)?(_listasPrecios.find(l=>l.id==getListaCliente(_pmCliId))?.nombre||''):'';
-  document.getElementById('pm-popup-precio').innerHTML=fmt(_lpPrecioMostrar)+' <span style="color:var(--txt2)">'+(p.unidad||'')+'</span>'+(_lpListaNom?` <span style="font-size:11px;background:var(--PL);color:var(--PD);border-radius:4px;padding:1px 5px">${_lpListaNom}</span>`:'');
+  const _siPop=_stockInfo(p);
+  document.getElementById('pm-popup-precio').innerHTML=fmt(_lpPrecioMostrar)+' <span style="color:var(--txt2)">'+(p.unidad||'')+'</span>'+(_lpListaNom?` <span style="font-size:11px;background:var(--PL);color:var(--PD);border-radius:4px;padding:1px 5px">${_lpListaNom}</span>`:'')+`<div style="font-size:13px;font-weight:${_siPop.peso};color:${_siPop.color};margin-top:4px">${_siPop.txt}</div>`;
   document.getElementById('pm-cant').value=existente?existente.cant:1;
   document.getElementById('pm-dto').value=existente?existente.dto:(p.descuento||0);
   // En modo edición ocultar el backdrop del sheet para evitar doble oscurecimiento
@@ -1954,11 +1966,13 @@ function filtrarAgregarMovil(){
   drop.innerHTML=res.map(p=>{
     const enEdit=_editPedMovil?.items.find(x=>x.id===p.id);
     const sub=[p.linea,p.rubro].filter(Boolean).join(' · ');
+    const si=_stockInfo(p);
     return `<div onclick="abrirPopupMovil(${p.id})"
       style="padding:12px 14px;border-bottom:1px solid var(--brd);cursor:pointer;min-height:52px;display:flex;align-items:center;gap:10px;background:${enEdit?'var(--PL)':''}">
       <div style="flex:1;min-width:0">
         <div style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nombre}</div>
         ${sub?`<div style="font-size:11px;color:var(--txt2)">${sub}</div>`:''}
+        <div style="font-size:12px;color:${si.color};font-weight:${si.peso}">${si.txt}</div>
         ${enEdit?`<div style="font-size:12px;color:var(--P);font-weight:600">✓ ${enEdit.cant} ${p.unidad||''} en pedido</div>`:''}
       </div>
       <div style="text-align:right;flex-shrink:0">
