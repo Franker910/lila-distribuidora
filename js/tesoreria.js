@@ -2114,7 +2114,7 @@ async function guardarCobMovil(){
 
   // ⚠️ El saldo del cliente y remitos NO se toca aquí.
   // Se aplica recién cuando un admin valida el cobro (validarCobro).
-  await Promise.all([cargarCobros(),cargarRemitos()]);
+  await Promise.all([cargarCobros(),cargarRemitos(),hrMarcarVisitadoPorCliente(_cobMovilCliId)]);
   renderDash();
   mostrarConfirmacionMovil('cobro', c?.nombre, fmt(importe)+(resto>0?' · Resto a favor: '+fmt(resto):'') + ' — pendiente de validación');
   limpiarCobMovil();

@@ -965,8 +965,11 @@ let _hrRuta = [];
 function hrTab(tab){
   document.getElementById('hr-panel-admin').style.display=tab==='admin'?'':'none';
   document.getElementById('hr-panel-mia').style.display=tab==='mia'?'':'none';
-  document.getElementById('hr-tab-admin').className='btn'+(tab==='admin'?' P':'')+' sm';
-  document.getElementById('hr-tab-mia').className='btn'+(tab==='mia'?' P':'')+' sm';
+  const base='flex:1;min-height:48px;padding:10px 14px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;border:1.5px solid ';
+  const activo=base+'var(--P);background:var(--P);color:#fff';
+  const inactivo=base+'var(--brd);background:var(--bg);color:var(--txt)';
+  document.getElementById('hr-tab-admin').style.cssText=tab==='admin'?activo:inactivo;
+  document.getElementById('hr-tab-mia').style.cssText=tab==='mia'?activo:inactivo;
   if(tab==='mia') hrVerMiRuta();
 }
 
@@ -1123,20 +1126,20 @@ async function hrVerMiRuta(){
   const el = document.getElementById('hr-mia-lista');
   if(!ruta.length){el.innerHTML='<div class="empty">Sin clientes asignados para hoy</div>';return;}
   el.innerHTML = (cerrada?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">🔒 Ruta cerrada — ya se generó su rendición</div>':'') + ruta.map((r,i)=>`
-    <div onclick="hrMarcarVisitado(${r.id},${!r.visitado})"
-      style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:${r.visitado?'var(--PL)':'var(--bg)'};border-radius:14px;margin-bottom:8px;border:2px solid ${r.visitado?'var(--P)':'var(--brd)'};cursor:pointer;transition:background .15s">
-      <div style="font-size:26px;font-weight:700;min-width:32px;text-align:center;color:${r.visitado?'var(--P)':'var(--txt2)'}">
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:${r.visitado?'var(--PL)':'var(--bg)'};border-radius:14px;margin-bottom:8px;border:2px solid ${r.visitado?'var(--P)':'var(--brd)'};transition:background .15s">
+      <div onclick="hrMarcarVisitado(${r.id},${!r.visitado})" title="Tocar para marcar visitado sin cobrar"
+        style="font-size:24px;font-weight:700;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;text-align:center;color:${r.visitado?'var(--P)':'var(--txt2)'};cursor:pointer;-webkit-tap-highlight-color:transparent">
         ${r.visitado?'✓':i+1}
       </div>
-      <div style="flex:1;min-width:0">
+      <div onclick="hrIrACobrar(${r.cliente_id})" style="flex:1;min-width:0;cursor:pointer">
         <div style="font-weight:700;font-size:16px;${r.visitado?'text-decoration:line-through;color:var(--txt2)':''}">${r.nombre}</div>
         ${r.direccion||r.localidad?`<div style="font-size:12px;color:var(--txt2);margin-top:2px">${[r.direccion,r.localidad].filter(Boolean).join(' · ')}</div>`:''}
         ${r.telefono?`<a href="tel:${r.telefono.replace(/\D/g,'')}" onclick="event.stopPropagation()"
           style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;font-size:13px;color:var(--P);font-weight:600;text-decoration:none;padding:4px 10px;background:var(--PL);border-radius:8px">
           📞 ${r.telefono}</a>`:''}
       </div>
-      <div style="font-size:11px;color:${r.visitado?'var(--P)':'var(--txt2)'};text-align:right;flex-shrink:0;font-weight:600">
-        ${r.visitado?'Visitado':'Tocar para<br>marcar'}
+      <div onclick="hrIrACobrar(${r.cliente_id})" style="font-size:12px;color:var(--P);text-align:right;flex-shrink:0;font-weight:700;cursor:pointer;min-width:58px;padding:8px 4px">
+        ${r.visitado?'Cobrar<br>de nuevo':'💵 Cobrar'}
       </div>
     </div>`).join('');
 }
@@ -1144,6 +1147,20 @@ async function hrVerMiRuta(){
 async function hrMarcarVisitado(id, visitado){
   await sb.from('hoja_ruta').update({visitado}).eq('id',id);
   hrVerMiRuta();
+}
+
+// Salta directo a cobrarle a este cliente desde su tarjeta en "Mi ruta".
+function hrIrACobrar(clienteId){
+  go('cobranza');
+  setTimeout(()=>selClienteCobMovil(clienteId),50);
+}
+
+// Si el cliente cobrado tiene una parada sin visitar en la ruta de hoy, se tilda sola.
+async function hrMarcarVisitadoPorCliente(clienteId){
+  const hoy=new Date().toISOString().split('T')[0];
+  const vend=usuarioActual?.nombre||'';
+  const {data}=await sb.from('hoja_ruta').select('id').eq('fecha',hoy).eq('cliente_id',clienteId).eq('vendedor',vend).eq('visitado',false);
+  if(data&&data.length) await sb.from('hoja_ruta').update({visitado:true}).in('id',data.map(x=>x.id));
 }
 
 // ─── Agregar cliente sobre la marcha (vista móvil del repartidor/vendedor) ──

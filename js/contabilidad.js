@@ -1462,13 +1462,15 @@ function _afipNum(v){
   return parseFloat(s.replace(/\./g,'').replace(',','.'))||0;
 }
 
-// AFIP exporta las fechas como "DD/MM/AAAA"; el resto de la app usa ISO "AAAA-MM-DD".
+// AFIP exporta la fecha como "AAAA-MM-DD" (ISO) o "DD/MM/AAAA" según el reporte;
+// el resto de la app usa siempre ISO "AAAA-MM-DD".
 function _afipFecha(v){
   const s=String(v||'').trim();
-  const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if(!m) return '';
-  const [,d,mo,y]=m;
-  return `${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(m){const [,y,mo,d]=m;return `${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;}
+  m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m){const [,d,mo,y]=m;return `${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;}
+  return '';
 }
 
 // Divide una línea de CSV respetando las comillas.

@@ -3139,8 +3139,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <!-- TABS: Admin / Mi ruta (vendedor) -->
   <div style="display:flex;gap:8px;margin-bottom:16px" id="hr-tabs">
-    <button class="btn P sm" id="hr-tab-admin" onclick="hrTab('admin')">🛠 Armar ruta (Admin)</button>
-    <button class="btn sm" id="hr-tab-mia" onclick="hrTab('mia')">📱 Mi ruta</button>
+    <button id="hr-tab-admin" onclick="hrTab('admin')"
+      style="flex:1;min-height:48px;padding:10px 14px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--P);background:var(--P);color:#fff;-webkit-tap-highlight-color:transparent">🛠 Armar ruta (Admin)</button>
+    <button id="hr-tab-mia" onclick="hrTab('mia')"
+      style="flex:1;min-height:48px;padding:10px 14px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--brd);background:var(--bg);color:var(--txt);-webkit-tap-highlight-color:transparent">📱 Mi ruta</button>
   </div>
 
   <!-- PANEL ADMIN: armar la ruta del día -->
