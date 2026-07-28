@@ -1436,6 +1436,175 @@ function renderComprobantes(){
   pag('comp-pg', data.length, _compPg, p => { _compPg = p; renderComprobantes(); });
 }
 
+// ─── IMPORTACIÓN DEL CSV DE AFIP (Mis Comprobantes → Recibidos) ────────────
+// El CSV trae todo lo administrativo (proveedor, número, fecha, importe) pero
+// NO el detalle de productos: eso vive solo en el PDF de cada factura.
+
+// Códigos de tipo de comprobante de AFIP → tipo interno de la app.
+const _AFIP_TIPOS = {
+  1:['factura','Factura A'],       2:['nota_debito','Nota de Débito A'],  3:['nota_credito','Nota de Crédito A'],
+  6:['factura','Factura B'],       7:['nota_debito','Nota de Débito B'],  8:['nota_credito','Nota de Crédito B'],
+  11:['factura','Factura C'],     12:['nota_debito','Nota de Débito C'], 13:['nota_credito','Nota de Crédito C'],
+  51:['factura','Factura M'],     52:['nota_debito','Nota de Débito M'], 53:['nota_credito','Nota de Crédito M'],
+  81:['ticket','Tique Factura A'],82:['ticket','Tique Factura B'],       83:['ticket','Tique'],
+  109:['ticket','Tique C'],       110:['nota_credito','Tique Nota de Crédito'],
+  111:['ticket','Tique Factura C'],112:['nota_credito','Tique NC A'],    113:['nota_credito','Tique NC B'],
+  114:['nota_credito','Tique NC C'],118:['ticket','Tique Factura M'],
+  201:['factura','FCE Factura A'],202:['nota_debito','FCE ND A'],       203:['nota_credito','FCE NC A'],
+  206:['factura','FCE Factura B'],207:['nota_debito','FCE ND B'],       208:['nota_credito','FCE NC B'],
+  211:['factura','FCE Factura C'],212:['nota_debito','FCE ND C'],       213:['nota_credito','FCE NC C']
+};
+
+// AFIP usa coma decimal y punto de miles: "1.234,56" → 1234.56
+function _afipNum(v){
+  const s=String(v==null?'':v).trim();
+  if(!s) return 0;
+  return parseFloat(s.replace(/\./g,'').replace(',','.'))||0;
+}
+
+// AFIP exporta las fechas como "DD/MM/AAAA"; el resto de la app usa ISO "AAAA-MM-DD".
+function _afipFecha(v){
+  const s=String(v||'').trim();
+  const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(!m) return '';
+  const [,d,mo,y]=m;
+  return `${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+}
+
+// Divide una línea de CSV respetando las comillas.
+function _csvLinea(linea,sep){
+  const out=[];let campo='',dentro=false;
+  for(let i=0;i<linea.length;i++){
+    const ch=linea[i];
+    if(ch==='"'){
+      if(dentro&&linea[i+1]==='"'){campo+='"';i++;}
+      else dentro=!dentro;
+    } else if(ch===sep&&!dentro){out.push(campo);campo='';}
+    else campo+=ch;
+  }
+  out.push(campo);
+  return out.map(s=>s.trim());
+}
+
+function _afipStatus(html){
+  const el=document.getElementById('afip-import-status');
+  if(el){el.style.display='block';el.innerHTML=html;}
+}
+
+async function importarCSVAfip(input){
+  const file=input.files&&input.files[0];
+  input.value='';
+  if(!file) return;
+  _afipStatus('Leyendo el archivo...');
+
+  let texto=await file.text();
+  if(texto.charCodeAt(0)===0xFEFF) texto=texto.slice(1);
+  const lineas=texto.split(/\r?\n/).filter(l=>l.trim());
+  if(lineas.length<2){_afipStatus('<b style="color:var(--D)">El archivo está vacío o no tiene datos.</b>');return;}
+
+  // AFIP exporta con punto y coma; se detecta por si acaso.
+  const sep=(lineas[0].match(/;/g)||[]).length>=(lineas[0].match(/,/g)||[]).length?';':',';
+  const cab=_csvLinea(lineas[0],sep).map(h=>h.replace(/^"|"$/g,'').trim());
+  const col=nombre=>cab.findIndex(h=>h.toLowerCase()===nombre.toLowerCase());
+
+  const iFecha=col('Fecha de Emisión'), iTipo=col('Tipo de Comprobante'),
+        iPtoVta=col('Punto de Venta'), iNroD=col('Número Desde'),
+        iCuit=col('Nro. Doc. Emisor'), iNombre=col('Denominación Emisor'),
+        iTotal=col('Imp. Total');
+
+  if([iFecha,iTipo,iPtoVta,iNroD,iCuit,iNombre,iTotal].some(i=>i<0)){
+    _afipStatus('<b style="color:var(--D)">Este archivo no parece ser el CSV de "Mis Comprobantes" de AFIP.</b><br>'+
+      '<span style="color:var(--txt2);font-size:12px">Faltan columnas esperadas. Descargalo desde AFIP → Mis Comprobantes → Recibidos, sin modificarlo.</span>');
+    return;
+  }
+
+  // Índice de comprobantes ya cargados, para no duplicar.
+  const yaCargados=new Set(_comprobantes.map(c=>String(c.proveedor_id)+'|'+(c.nro_comprobante||'')));
+  const provPorCuit={};
+  _proveedores.forEach(p=>{const k=String(p.cuit||'').replace(/\D/g,'');if(k)provPorCuit[k]=p;});
+
+  const filas=[], sinProveedor=new Map();
+  for(let i=1;i<lineas.length;i++){
+    const f=_csvLinea(lineas[i],sep);
+    if(f.length<cab.length-2) continue;
+    const cuit=String(f[iCuit]||'').replace(/\D/g,'');
+    const total=_afipNum(f[iTotal]);
+    const fecha=_afipFecha(f[iFecha]);
+    if(!cuit||!total||!fecha) continue;
+    const codTipo=parseInt(f[iTipo])||0;
+    const [tipo,tipoNom]=_AFIP_TIPOS[codTipo]||['otro','Comprobante tipo '+codTipo];
+    const nro=String(f[iPtoVta]||'').padStart(4,'0')+'-'+String(f[iNroD]||'').padStart(8,'0');
+    const fila={
+      fecha, tipo, tipoNom, nro, cuit,
+      nombre:(f[iNombre]||'').trim(), importe:total,
+      prov:provPorCuit[cuit]||null
+    };
+    if(!fila.prov&&!sinProveedor.has(cuit)) sinProveedor.set(cuit,fila.nombre);
+    filas.push(fila);
+  }
+
+  if(!filas.length){_afipStatus('<b style="color:var(--D)">No se encontró ningún comprobante válido en el archivo.</b>');return;}
+
+  // Crear los proveedores que falten, para no perder comprobantes.
+  if(sinProveedor.size){
+    const lista=[...sinProveedor.entries()].map(([cuit,nom])=>`${nom} (${cuit})`).join('\n');
+    const ok=confirm(`Hay ${sinProveedor.size} proveedor(es) del archivo que no están en el sistema:\n\n${lista}\n\n¿Los creo automáticamente? (Si cancelás, esos comprobantes se saltean)`);
+    if(ok){
+      const nuevos=[...sinProveedor.entries()].map(([cuit,nom])=>({nombre:nom||('CUIT '+cuit),cuit}));
+      const {error}=await sb.from('proveedores').insert(nuevos);
+      if(error){_afipStatus('<b style="color:var(--D)">No se pudieron crear los proveedores: '+error.message+'</b>');return;}
+      await cargarProveedores();
+      _proveedores.forEach(p=>{const k=String(p.cuit||'').replace(/\D/g,'');if(k)provPorCuit[k]=p;});
+      filas.forEach(f=>{if(!f.prov)f.prov=provPorCuit[f.cuit]||null;});
+    }
+  }
+
+  const hoy=new Date().toISOString().split('T')[0];
+  const aInsertar=[]; let dup=0, sinProv=0;
+  for(const f of filas){
+    if(!f.prov){sinProv++;continue;}
+    if(yaCargados.has(String(f.prov.id)+'|'+f.nro)){dup++;continue;}
+    const plazo=parseInt(f.prov.plazo_pago_dias)||0;
+    // El vencimiento sale del plazo pactado con el proveedor (AFIP no lo informa).
+    const venc=plazo>0
+      ? new Date(new Date(f.fecha).getTime()+plazo*86400000).toISOString().split('T')[0]
+      : f.fecha;
+    aInsertar.push({
+      proveedor_id:f.prov.id, proveedor_nom:f.prov.nombre,
+      fecha:f.fecha, nro_comprobante:f.nro, tipo:f.tipo,
+      descripcion:f.tipoNom+' — importado de AFIP',
+      importe:f.importe, condicion_pago:plazo,
+      fecha_vencimiento:venc,
+      estado:plazo===0?'pendiente':(venc<hoy?'vencido':'pendiente'),
+      observaciones:'Importado del CSV de AFIP'
+    });
+    yaCargados.add(String(f.prov.id)+'|'+f.nro);
+  }
+
+  if(!aInsertar.length){
+    _afipStatus(`<b>No había nada nuevo para importar.</b><br><span style="color:var(--txt2);font-size:12px">${dup} ya estaban cargados${sinProv?` · ${sinProv} sin proveedor asociado`:''}.</span>`);
+    return;
+  }
+
+  const total=aInsertar.reduce((a,c)=>a+c.importe,0);
+  if(!confirm(`Se van a importar ${aInsertar.length} comprobante(s) por ${fmt(total)}.\n`+
+    `${dup?`(${dup} ya estaban cargados y se saltean)\n`:''}${sinProv?`(${sinProv} se saltean por no tener proveedor)\n`:''}\n¿Continuar?`)) {
+    _afipStatus('Importación cancelada.');
+    return;
+  }
+
+  _afipStatus('Importando '+aInsertar.length+' comprobante(s)...');
+  const {error}=await sb.from('comprobantes_compras').insert(aInsertar);
+  if(error){_afipStatus('<b style="color:var(--D)">Error al importar: '+error.message+'</b>');return;}
+
+  await cargarComprobantes();
+  renderComprobantes();
+  _afipStatus(`<b style="color:var(--P)">✅ ${aInsertar.length} comprobante(s) importados por ${fmt(total)}.</b>`+
+    `<br><span style="color:var(--txt2);font-size:12px">${dup?dup+' ya estaban cargados. ':''}${sinProv?sinProv+' sin proveedor. ':''}`+
+    `Recordá que el detalle de productos no viene en el CSV: eso se carga desde la Recepción de mercadería.</span>`);
+  toast(`✅ ${aInsertar.length} comprobantes importados`);
+}
+
 // ─── LECTURA DE FACTURA CON IA ────────────────────────────────
 function cargarFacturaIA(){
   let key=localStorage.getItem('lila_anth_key');
