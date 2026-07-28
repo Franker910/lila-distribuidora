@@ -854,16 +854,20 @@ async function sincronizarZonasDesdeLocalidades() {
   if (!_clientes?.length) { toast('Cargá los clientes primero', 'err'); return; }
   await cargarZonas();
   const localidades = [...new Set((_clientes).map(c=>(c.localidad||'').trim()).filter(Boolean))].sort();
-  const codigosExistentes = new Set((_zonas||[]).map(z => String(z.codigo)));
-  const nuevas = localidades.filter(loc => !codigosExistentes.has(loc));
+  const descripcionesExistentes = new Set((_zonas||[]).map(z => (z.descripcion||'').trim().toUpperCase()));
+  const nuevas = localidades.filter(loc => !descripcionesExistentes.has(loc.toUpperCase()));
   if (!nuevas.length) { toast('✅ Todas las localidades ya tienen zona asociada'); renderZonas(); return; }
 
-  const ok = confirm(`Se crearán ${nuevas.length} zona(s) nueva(s):\n${nuevas.join(', ')}\n\n¿Continuar?`);
+  const ok = confirm(`Se crearán ${nuevas.length} zona(s) nueva(s), una por localidad (con código numérico nuevo):\n${nuevas.join(', ')}\n\n¿Continuar?`);
   if (!ok) return;
 
+  // El código de zona es numérico: se asigna el siguiente disponible a partir
+  // del máximo existente (no se puede usar el nombre de la localidad como código).
+  let maxCod = Math.max(0, ...(_zonas||[]).map(z=>parseInt(z.codigo)||0));
   let ok2 = 0, errs = 0;
   for (const loc of nuevas) {
-    const { error } = await sb.from('zonas').insert({ codigo: loc, descripcion: loc, vendedor: '' });
+    maxCod++;
+    const { error } = await sb.from('zonas').insert({ codigo: String(maxCod), descripcion: loc, vendedor: '' });
     if (!error) ok2++; else { errs++; console.error('Error zona', loc, error); }
   }
   await cargarZonas();
