@@ -1627,22 +1627,9 @@ function clearComprobanteMov(){
   const img=document.getElementById('cobm-comp-img');if(img)img.src='';
 }
 
-let _cobmZona = '';
-
-  // zona activa en el panel por zona
-
 // ── Navegación entre sub-paneles de cobranza ─────────────────────────────
-function cobmAbrirZonas(){
-  document.getElementById('cobm-acciones').style.display='none';
-  document.getElementById('cobm-panel-cc').style.display='none';
-  document.getElementById('cobm-panel-zona').style.display='block';
-  _cobmZona='';
-  renderZonasMovil();
-}
-
 function cobmAbrirCC(){
   document.getElementById('cobm-acciones').style.display='none';
-  document.getElementById('cobm-panel-zona').style.display='none';
   document.getElementById('cobm-panel-cc').style.display='block';
   const q=document.getElementById('cobm-cc-q');if(q)q.value='';
   const l=document.getElementById('cobm-cc-lista');if(l)l.innerHTML='';
@@ -1652,104 +1639,8 @@ function cobmAbrirCC(){
 
 function cobmVolverAcciones(){
   document.getElementById('cobm-acciones').style.display='block';
-  document.getElementById('cobm-panel-zona').style.display='none';
   document.getElementById('cobm-panel-cc').style.display='none';
   document.getElementById('cobm-panel-miscobranzas').style.display='none';
-  _cobmZona='';
-}
-
-// ── Selector de zona (step 1) ────────────────────────────────────────────
-function renderZonasMovil(){
-  const pool=_cobmCliPool();
-  const conSaldo = pool.filter(c=>(c.saldo||0)>0).sort((a,b)=>(b.saldo||0)-(a.saldo||0));
-  const zonas = [...new Set(conSaldo.map(c=>c.localidad||'').filter(Boolean))].sort();
-  const zl = document.getElementById('cobm-zonas-lista');
-  const ml = document.getElementById('cobm-morosos-lista');
-  const tot = document.getElementById('cobm-morosos-total');
-  if(tot) tot.textContent='';
-  if(ml) ml.innerHTML='';
-  if(!zl) return;
-  if(!zonas.length){
-    zl.innerHTML='<div style="font-size:13px;color:var(--txt2);padding:6px 0">Sin clientes con saldo pendiente ✓</div>';
-    return;
-  }
-  zl.innerHTML=zonas.map(z=>{
-    const clsZ=conSaldo.filter(c=>(c.localidad||'')===z);
-    const totZ=clsZ.reduce((s,c)=>s+(c.saldo||0),0);
-    return `<div onclick="cobmSelZona('${z}')"
-      style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--bg2);border-radius:12px;margin-bottom:8px;cursor:pointer;border:1.5px solid var(--brd);-webkit-tap-highlight-color:transparent">
-      <div>
-        <div style="font-size:16px;font-weight:700">${z}</div>
-        <div style="font-size:12px;color:var(--txt2);margin-top:2px">${clsZ.length} cliente${clsZ.length>1?'s':''} con saldo</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:17px;font-weight:700;color:var(--D)">${fmt(totZ)}</div>
-        <div style="font-size:18px;color:var(--txt2);margin-top:2px">›</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ── Lista de morosos de la zona elegida (step 2) ─────────────────────────
-function cobmSelZona(zona){
-  _cobmZona=zona;
-  renderMorososMovil();
-}
-
-function renderMorososMovil(){
-  const zl = document.getElementById('cobm-zonas-lista');
-  const el = document.getElementById('cobm-morosos-lista');
-  if(!el) return;
-
-  const pool=_cobmCliPool();
-  const conSaldo = pool.filter(c=>(c.saldo||0)>0).sort((a,b)=>(b.saldo||0)-(a.saldo||0));
-  const morosos = _cobmZona ? conSaldo.filter(c=>(c.localidad||'')===_cobmZona) : conSaldo;
-
-  // Ocultar zona-picker, mostrar lista
-  if(zl) zl.innerHTML=`<div onclick="cobmVolverZonas()" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:10px;padding:6px 12px;background:var(--bg2);border:1.5px solid var(--brd);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--PD);-webkit-tap-highlight-color:transparent">← ${_cobmZona}</div>`;
-
-  const totEl = document.getElementById('cobm-morosos-total');
-  if(totEl){
-    const total=morosos.reduce((s,c)=>s+(c.saldo||0),0);
-    totEl.textContent=morosos.length?`${morosos.length} cliente${morosos.length>1?'s':''} · ${fmt(total)}`:'';
-  }
-
-  if(!morosos.length){
-    el.innerHTML='<div style="font-size:12px;color:var(--txt2);padding:6px 0">Sin clientes con saldo en esta zona</div>';
-    return;
-  }
-
-  const ultimoCobro={};
-  (_cobros||[]).forEach(c=>{
-    const id=c.cliente_id;
-    if(!ultimoCobro[id]||c.fecha>ultimoCobro[id]) ultimoCobro[id]=c.fecha;
-  });
-
-  el.innerHTML=morosos.map(c=>{
-    const dias=ultimoCobro[c.id]?diasDesde(ultimoCobro[c.id]):null;
-    const diasTxt=dias===null?'Sin cobros':dias===0?'Cobró hoy':dias===1?'Ayer':dias+'d sin cobrar';
-    const diasColor=dias===null||dias>30?'var(--D)':dias>7?'var(--W)':'var(--txt2)';
-    const telHref=(c.telefono||'').replace(/\D/g,'');
-    return `<div onclick="selClienteCobMovil(${c.id})"
-      style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg2);border-radius:12px;margin-bottom:6px;cursor:pointer;border:1.5px solid var(--brd);-webkit-tap-highlight-color:transparent">
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nombre}</div>
-        <div style="font-size:11px;color:var(--txt2);margin-top:2px">${c.localidad||''}${c.zona?' · '+(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona):''}</div>
-        <div style="font-size:11px;color:${diasColor};font-weight:600;margin-top:2px">${diasTxt}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-size:17px;font-weight:700;color:var(--D)">${fmt(c.saldo)}</div>
-        ${telHref?`<a href="tel:${telHref}" onclick="event.stopPropagation()"
-          style="display:inline-flex;align-items:center;gap:3px;font-size:12px;color:var(--P);font-weight:600;text-decoration:none;margin-top:4px;padding:3px 8px;background:var(--PL);border-radius:6px">
-          📞 Llamar</a>`:''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function cobmVolverZonas(){
-  _cobmZona='';
-  renderZonasMovil();
 }
 
 // ── Cuenta corriente desde cobranza ─────────────────────────────────────
@@ -1792,7 +1683,6 @@ let _cobmcZona='';
 
 function cobmAbrirMisCobranzas(){
   document.getElementById('cobm-acciones').style.display='none';
-  document.getElementById('cobm-panel-zona').style.display='none';
   document.getElementById('cobm-panel-cc').style.display='none';
   document.getElementById('cobm-panel-miscobranzas').style.display='block';
   _cobmcZona='';
@@ -1974,14 +1864,9 @@ function limpiarCobMovil(){
   const tn=document.getElementById('cobm-transf-nombre');if(tn)tn.value='';
   ['cobm-btn-ef','cobm-btn-tr','cobm-btn-ch'].forEach(id=>{const b=document.getElementById(id);if(b){b.style.background='#fff';b.style.borderColor='var(--brd)';b.style.color='';}});
   // Volver a pantalla principal de cobranza (botones)
-  _cobmZona='';
   const acc=document.getElementById('cobm-acciones');if(acc)acc.style.display='block';
-  const pz=document.getElementById('cobm-panel-zona');if(pz)pz.style.display='none';
   const pcc=document.getElementById('cobm-panel-cc');if(pcc)pcc.style.display='none';
   const pmc=document.getElementById('cobm-panel-miscobranzas');if(pmc)pmc.style.display='none';
-  const zl=document.getElementById('cobm-zonas-lista');if(zl)zl.innerHTML='';
-  const ml=document.getElementById('cobm-morosos-lista');if(ml)ml.innerHTML='';
-  const tot=document.getElementById('cobm-morosos-total');if(tot)tot.textContent='';
   setTimeout(()=>document.getElementById('cobm-cli-q')?.focus(),100);
 }
 
@@ -2061,6 +1946,9 @@ function selClienteCobMovil(id){
   const nEl=document.getElementById('cobm-cli-nombre');if(nEl)nEl.textContent=`[${c.codigo||c.id}] ${c.nombre.toUpperCase()}`;
   const sEl=document.getElementById('cobm-cli-saldo');if(sEl)sEl.textContent=`Saldo: ${fmt(c.saldo||0)}`;
   const pc=document.getElementById('cobm-paso-cliente');if(pc)pc.style.display='none';
+  const pcc=document.getElementById('cobm-panel-cc');if(pcc)pcc.style.display='none';
+  const pmc=document.getElementById('cobm-panel-miscobranzas');if(pmc)pmc.style.display='none';
+  const pa=document.getElementById('cobm-acciones');if(pa)pa.style.display='none';
   const pp=document.getElementById('cobm-paso-cobro');if(pp)pp.style.display='block';
   const remsPend=_remitos.filter(r=>String(r.cliente_id)===String(id)&&!r.cobrado).sort((a,b)=>a.fecha.localeCompare(b.fecha));
   const wrap=document.getElementById('cobm-facturas-wrap');
