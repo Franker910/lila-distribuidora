@@ -1506,6 +1506,78 @@ function updItemCA(i,k,v,inputEl){
 
 function delItemCA(i){_caItems.splice(i,1);renderItemsCA();}
 
+// ─── LECTURA DE FACTURA DE PROVEEDOR CON GEMINI ────────────────────────────
+// Extrae los renglones de la factura y los agrega directo a _caItems,
+// matcheando cada descripción contra el catálogo de productos por nombre.
+function leerFacturaConGemini(){
+  let key=localStorage.getItem('lila_gemini_key');
+  if(!key){
+    key=prompt('Ingresá tu API key de Gemini (Google AI Studio — se guarda solo en este dispositivo):');
+    if(!key)return;
+    localStorage.setItem('lila_gemini_key',key.trim());
+  }
+  document.getElementById('ca-ia-file').click();
+}
+
+async function procesarFacturaGemini(input){
+  const file=input.files&&input.files[0]; input.value='';
+  if(!file)return;
+  const key=localStorage.getItem('lila_gemini_key'); if(!key){toast('Falta API key de Gemini','err');return;}
+  const status=document.getElementById('ca-ia-status');
+  status.style.display='block'; status.textContent='✨ Leyendo factura con Gemini...';
+  try{
+    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
+    const mimeType=file.type||'image/jpeg';
+    const resp=await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`,{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({
+        contents:[{role:'user',parts:[
+          {inlineData:{mimeType,data:b64}},
+          {text:'Extraé cada línea de producto de esta factura de compra y respondé SOLO con JSON válido, sin markdown:\n{"productos":[{"descripcion":"...","cantidad":0,"costo_unitario":0}]}\nEl costo_unitario es el precio unitario tal como figura en la factura (no lo calcules ni le saques IVA). No incluyas subtotales, IVA, percepciones ni otros conceptos que no sean productos.'}
+        ]}],
+        generationConfig:{responseMimeType:'application/json'}
+      })
+    });
+    if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||('Error API Gemini ('+resp.status+')'));}
+    const data=await resp.json();
+    const txt=data.candidates?.[0]?.content?.parts?.[0]?.text||'{}';
+    let parsed;
+    try{parsed=JSON.parse(txt);}catch{const m=txt.match(/\{[\s\S]*\}/);parsed=m?JSON.parse(m[0]):{};}
+
+    const productos=parsed.productos||[];
+    if(!productos.length){
+      status.textContent='⚠️ No se detectaron productos en la factura.';
+      setTimeout(()=>{status.style.display='none';},4000);
+      return;
+    }
+
+    let agregados=0; const sinMatch=[];
+    productos.forEach(item=>{
+      const desc=(item.descripcion||'').trim(); if(!desc)return;
+      const q=desc.toLowerCase();
+      const match=_productos.find(p=>(p.nombre||'').toLowerCase().includes(q.substring(0,8))||q.includes((p.nombre||'').toLowerCase().substring(0,8)));
+      const cant=parseFloat(item.cantidad)||0;
+      const costo=parseFloat(item.costo_unitario)||0;
+      if(match){
+        const ex=_caItems.find(i=>i.id===match.id);
+        if(ex){ ex.cant+=cant; if(costo>0)ex.costo=costo; }
+        else{ _caItems.push({id:match.id,nom:match.nombre,codigo:match.codigo||'',unidad:match.unidad||'',cant,costo}); }
+        agregados++;
+      } else {
+        sinMatch.push(desc);
+      }
+    });
+    renderItemsCA();
+    status.textContent=`✅ ${agregados} producto(s) cargado(s)${sinMatch.length?` · ${sinMatch.length} sin coincidencia — agregalos a mano: ${sinMatch.slice(0,3).join(', ')}${sinMatch.length>3?'…':''}`:''}. Revisá cantidades y costos antes de guardar.`;
+    setTimeout(()=>{status.style.display='none';},8000);
+  }catch(e){
+    console.error(e);
+    status.textContent='❌ Error: '+e.message;
+    setTimeout(()=>{status.style.display='none';},5000);
+  }
+}
+
 async function guardarCargaArticulos(){
   const compId=_cargaArtCompId; if(!compId)return;
   const comp=_comprobantes.find(c=>c.id===compId); if(!comp)return;

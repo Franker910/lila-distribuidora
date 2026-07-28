@@ -60,7 +60,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260728-17';
+const APP_VERSION = '20260728-18';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
