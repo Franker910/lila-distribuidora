@@ -1488,25 +1488,42 @@ async function verSaldoMovil(){
   }).join('');
 }
 
-function cargarMarcasMovil(){
-  const marcas=[...new Set(_productos.filter(p=>p.activo!==false).map(p=>p.proveedor_nom||p.rubro||'OTROS').filter(Boolean))].sort();
-  const lista=document.getElementById('pm-marcas-lista');
-  lista.innerHTML=marcas.map(m=>{
+// ── Catálogo móvil agrupado por marca (acordeón) ──
+// Se usa igual al tomar el pedido y al editarlo, para que el vendedor vea
+// siempre el mismo orden. Antes al editar se mostraba una lista plana en el
+// orden crudo de la base, que se leía como desordenada.
+function _pmMarcaDe(p){ return p.proveedor_nom||p.rubro||'OTROS'; }
+
+// Items ya cargados: en edición son los del pedido; si no, el carrito nuevo.
+function _pmItemsActuales(){ return _editPedMovil?_editPedMovil.items:_pmCarrito; }
+
+function _pmRenderMarcas(cont,pref){
+  if(!cont)return;
+  const items=_pmItemsActuales()||[];
+  const marcas=[...new Set(_productos.filter(p=>p.activo!==false).map(_pmMarcaDe).filter(Boolean))].sort();
+  cont.innerHTML=marcas.map(m=>{
     const key=m.replace(/[^a-zA-Z0-9]/g,'_');
-    const enCarrito=_pmCarrito.filter(x=>{const prod=_productos.find(p=>p.id===x.id);return (prod?.proveedor_nom||prod?.rubro||'OTROS')===m;});
+    const enCarrito=items.filter(x=>{const prod=_productos.find(p=>p.id===x.id);return prod&&_pmMarcaDe(prod)===m;});
     const badge=enCarrito.length>0?`<span style="background:var(--P);color:#fff;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:700">${enCarrito.length} ✓</span>`:'';
-return `<div><div onclick="toggleMarcaMovil('${m.replace(/'/g,"\\'")}','${key}')" style="display:flex;justify-content:space-between;align-items:center;padding:16px 14px;border-bottom:1px solid var(--brd);cursor:pointer;background:var(--P);color:#fff;"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px;font-weight:700">${m}</span>${badge}</div><span id="pm-chevron-${key}" style="color:#fff;font-size:20px;font-weight:300">›</span></div><div id="pm-prods-${key}" style="display:none;background:var(--bg2)"></div></div>`;  
-}).join('');
+    return `<div><div onclick="toggleMarcaMovil('${m.replace(/'/g,"\\'")}','${key}','${pref}')" style="display:flex;justify-content:space-between;align-items:center;padding:16px 14px;border-bottom:1px solid var(--brd);cursor:pointer;background:var(--P);color:#fff;"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px;font-weight:700">${m}</span>${badge}</div><span id="${pref}-chevron-${key}" style="color:#fff;font-size:20px;font-weight:300">›</span></div><div id="${pref}-prods-${key}" style="display:none;background:var(--bg2)"></div></div>`;
+  }).join('');
 }
-function toggleMarcaMovil(marca,key){
-  const div=document.getElementById('pm-prods-'+key);
-  const chev=document.getElementById('pm-chevron-'+key);
+
+function cargarMarcasMovil(){
+  _pmRenderMarcas(document.getElementById('pm-marcas-lista'),'pm');
+}
+
+function toggleMarcaMovil(marca,key,pref){
+  pref=pref||'pm';
+  const div=document.getElementById(pref+'-prods-'+key);
+  const chev=document.getElementById(pref+'-chevron-'+key);
   if(!div)return;
   const open=div.style.display!=='none';
   if(open){div.style.display='none';if(chev)chev.textContent='›';}
   else{
-    const prods=_productos.filter(p=>(p.proveedor_nom||p.rubro||'OTROS')===marca&&p.activo!==false);
-    div.innerHTML=prods.map(p=>{const enCarrito=_pmCarrito.find(x=>x.id===p.id);return `<div onclick="abrirPopupMovil(${p.id})" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--brd);cursor:pointer;background:${enCarrito?'var(--PL)':'#fff'};border-left:${enCarrito?'4px solid var(--P)':'4px solid transparent'}"><div style="flex:1"><div style="font-size:15px;font-weight:${enCarrito?'700':'500'}">${p.nombre}</div>${enCarrito?`<div style="font-size:12px;color:var(--P);font-weight:600">✓ ${enCarrito.cant} ${p.unidad||''} en pedido</div>`:''}</div><div style="text-align:right;margin-left:12px"><div style="font-size:15px;font-weight:700;color:var(--PD)">${fmt(p.precio||0)}</div><div style="width:30px;height:30px;border-radius:50%;background:var(--P);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;margin-left:auto;margin-top:2px">+</div></div></div>`;}).join('')||`<div style="padding:14px 18px;color:var(--txt2);font-size:13px">Sin productos</div>`;
+    const items=_pmItemsActuales()||[];
+    const prods=_productos.filter(p=>_pmMarcaDe(p)===marca&&p.activo!==false);
+    div.innerHTML=prods.map(p=>{const enCarrito=items.find(x=>x.id===p.id);return `<div onclick="abrirPopupMovil(${p.id})" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--brd);cursor:pointer;background:${enCarrito?'var(--PL)':'#fff'};border-left:${enCarrito?'4px solid var(--P)':'4px solid transparent'}"><div style="flex:1"><div style="font-size:15px;font-weight:${enCarrito?'700':'500'}">${p.nombre}</div>${enCarrito?`<div style="font-size:12px;color:var(--P);font-weight:600">✓ ${enCarrito.cant} ${p.unidad||''} en pedido</div>`:''}</div><div style="text-align:right;margin-left:12px"><div style="font-size:15px;font-weight:700;color:var(--PD)">${fmt(p.precio||0)}</div><div style="width:30px;height:30px;border-radius:50%;background:var(--P);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;margin-left:auto;margin-top:2px">+</div></div></div>`;}).join('')||`<div style="padding:14px 18px;color:var(--txt2);font-size:13px">Sin productos</div>`;
     div.style.display='block';if(chev)chev.textContent='⌄';
     div.scrollIntoView({behavior:'smooth',block:'nearest'});
   }
@@ -1572,10 +1589,11 @@ function agregarAlCarrito(){
       if(idx>=0) _editPedMovil.items[idx]=item; else _editPedMovil.items.push(item);
     }
     const busq=document.getElementById('epm-busq');
-    const drop=document.getElementById('epm-drop');
     if(busq)busq.value='';
-    if(drop)drop.style.display='none';
     renderEditPedidoMovil();
+    // Redibujar el catálogo para que se actualice el contador "✓ en pedido",
+    // igual que hace cargarMarcasMovil() en la toma de pedido original.
+    filtrarAgregarMovil();
     return;
   }
 
@@ -1928,10 +1946,10 @@ function actualizarTotalEditMovil(){
 function filtrarAgregarMovil(){
   const q=(document.getElementById('epm-busq')?.value||'').toLowerCase().trim();
   const drop=document.getElementById('epm-drop');if(!drop)return;
+  // Sin búsqueda: mismo catálogo por marca que en la toma de pedido original.
+  if(!q){_pmRenderMarcas(drop,'epm');drop.style.display='block';return;}
   const todos=_productos.filter(p=>p.activo!==false);
-  const res=q
-    ?todos.filter(p=>(p.nombre||'').toLowerCase().includes(q)||(p.codigo||'').toString().includes(q)||(p.linea||'').toLowerCase().includes(q))
-    :todos.slice(0,40);
+  const res=todos.filter(p=>(p.nombre||'').toLowerCase().includes(q)||(p.codigo||'').toString().includes(q)||(p.linea||'').toLowerCase().includes(q));
   if(!res.length){drop.style.display='none';return;}
   drop.innerHTML=res.map(p=>{
     const enEdit=_editPedMovil?.items.find(x=>x.id===p.id);
