@@ -1528,7 +1528,7 @@ async function procesarFacturaGemini(input){
   try{
     const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
     const mimeType=file.type||'image/jpeg';
-    const resp=await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`,{
+    const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${encodeURIComponent(key)}`,{
       method:'POST',
       headers:{'content-type':'application/json'},
       body:JSON.stringify({
@@ -2045,7 +2045,7 @@ async function leerFacturaConIA(input){
   try{
     const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
     const mimeType=file.type||'image/jpeg';
-    const resp=await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`,{
+    const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${encodeURIComponent(key)}`,{
       method:'POST',
       headers:{'content-type':'application/json'},
       body:JSON.stringify({
