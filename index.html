@@ -779,21 +779,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <!-- MODAL CARGA DE ARTÍCULOS (sobre un comprobante ya guardado, típicamente importado de AFIP) -->
 <div class="mbg" id="m-carga-articulos">
-<div class="mdl" style="width:520px">
+<div class="mdl" style="width:min(760px,95vw)">
   <div class="mh"><h3>📦 Cargar artículos recibidos</h3>
     <button class="btn sm" onclick="cerrar('m-carga-articulos')">✕</button>
   </div>
   <div class="mb">
-    <div id="carga-art-info" style="font-size:13px;color:var(--txt2);margin-bottom:10px"></div>
-    <div style="display:grid;grid-template-columns:1fr 72px 130px 90px 20px;gap:4px;font-size:10px;font-weight:600;color:var(--txt2);text-transform:uppercase;padding:0 2px;margin-bottom:4px">
-      <span>Producto</span><span style="text-align:center">Cant.</span><span>Costo unitario</span><span>Precio sugerido</span><span></span>
-    </div>
-    <div id="carga-art-lista" style="display:flex;flex-direction:column;gap:5px"></div>
-    <button type="button" class="btn sm A" onclick="agregarItemCargaArt()" style="margin-top:8px">+ Agregar producto</button>
+    <div id="carga-art-info" style="font-size:14px;color:var(--txt2);margin-bottom:14px;padding:10px 14px;background:var(--bg2);border-radius:10px"></div>
+    <div id="carga-art-lista" style="display:flex;flex-direction:column;gap:12px"></div>
+    <button type="button" onclick="agregarItemCargaArt()"
+      style="width:100%;min-height:48px;margin-top:14px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px dashed var(--P);background:var(--PL);color:var(--PD)">+ Agregar producto</button>
   </div>
   <div class="mf">
-    <button class="btn" onclick="cerrar('m-carga-articulos')">Cancelar</button>
-    <button class="btn P" onclick="guardarCargaArticulos()">✓ Guardar y actualizar stock</button>
+    <button class="btn" onclick="cerrar('m-carga-articulos')" style="min-height:46px;padding:0 20px;font-size:14px">Cancelar</button>
+    <button class="btn P" onclick="guardarCargaArticulos()" style="min-height:46px;padding:0 20px;font-size:14px;font-weight:700">✓ Guardar y actualizar stock</button>
   </div>
 </div>
 </div>
@@ -3432,13 +3430,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260728-13"></script>
-<script src="js/maestros.js?v=20260728-13"></script>
-<script src="js/ventas.js?v=20260728-13"></script>
-<script src="js/tesoreria.js?v=20260728-13"></script>
-<script src="js/contabilidad.js?v=20260728-13"></script>
-<script src="js/informes.js?v=20260728-13"></script>
-<script src="js/logistica.js?v=20260728-13"></script>
+<script src="js/app.js?v=20260728-14"></script>
+<script src="js/maestros.js?v=20260728-14"></script>
+<script src="js/ventas.js?v=20260728-14"></script>
+<script src="js/tesoreria.js?v=20260728-14"></script>
+<script src="js/contabilidad.js?v=20260728-14"></script>
+<script src="js/informes.js?v=20260728-14"></script>
+<script src="js/logistica.js?v=20260728-14"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

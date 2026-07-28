@@ -1329,7 +1329,7 @@ function abrirCargaArticulos(compId){
   const comp=_comprobantes.find(c=>c.id===compId); if(!comp)return;
   _cargaArtCompId=compId;
   const info=document.getElementById('carga-art-info');
-  if(info)info.innerHTML=`<b>${comp.proveedor_nom||''}</b> · ${comp.nro_comprobante||'#'+comp.id} · ${comp.fecha||''} · ${fmt(comp.importe)}`;
+  if(info)info.innerHTML=`Comprobante <b>${comp.nro_comprobante||'#'+comp.id}</b> · <b>${comp.proveedor_nom||''}</b> · ${comp.fecha||''} · ${fmt(comp.importe)}`;
   document.getElementById('carga-art-lista').innerHTML='';
   document.getElementById('m-carga-articulos').classList.add('on');
   agregarItemCargaArt();
@@ -1340,33 +1340,60 @@ function agregarItemCargaArt(){
   const opts=_productos.map(p=>`<option value="${p.id}">${p.codigo?p.codigo+' — ':''}${p.nombre}</option>`).join('');
   const row=document.createElement('div');
   row.className='carga-art-row';
-  row.style.cssText='display:grid;grid-template-columns:1fr 72px 130px 90px 20px;gap:4px;align-items:center';
+  row.style.cssText='border:1.5px solid var(--brd);border-radius:14px;padding:12px 14px;background:var(--bg)';
   row.innerHTML=`
-    <select class="carga-art-sel" style="padding:5px 6px;border:1px solid var(--brd);border-radius:6px;font-size:12px;width:100%"
-      onchange="this.closest('.carga-art-row').dataset.prodId=this.value;actualizarCostoAnteriorArt(this)">
-      <option value="">— Producto —</option>${opts}
-    </select>
-    <input type="number" class="carga-art-cant" placeholder="0" min="0" step="0.001"
-      style="padding:5px 6px;border:2px solid var(--P);border-radius:6px;font-size:13px;font-weight:700;text-align:right;width:100%;box-sizing:border-box"
-      title="Cantidad recibida (actualiza stock)">
-    <div style="display:flex;flex-direction:column;gap:1px">
-      <span class="carga-art-ant" style="font-size:9px;color:var(--txt2);white-space:nowrap">Anterior: —</span>
-      <input type="number" class="carga-art-val" placeholder="$ costo" min="0" step="0.01"
-        style="padding:5px 6px;border:1px solid var(--brd);border-radius:6px;font-size:12px;width:100%;box-sizing:border-box"
-        oninput="mostrarPrecioSugArt(this)">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+      <select class="carga-art-sel" style="flex:1;min-height:46px;padding:8px 10px;border:1.5px solid var(--brd);border-radius:10px;font-size:15px;width:100%;box-sizing:border-box"
+        onchange="this.closest('.carga-art-row').dataset.prodId=this.value;actualizarInfoArt(this)">
+        <option value="">— Elegir producto —</option>${opts}
+      </select>
+      <button type="button" onclick="this.closest('.carga-art-row').remove()"
+        style="flex-shrink:0;min-width:42px;min-height:42px;background:none;border:none;cursor:pointer;color:var(--D);font-size:20px;line-height:1">✕</button>
     </div>
-    <span class="carga-art-sug" style="font-size:11px;color:var(--P);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
-    <button type="button" onclick="this.closest('.carga-art-row').remove()"
-      style="background:none;border:none;cursor:pointer;color:var(--D);font-size:16px;padding:0;line-height:1">✕</button>`;
+    <div class="carga-art-detalle" style="font-size:12px;color:var(--txt2);margin-bottom:10px;display:none"></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px">
+      <div>
+        <label style="font-size:10px;color:var(--txt2);font-weight:600;text-transform:uppercase;display:block;margin-bottom:3px">Cantidad</label>
+        <input type="number" class="carga-art-cant" placeholder="0" min="0" step="0.001"
+          style="width:100%;min-height:46px;padding:8px 10px;border:2px solid var(--P);border-radius:10px;font-size:16px;font-weight:700;text-align:center;box-sizing:border-box"
+          title="Cantidad recibida (actualiza stock)" oninput="calcSubtotalArt(this)">
+      </div>
+      <div>
+        <label style="font-size:10px;color:var(--txt2);font-weight:600;text-transform:uppercase;display:block;margin-bottom:3px">Costo unitario</label>
+        <input type="number" class="carga-art-val" placeholder="$ 0" min="0" step="0.01"
+          style="width:100%;min-height:46px;padding:8px 10px;border:1.5px solid var(--brd);border-radius:10px;font-size:16px;text-align:center;box-sizing:border-box"
+          oninput="calcSubtotalArt(this);mostrarPrecioSugArt(this)">
+      </div>
+      <div>
+        <label style="font-size:10px;color:var(--txt2);font-weight:600;text-transform:uppercase;display:block;margin-bottom:3px">Subtotal</label>
+        <div class="carga-art-subtotal" style="min-height:46px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--PD);background:var(--bg2);border-radius:10px">$0</div>
+      </div>
+    </div>
+    <div class="carga-art-sug" style="font-size:11px;color:var(--P);margin-top:8px"></div>`;
   lista.appendChild(row);
   row.dataset.prodId='';
   row.querySelector('.carga-art-cant').focus();
 }
 
-function actualizarCostoAnteriorArt(sel){
+function actualizarInfoArt(sel){
+  const row=sel.closest('.carga-art-row');
   const prod=_productos.find(x=>String(x.id)===sel.value);
-  const ant=sel.closest('.carga-art-row').querySelector('.carga-art-ant');
-  if(ant)ant.textContent=prod?`Costo anterior: ${fmt(prod.costo||0)}`:'Costo anterior: —';
+  const det=row.querySelector('.carga-art-detalle');
+  if(!det)return;
+  if(prod){
+    det.style.display='block';
+    det.innerHTML=`Código: <b>${prod.codigo||'—'}</b> · Unidad: <b>${prod.unidad||'—'}</b> · Costo anterior: <b>${fmt(prod.costo||0)}</b> · Stock actual: <b>${fmtN(prod.stock||0,2)}</b>`;
+  } else {
+    det.style.display='none';
+  }
+}
+
+function calcSubtotalArt(inp){
+  const row=inp.closest('.carga-art-row');
+  const cant=parseFloat(row.querySelector('.carga-art-cant')?.value)||0;
+  const costo=parseFloat(row.querySelector('.carga-art-val')?.value)||0;
+  const sub=row.querySelector('.carga-art-subtotal');
+  if(sub)sub.textContent=fmt(cant*costo);
 }
 
 function mostrarPrecioSugArt(inp){
@@ -1380,12 +1407,13 @@ function mostrarPrecioSugArt(inp){
   const costoReal=precioFact>0?calcCostoReal(precioFact,prov?.condicion_fiscal||'factura_todo',prov?.pct_factura||100):0;
   const sug=costoReal>0&&margen>0&&margen<100?Math.ceil(costoReal/(1-margen/100)):0;
   const el=row.querySelector('.carga-art-sug');
-  if(el){
-    if(costoReal>0&&costoReal!==precioFact){
-      el.innerHTML=`<span style="color:var(--txt2);font-size:10px">Real: ${fmt(costoReal)}</span>${sug>0?`<br>→ ${fmt(sug)}`:''}`;
-    } else {
-      el.textContent=sug>0?`→ ${fmt(sug)}`:'';
-    }
+  if(!el)return;
+  if(costoReal>0&&Math.round(costoReal*100)!==Math.round(precioFact*100)){
+    el.innerHTML=`Costo real (según condición fiscal del proveedor): <b>${fmt(costoReal)}</b>${sug>0?` · Precio de venta sugerido: <b>${fmt(sug)}</b>`:''}`;
+  } else if(sug>0){
+    el.innerHTML=`Precio de venta sugerido: <b>${fmt(sug)}</b>`;
+  } else {
+    el.textContent='';
   }
 }
 
