@@ -502,36 +502,20 @@ function selCliRR(id){
     <div style="font-size:12px;color:var(--txt2)">${c.direccion?'📍 '+c.direccion+', ':''} ${c.localidad||''} · ${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||''} | 📞 ${c.telefono||'—'} | Lista: <b>${c.lista||1}</b> | Dto: <b>${c.descuento||0}%</b> | Saldo CC: <b style="${(c.saldo||0)>0?'color:var(--D)':''}">${fmt(c.saldo)}</b>${dias!==null?` | Último rem: <b>${dias} días</b>`:''}</div>`;
   info.style.display='block';
 
-  // Pedido pendiente → cartel compacto en el panel lateral (no tapa el remito)
+  // Pedido pendiente → solo un chip chico que avisa que existe; usarlo es opcional.
   const pedPend=_pedidos.filter(p=>p.cliente_id===id&&p.estado==='pendiente');
-  const pedPanel=document.getElementById('rr-pedido-panel');
-  const pedInfo=document.getElementById('rr-pedido-info');
-  const pedBtn=document.getElementById('rr-pedido-btn');
-  if(pedPend.length){
+  const chip=document.getElementById('rr-pedido-chip');
+  if(pedPend.length&&chip){
     const ped=pedPend[0];
-    if(pedPanel&&pedInfo&&pedBtn){
-      const titEl=document.getElementById('rr-pedido-titulo');
-      if(titEl)titEl.textContent=`📋 Pedido pendiente — ${c.nombre}`;
-      const items=(ped.items||[]).slice(0,5).map(i=>`• ${i.nom} — ${i.cant} ${i.un||''}`).join('<br>');
-      const plus=(ped.items||[]).length>5?`<br>...y ${(ped.items||[]).length-5} más`:'';
-      pedInfo.innerHTML=`<b>#${ped.id}</b> · ${ped.fecha}<br><span style="color:var(--txt2)">${(ped.items||[]).length} productos · ${fmt(ped.total)}</span><div style="margin-top:6px;font-size:11px;color:var(--txt2)">${items}${plus}</div>`;
-      pedBtn.onclick=()=>{cargarItemsDePedido(ped.id);setTimeout(()=>{const f=document.getElementById('rr-cod');if(f){f.focus();f.select();}},120);};
-      const btnIgn=document.getElementById('rr-pedido-btn-ign');
-      if(btnIgn)btnIgn.onclick=()=>{
-        pedPanel.style.display='none';_rrPedidoId=null;
-        setTimeout(()=>{const f=document.getElementById('rr-cod');if(f){f.focus();f.select();}},120);
-      };
-      const btnCan=document.getElementById('rr-pedido-btn-can');
-      if(btnCan)btnCan.onclick=()=>{
-        limpiarRR();
-        setTimeout(()=>{const f=document.getElementById('rr-cli-cod');if(f){f.focus();f.select();}},80);
-      };
-      pedPanel.style.display='block';
-    }
-  } else {
-    if(pedPanel)pedPanel.style.display='none';
-    setTimeout(()=>{const f=document.getElementById('rr-cod');if(f){f.focus();f.select();}},120);
+    chip.style.display='block';
+    chip.innerHTML=`<button onclick="cargarItemsDePedido(${ped.id});setTimeout(()=>{const f=document.getElementById('rr-cod');if(f){f.focus();f.select();}},120);"
+      style="background:var(--WL);color:#7a5a00;border:1.5px solid #e6c300;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">
+      📋 Tiene pedido pendiente — #${ped.id} · ${(ped.items||[]).length} productos · ${fmt(ped.total)} &nbsp;·&nbsp; Usar</button>`;
+  } else if(chip){
+    chip.style.display='none';
+    chip.innerHTML='';
   }
+  setTimeout(()=>{const f=document.getElementById('rr-cod');if(f){f.focus();f.select();}},120);
 }
 
 function cargarItemsDePedido(pedId){
@@ -749,7 +733,7 @@ function _rrStagingRowHTML(){
         oninput="dropProRR()" onkeydown="_rrCodKeydown(event)" style="width:100%;text-align:center">
       <div class="drop" id="rr-pro-drop" style="width:280px"></div>
     </span>
-    <input id="rr-pro-q" readonly tabindex="-1" value="${p?p.nombre:''}" placeholder="— código o nombre (F2) —" style="flex:1">
+    <input id="rr-pro-q" readonly tabindex="-1" value="${p?p.nombre:''}" style="flex:1">
     <select id="rr-item-lista" onchange="actualizarListaStagingRR(this.value)" style="width:72px;font-size:11px" title="Lista de precios para este producto">${_rrListaOptions(_rrStagingVals.lista)}</select>
     <input type="text" inputmode="decimal" id="rr-cant" value="${_rrStagingVals.cant}" oninput="updStagingRR('cant',this.value,this)" onkeydown="_rrStagingKeydown(event,'cant')" style="width:58px" title="Cantidad">
     ${pesoCol}
@@ -826,8 +810,8 @@ function limpiarRR(){
   const cc=document.getElementById('rr-cli-cod');if(cc){cc.value='';cc.style.borderColor='';}
   document.getElementById('rr-cli-info').style.display='none';
   document.getElementById('rr-obs').value='';
-  const pedPanel=document.getElementById('rr-pedido-panel');
-  if(pedPanel)pedPanel.style.display='none';
+  const chip=document.getElementById('rr-pedido-chip');
+  if(chip){chip.style.display='none';chip.innerHTML='';}
   renderItemsRR();
 }
 

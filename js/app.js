@@ -60,7 +60,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260728-14';
+const APP_VERSION = '20260728-15';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -447,6 +447,7 @@ function _getModalMap(){
     'cob': {selCli: selCliCob, selPro: null,       qCli:'cob-cli-q', idCli:'cob-cli-id', codCli:'cob-cli-cod', qPro:null,        codPro:null,      focoCliTras:'cob-ven-nom', focoProTras:null},
     'rr':  {selCli: selCliRR,  selPro: selProRR,  qCli:'rr-cli-q',  idCli:'rr-cli-id',  codCli:'rr-cli-cod',  qPro:'rr-pro-q',  codPro:'rr-cod',  focoCliTras:'rr-cod',  focoProTras:'rr-cant'},
     'nd':  {selCli: selCliND,  selPro: null,       qCli:'nd-cli-q',  idCli:'nd-cli-id',  codCli:'nd-cli-cod',  qPro:null,        codPro:null,      focoCliTras:'nd-importe', focoProTras:null},
+    'ca':  {selCli: null,      selPro: selProCA,   qCli:null,        idCli:null,         codCli:null,          qPro:null,        codPro:'ca-cod',  focoCliTras:null,          focoProTras:'ca-cant'},
   };
 }
 

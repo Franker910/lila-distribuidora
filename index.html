@@ -189,12 +189,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #rr-items .fx-grid-head{border-bottom:1.5px solid #000;color:#000;background:#e8e8e8}
 #rr-items .fx-grid-head>*{border-right:1px solid #000;padding:3px 6px}
 #rr-items .fx-grid-head>*:last-child{border-right:none}
-#rr-items .pitem{border-radius:0;border-bottom:1.5px solid #000;background:#fff;color:#000;margin-bottom:0}
+#rr-items .pitem{border-radius:0;border-bottom:1.5px solid #000;background:#fff;color:#000;margin-bottom:0;padding:10px 8px;font-size:14px}
 #rr-items .pitem>*{border-right:1px solid #000;padding-right:6px}
 #rr-items .pitem>*:last-child{border-right:none}
 #rr-items .pitem .ptot{color:#000}
-#rr-items .pitem input,#rr-items .pitem select{border:1px solid #000;border-radius:0;color:#000;background:#fff;font-family:inherit;font-size:13px}
-#rr-items .pitem input[readonly]{background:#eee;color:#333}
+#rr-items .pitem input,#rr-items .pitem select{border:1px solid #000;border-radius:0;color:#000;background:#fff;font-family:inherit;font-size:14px;padding:6px 7px}
+#rr-items .pitem input[readonly]{background:#fff;color:#000}
+#rr-items #rr-pro-q{font-weight:500}
 #rr-items .pitem.rr-staging{background:var(--PL)}
 
 /* Totbar */
@@ -779,15 +780,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <!-- MODAL CARGA DE ARTÍCULOS (sobre un comprobante ya guardado, típicamente importado de AFIP) -->
 <div class="mbg" id="m-carga-articulos">
-<div class="mdl" style="width:min(760px,95vw)">
+<div class="mdl" style="width:min(920px,96vw)">
   <div class="mh"><h3>📦 Cargar artículos recibidos</h3>
     <button class="btn sm" onclick="cerrar('m-carga-articulos')">✕</button>
   </div>
   <div class="mb">
     <div id="carga-art-info" style="font-size:14px;color:var(--txt2);margin-bottom:14px;padding:10px 14px;background:var(--bg2);border-radius:10px"></div>
-    <div id="carga-art-lista" style="display:flex;flex-direction:column;gap:12px"></div>
-    <button type="button" onclick="agregarItemCargaArt()"
-      style="width:100%;min-height:48px;margin-top:14px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px dashed var(--P);background:var(--PL);color:var(--PD)">+ Agregar producto</button>
+    <div id="carga-art-lista"></div>
   </div>
   <div class="mf">
     <button class="btn" onclick="cerrar('m-carga-articulos')" style="min-height:46px;padding:0 20px;font-size:14px">Cancelar</button>
@@ -1693,52 +1692,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <!-- Área scrollable -->
   <div style="flex:1;overflow-y:auto;min-height:0;padding-bottom:4px">
-    <div style="display:flex;gap:12px;align-items:flex-start">
+    <div>
 
-      <!-- Columna izquierda: cliente + agregar + lista (ancho acotado — deja
-           lugar a la derecha para una futura columna, no todo el ancho de pantalla) -->
-      <div style="flex:1;min-width:0;max-width:720px">
-
-        <!-- Sección cliente -->
-        <div class="card" style="margin-bottom:10px">
-          <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px">Cliente</div>
-          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:nowrap">
-            <div class="fg" style="width:100px;flex-shrink:0">
-              <label style="font-size:11px">Código &nbsp;<span style="font-size:10px;color:var(--txt2)">[F2]</span></label>
-              <div style="display:flex;gap:3px">
-                <input id="rr-cli-cod" placeholder="40" tabindex="1" onkeydown="if(event.key==='F2'){event.preventDefault();abrirBuscadorCli('rr');}else if(event.key==='Enter'||(event.key==='Tab'&&this.value.trim())){event.preventDefault();buscarPorCodCli();}" autocomplete="off" style="font-size:15px;font-weight:600;width:60px;text-align:center">
-                <button class="btn sm" onclick="abrirBuscadorCli('rr')" title="Buscar (F2)" style="padding:4px 6px;font-size:12px">🔍</button>
-              </div>
-            </div>
-            <div class="fg drop-wrap" style="flex:1;min-width:0">
-              <label style="font-size:11px">Nombre</label>
-              <input id="rr-cli-q" placeholder="Buscar cliente..." oninput="dropCliRR()" autocomplete="off">
-              <div class="drop" id="rr-cli-drop"></div>
-              <input type="hidden" id="rr-cli-id">
+      <!-- Sección cliente -->
+      <div class="card" style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px">Cliente</div>
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:nowrap">
+          <div class="fg" style="width:100px;flex-shrink:0">
+            <label style="font-size:11px">Código &nbsp;<span style="font-size:10px;color:var(--txt2)">[F2]</span></label>
+            <div style="display:flex;gap:3px">
+              <input id="rr-cli-cod" placeholder="40" tabindex="1" onkeydown="if(event.key==='F2'){event.preventDefault();abrirBuscadorCli('rr');}else if(event.key==='Enter'||(event.key==='Tab'&&this.value.trim())){event.preventDefault();buscarPorCodCli();}" autocomplete="off" style="font-size:15px;font-weight:600;width:60px;text-align:center">
+              <button class="btn sm" onclick="abrirBuscadorCli('rr')" title="Buscar (F2)" style="padding:4px 6px;font-size:12px">🔍</button>
             </div>
           </div>
-          <div id="rr-cli-info" style="display:none;background:var(--bg2);border-radius:8px;padding:8px 11px;font-size:12px;color:var(--txt2);margin-top:8px"></div>
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <input id="rr-lugar" placeholder="📍 Lugar de entrega (si difiere)" style="flex:1;font-size:12px">
-            <input id="rr-obs" placeholder="Observaciones" style="flex:1;font-size:12px">
+          <div class="fg drop-wrap" style="flex:1;min-width:0">
+            <label style="font-size:11px">Nombre</label>
+            <input id="rr-cli-q" placeholder="Buscar cliente..." oninput="dropCliRR()" autocomplete="off">
+            <div class="drop" id="rr-cli-drop"></div>
+            <input type="hidden" id="rr-cli-id">
           </div>
         </div>
-
-        <!-- Grilla de productos — estilo FoxPro: la última fila es la de carga, sin botón Agregar -->
-        <div id="rr-items"></div>
-
-      </div>
-
-      <!-- Columna derecha: pedido pendiente (solo visible cuando hay pedido) -->
-      <div id="rr-pedido-panel" style="display:none;width:230px;flex-shrink:0;position:sticky;top:0">
-        <div style="background:var(--WL);border:1.5px solid #e6c300;border-radius:10px;padding:13px">
-          <div id="rr-pedido-titulo" style="font-size:11px;font-weight:700;color:#7a5a00;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📋 Pedido pendiente</div>
-          <div id="rr-pedido-info" style="font-size:12px;color:var(--txt);margin-bottom:10px;line-height:1.5"></div>
-          <button id="rr-pedido-btn" class="btn P" style="width:100%;font-size:12px;margin-bottom:6px">⬇️ Cargar productos</button>
-          <button id="rr-pedido-btn-ign" class="btn" style="width:100%;font-size:12px;margin-bottom:6px">📄 Ignorar y facturar aparte</button>
-          <button id="rr-pedido-btn-can" class="btn D" style="width:100%;font-size:12px">✕ Cancelar cliente</button>
+        <div id="rr-cli-info" style="display:none;background:var(--bg2);border-radius:8px;padding:8px 11px;font-size:12px;color:var(--txt2);margin-top:8px"></div>
+        <div id="rr-pedido-chip" style="display:none;margin-top:8px"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input id="rr-lugar" placeholder="📍 Lugar de entrega (si difiere)" style="flex:1;font-size:12px">
+          <input id="rr-obs" placeholder="Observaciones" style="flex:1;font-size:12px">
         </div>
       </div>
+
+      <!-- Grilla de productos — estilo FoxPro: la última fila es la de carga, sin botón Agregar -->
+      <div id="rr-items"></div>
 
     </div>
   </div>
@@ -3430,13 +3413,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260728-14"></script>
-<script src="js/maestros.js?v=20260728-14"></script>
-<script src="js/ventas.js?v=20260728-14"></script>
-<script src="js/tesoreria.js?v=20260728-14"></script>
-<script src="js/contabilidad.js?v=20260728-14"></script>
-<script src="js/informes.js?v=20260728-14"></script>
-<script src="js/logistica.js?v=20260728-14"></script>
+<script src="js/app.js?v=20260728-15"></script>
+<script src="js/maestros.js?v=20260728-15"></script>
+<script src="js/ventas.js?v=20260728-15"></script>
+<script src="js/tesoreria.js?v=20260728-15"></script>
+<script src="js/contabilidad.js?v=20260728-15"></script>
+<script src="js/informes.js?v=20260728-15"></script>
+<script src="js/logistica.js?v=20260728-15"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

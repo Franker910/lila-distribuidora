@@ -1325,113 +1325,201 @@ function mostrarPrecioSugComp(inp){
 
 // ─── CARGA DE ARTÍCULOS SOBRE UN COMPROBANTE YA GUARDADO ───────────────────
 // (útil sobre todo para los importados de AFIP, que no traen detalle de productos)
+// Mismo patrón que Remito rápido: una única fila de carga siempre abierta al
+// final de la grilla (código exacto o nombre con autocompletar, F2 = buscador
+// completo), sin botón "Agregar" — confirmar con Enter/Tab deja lista la
+// siguiente fila para el próximo producto.
+let _caItems=[], _caProTemp=null;
+let _caStagingVals={cod:'',cant:'1',costo:'0'};
+
 function abrirCargaArticulos(compId){
   const comp=_comprobantes.find(c=>c.id===compId); if(!comp)return;
   _cargaArtCompId=compId;
   const info=document.getElementById('carga-art-info');
   if(info)info.innerHTML=`Comprobante <b>${comp.nro_comprobante||'#'+comp.id}</b> · <b>${comp.proveedor_nom||''}</b> · ${comp.fecha||''} · ${fmt(comp.importe)}`;
-  document.getElementById('carga-art-lista').innerHTML='';
+  _caItems=[]; _caProTemp=null; _caStagingVals={cod:'',cant:'1',costo:'0'};
   document.getElementById('m-carga-articulos').classList.add('on');
-  agregarItemCargaArt();
+  renderItemsCA();
+  setTimeout(()=>{const f=document.getElementById('ca-cod');if(f){f.focus();f.select();}},80);
 }
 
-function agregarItemCargaArt(){
-  const lista=document.getElementById('carga-art-lista');
-  const opts=_productos.map(p=>`<option value="${p.id}">${p.codigo?p.codigo+' — ':''}${p.nombre}</option>`).join('');
-  const row=document.createElement('div');
-  row.className='carga-art-row';
-  row.style.cssText='border:1.5px solid var(--brd);border-radius:14px;padding:12px 14px;background:var(--bg)';
-  row.innerHTML=`
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-      <select class="carga-art-sel" style="flex:1;min-height:46px;padding:8px 10px;border:1.5px solid var(--brd);border-radius:10px;font-size:15px;width:100%;box-sizing:border-box"
-        onchange="this.closest('.carga-art-row').dataset.prodId=this.value;actualizarInfoArt(this)">
-        <option value="">— Elegir producto —</option>${opts}
-      </select>
-      <button type="button" onclick="this.closest('.carga-art-row').remove()"
-        style="flex-shrink:0;min-width:42px;min-height:42px;background:none;border:none;cursor:pointer;color:var(--D);font-size:20px;line-height:1">✕</button>
-    </div>
-    <div class="carga-art-detalle" style="font-size:12px;color:var(--txt2);margin-bottom:10px;display:none"></div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px">
-      <div>
-        <label style="font-size:10px;color:var(--txt2);font-weight:600;text-transform:uppercase;display:block;margin-bottom:3px">Cantidad</label>
-        <input type="number" class="carga-art-cant" placeholder="0" min="0" step="0.001"
-          style="width:100%;min-height:46px;padding:8px 10px;border:2px solid var(--P);border-radius:10px;font-size:16px;font-weight:700;text-align:center;box-sizing:border-box"
-          title="Cantidad recibida (actualiza stock)" oninput="calcSubtotalArt(this)">
-      </div>
-      <div>
-        <label style="font-size:10px;color:var(--txt2);font-weight:600;text-transform:uppercase;display:block;margin-bottom:3px">Costo unitario</label>
-        <input type="number" class="carga-art-val" placeholder="$ 0" min="0" step="0.01"
-          style="width:100%;min-height:46px;padding:8px 10px;border:1.5px solid var(--brd);border-radius:10px;font-size:16px;text-align:center;box-sizing:border-box"
-          oninput="calcSubtotalArt(this);mostrarPrecioSugArt(this)">
-      </div>
-      <div>
-        <label style="font-size:10px;color:var(--txt2);font-weight:600;text-transform:uppercase;display:block;margin-bottom:3px">Subtotal</label>
-        <div class="carga-art-subtotal" style="min-height:46px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--PD);background:var(--bg2);border-radius:10px">$0</div>
-      </div>
-    </div>
-    <div class="carga-art-sug" style="font-size:11px;color:var(--P);margin-top:8px"></div>`;
-  lista.appendChild(row);
-  row.dataset.prodId='';
-  row.querySelector('.carga-art-cant').focus();
-}
-
-function actualizarInfoArt(sel){
-  const row=sel.closest('.carga-art-row');
-  const prod=_productos.find(x=>String(x.id)===sel.value);
-  const det=row.querySelector('.carga-art-detalle');
-  if(!det)return;
-  if(prod){
-    det.style.display='block';
-    det.innerHTML=`Código: <b>${prod.codigo||'—'}</b> · Unidad: <b>${prod.unidad||'—'}</b> · Costo anterior: <b>${fmt(prod.costo||0)}</b> · Stock actual: <b>${fmtN(prod.stock||0,2)}</b>`;
-  } else {
-    det.style.display='none';
+// Celda Código de la fila de carga: dígitos → código exacto (Enter/Tab confirma),
+// letras → autocompletar por nombre (dropdown abajo), F2 → buscador completo.
+function _caCodKeydown(e){
+  if(e.key==='F2'){e.preventDefault();abrirBuscadorPro('ca');return;}
+  const drop=document.getElementById('ca-pro-drop');
+  const items=drop?.querySelectorAll('.drop-item');
+  if(items&&items.length&&drop.style.display!=='none'&&(e.key==='ArrowDown'||e.key==='ArrowUp'||e.key==='Enter'||e.key==='Escape')){
+    navDropProCA(e); return;
+  }
+  if(e.key==='Enter'||(e.key==='Tab'&&e.target.value.trim())){
+    e.preventDefault();
+    buscarCodigoCA();
   }
 }
 
-function calcSubtotalArt(inp){
-  const row=inp.closest('.carga-art-row');
-  const cant=parseFloat(row.querySelector('.carga-art-cant')?.value)||0;
-  const costo=parseFloat(row.querySelector('.carga-art-val')?.value)||0;
-  const sub=row.querySelector('.carga-art-subtotal');
-  if(sub)sub.textContent=fmt(cant*costo);
+function buscarCodigoCA(){
+  const cod=(document.getElementById('ca-cod')?.value||'').trim();
+  if(!cod)return;
+  const prod=_productos.find(p=>String(p.codigo).trim()===cod);
+  if(prod){ selProCA(prod.id); }
+  else{ const el=document.getElementById('ca-cod'); if(el)el.style.borderColor='var(--D)'; }
 }
 
-function mostrarPrecioSugArt(inp){
-  const row=inp.closest('.carga-art-row');
-  const prodId=row.dataset.prodId;
-  const prod=_productos.find(x=>String(x.id)===String(prodId));
-  const margen=prod?.margen_objetivo||30;
-  const precioFact=parseFloat(inp.value)||0;
-  const comp=_comprobantes.find(c=>c.id===_cargaArtCompId);
-  const prov=_proveedores.find(p=>String(p.id)===String(comp?.proveedor_id));
-  const costoReal=precioFact>0?calcCostoReal(precioFact,prov?.condicion_fiscal||'factura_todo',prov?.pct_factura||100):0;
-  const sug=costoReal>0&&margen>0&&margen<100?Math.ceil(costoReal/(1-margen/100)):0;
-  const el=row.querySelector('.carga-art-sug');
-  if(!el)return;
-  if(costoReal>0&&Math.round(costoReal*100)!==Math.round(precioFact*100)){
-    el.innerHTML=`Costo real (según condición fiscal del proveedor): <b>${fmt(costoReal)}</b>${sug>0?` · Precio de venta sugerido: <b>${fmt(sug)}</b>`:''}`;
-  } else if(sug>0){
-    el.innerHTML=`Precio de venta sugerido: <b>${fmt(sug)}</b>`;
-  } else {
-    el.textContent='';
-  }
+function dropProCA(){
+  const val=(document.getElementById('ca-cod')?.value||'').trim();
+  const drop=document.getElementById('ca-pro-drop');
+  if(!drop)return;
+  if(!val){drop.style.display='none';return;}
+  if(/^[0-9]+$/.test(val)){drop.style.display='none';return;} // solo dígitos = código exacto
+  const q=val.toLowerCase();
+  const m=_productos.filter(p=>(p.nombre||'').toLowerCase().includes(q));
+  drop.innerHTML=m.length?m.map(p=>`<div class="drop-item" onmousedown="selProCA(${p.id})" style="padding:9px 12px">
+      <div style="font-weight:600;font-size:14px">${p.nombre}</div>
+      <div style="font-size:12px;color:var(--txt2);margin-top:2px">Cód: ${p.codigo||p.id} · Unidad: ${p.unidad||'—'} · Costo actual: ${fmt(p.costo||0)}</div>
+    </div>`).join(''):'<div style="padding:8px;color:var(--txt2);font-size:12px">Sin resultados</div>';
+  drop.style.display='block';
 }
+
+function navDropProCA(e){
+  const drop=document.getElementById('ca-pro-drop');
+  const items=drop?.querySelectorAll('.drop-item');
+  if(!items||!items.length){
+    if(e.key==='ArrowUp'){e.preventDefault();document.getElementById('ca-cod')?.focus();}
+    return;
+  }
+  let idx=Array.from(items).findIndex(i=>i.classList.contains('active'));
+  if(e.key==='ArrowDown'){e.preventDefault();idx=Math.min(idx+1,items.length-1);}
+  else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(idx<=0){drop.style.display='none';document.getElementById('ca-cod')?.focus();return;}
+    idx=Math.max(idx-1,0);
+  }
+  else if(e.key==='Enter'&&idx>=0){e.preventDefault();items[idx].dispatchEvent(new MouseEvent('mousedown',{bubbles:true}));return;}
+  else if(e.key==='Escape'){drop.style.display='none';return;}
+  items.forEach(i=>i.classList.remove('active'));
+  if(idx>=0){items[idx].classList.add('active');items[idx].scrollIntoView({block:'nearest'});}
+}
+
+// Resuelve el producto (código exacto, autocompletar o buscador F2) para la
+// fila de carga: lo deja en _caProTemp y pasa el foco a Cantidad.
+function selProCA(id){
+  _caProTemp=_productos.find(x=>x.id===id); if(!_caProTemp)return;
+  const drop=document.getElementById('ca-pro-drop'); if(drop)drop.style.display='none';
+  _caStagingVals.cod=String(_caProTemp.codigo||_caProTemp.id);
+  if(!_caStagingVals.cant)_caStagingVals.cant='1';
+  renderItemsCA();
+  setTimeout(()=>{const f=document.getElementById('ca-cant');if(f){f.focus();f.select();}},80);
+}
+
+// Navegación Cantidad→Costo de la fila de carga. Al completar la última
+// celda, confirma el ítem y deja lista una fila nueva vacía.
+function _caStagingKeydown(e,campo){
+  if(e.key!=='Enter'&&e.key!=='Tab')return;
+  e.preventDefault();
+  const orden=['cant','costo'];
+  const idx=orden.indexOf(campo);
+  if(idx<0||idx>=orden.length-1){_caCommitStaging();return;}
+  const f=document.getElementById('ca-'+orden[idx+1]);
+  if(f){f.focus();f.select();}
+}
+
+function updStagingCA(campo,v,inputEl){
+  _caStagingVals[campo]=v;
+  renderItemsCA();
+  if(!inputEl)return;
+  const el2=document.getElementById('ca-'+campo);
+  if(el2){el2.value=v;el2.focus();el2.setSelectionRange(v.length,v.length);}
+}
+
+function _caCommitStaging(){
+  if(!_caProTemp){toast('Elegí un producto (código, nombre o F2)','warn');return;}
+  const cant=parseFloat(_caStagingVals.cant)||0;
+  const costo=parseFloat(_caStagingVals.costo)||0;
+  if(cant<=0&&costo<=0){toast('Ingresá cantidad o costo','warn');return;}
+  const ex=_caItems.find(i=>i.id===_caProTemp.id);
+  if(ex){ ex.cant+=cant; if(costo>0)ex.costo=costo; }
+  else{ _caItems.push({id:_caProTemp.id,nom:_caProTemp.nombre,codigo:_caProTemp.codigo||'',unidad:_caProTemp.unidad||'',cant,costo}); }
+  _caProTemp=null;
+  _caStagingVals={cod:'',cant:'1',costo:'0'};
+  renderItemsCA();
+  setTimeout(()=>{const f=document.getElementById('ca-cod');if(f)f.focus();},80);
+}
+
+const _caInputStyle='padding:8px 10px;border:1.5px solid var(--brd);border-radius:8px;font-size:14px;font-family:inherit;box-sizing:border-box';
+
+function _caStagingRowHTML(){
+  const p=_caProTemp;
+  const cant=parseFloat(_caStagingVals.cant)||0;
+  const costo=parseFloat(_caStagingVals.costo)||0;
+  const sub=cant*costo;
+  return `<div class="pitem" style="background:var(--PL)">
+    <span class="drop-wrap" style="width:80px;flex-shrink:0;position:relative">
+      <input id="ca-cod" value="${_caStagingVals.cod}" placeholder="Cód." autocomplete="off" title="Código de producto — F2 para buscar por nombre"
+        oninput="dropProCA()" onkeydown="_caCodKeydown(event)" style="width:100%;text-align:center;${_caInputStyle}">
+      <div class="drop" id="ca-pro-drop" style="width:280px"></div>
+    </span>
+    <span class="pnom" style="color:${p?'inherit':'var(--txt2)'}">${p?p.nombre:'— código, nombre o F2 —'}</span>
+    <span style="width:64px;flex-shrink:0;text-align:center;font-size:12px;color:var(--txt2)">${p?.unidad||''}</span>
+    <input type="text" inputmode="decimal" id="ca-cant" value="${_caStagingVals.cant}" oninput="updStagingCA('cant',this.value,this)" onkeydown="_caStagingKeydown(event,'cant')"
+      style="width:80px;text-align:center;${_caInputStyle};border-color:var(--P);border-width:2px" title="Cantidad recibida (actualiza stock)">
+    <input type="text" inputmode="decimal" id="ca-costo" value="${_caStagingVals.costo}" oninput="updStagingCA('costo',this.value,this)" onkeydown="_caStagingKeydown(event,'costo')"
+      style="width:110px;text-align:right;${_caInputStyle}" title="Costo unitario facturado">
+    <span class="ptot">${sub>0?fmt(sub):'—'}</span>
+    <span style="width:32px"></span>
+  </div>`;
+}
+
+function renderItemsCA(){
+  const el=document.getElementById('carga-art-lista'); if(!el)return;
+  const rows=_caItems.map((it,i)=>{
+    const sub=it.cant*it.costo;
+    return `<div class="pitem">
+      <span style="width:80px;flex-shrink:0;text-align:center;font-size:11px;color:var(--txt2)">${it.codigo||''}</span>
+      <span class="pnom">${it.nom}</span>
+      <span style="width:64px;flex-shrink:0;text-align:center;font-size:12px;color:var(--txt2)">${it.unidad||''}</span>
+      <input type="text" inputmode="decimal" data-idx="${i}" data-field="cant" value="${it.cant}" oninput="updItemCA(${i},'cant',this.value,this)" style="width:80px;text-align:center;${_caInputStyle}">
+      <input type="text" inputmode="decimal" data-idx="${i}" data-field="costo" value="${it.costo}" oninput="updItemCA(${i},'costo',this.value,this)" style="width:110px;text-align:right;${_caInputStyle}">
+      <span class="ptot">${fmt(sub)}</span>
+      <button class="btn D sm" onclick="delItemCA(${i})">🗑</button>
+    </div>`;
+  }).join('');
+  const header=`<div class="fx-grid-head" style="display:flex;gap:6px;padding:2px 8px 5px;font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase">
+    <span style="width:80px;text-align:center">Código</span>
+    <span style="flex:1">Descripción</span>
+    <span style="width:64px;text-align:center">Unidad</span>
+    <span style="width:80px;text-align:center">Cantidad</span>
+    <span style="width:110px;text-align:right">Costo unitario</span>
+    <span style="min-width:80px;text-align:right">Subtotal</span>
+    <span style="width:32px"></span>
+  </div>`;
+  el.innerHTML='<div id="ca-items-grid">'+header+rows+_caStagingRowHTML()+'</div>';
+}
+
+function updItemCA(i,k,v,inputEl){
+  _caItems[i][k]=parseFloat(v)||0;
+  renderItemsCA();
+  if(!inputEl)return;
+  const el2=document.querySelector(`#ca-items-grid input[data-idx="${i}"][data-field="${k}"]`);
+  if(el2){el2.value=v;el2.focus();el2.setSelectionRange(v.length,v.length);}
+}
+
+function delItemCA(i){_caItems.splice(i,1);renderItemsCA();}
 
 async function guardarCargaArticulos(){
   const compId=_cargaArtCompId; if(!compId)return;
   const comp=_comprobantes.find(c=>c.id===compId); if(!comp)return;
+  if(!_caItems.length){ toast('Agregá al menos un producto','warn'); return; }
   const prov=_proveedores.find(p=>String(p.id)===String(comp.proveedor_id));
   const condFiscal=prov?.condicion_fiscal||'factura_todo';
   const pctFact=prov?.pct_factura||100;
-  const rows=[...document.querySelectorAll('.carga-art-row')];
+
   let costosCambiados=0, stockActualizado=0;
   const nuevos=[];
-  for(const row of rows){
-    const prodId=row.dataset.prodId; if(!prodId)continue;
-    const prod=_productos.find(x=>String(x.id)===String(prodId)); if(!prod)continue;
-    const precioFacturado=parseFloat(row.querySelector('.carga-art-val')?.value)||0;
-    const cantidad=parseFloat(row.querySelector('.carga-art-cant')?.value)||0;
-    if(precioFacturado<=0&&cantidad<=0)continue;
+  for(const it of _caItems){
+    const prod=_productos.find(x=>x.id===it.id); if(!prod)continue;
+    const cantidad=it.cant||0, precioFacturado=it.costo||0;
+    if(cantidad<=0&&precioFacturado<=0)continue;
 
     const upd={};
     if(precioFacturado>0){
@@ -1450,9 +1538,9 @@ async function guardarCargaArticulos(){
       upd.stock=(prod.stock||0)+cantidad;
       stockActualizado++;
     }
-    await sb.from('productos').update(upd).eq('id',prodId);
+    await sb.from('productos').update(upd).eq('id',prod.id);
     nuevos.push({
-      producto_id:parseInt(prodId), producto_nom:prod.nombre||'', codigo:prod.codigo||'',
+      producto_id:prod.id, producto_nom:prod.nombre||'', codigo:prod.codigo||'',
       cantidad, costo_unitario:upd.costo||0, subtotal:cantidad*(upd.costo||0)
     });
   }
