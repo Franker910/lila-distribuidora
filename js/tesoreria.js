@@ -192,25 +192,7 @@ function limpiarModalCobro(){
   const codEl=document.getElementById('cob-cli-cod');if(codEl)codEl.style.borderColor='';
   _cobRestoSaldoFavor=0;
   clearComprobante();
-  const ccInline=document.getElementById('cob-cc-inline');if(ccInline){ccInline.style.display='none';ccInline.innerHTML='';}
   setTimeout(()=>{const f=document.getElementById('cob-cli-cod');if(f)f.focus();},100);
-}
-
-function renderCCInlineCobro(cid){
-  const el=document.getElementById('cob-cc-inline');if(!el)return;
-  const sid=String(cid);
-  const c=_clientes.find(x=>String(x.id)===sid);
-  if(!c){el.style.display='none';return;}
-  const rems=_remitos.filter(r=>String(r.cliente_id)===sid&&!r.anulado)
-    .map(r=>({fecha:r.fecha,tipo:'Remito',desc:`R-${String(r.id).padStart(4,'0')}`,importe:r.total,estado:r.cobrado?'✅ Cobrado':'⏳ Pendiente',color:'var(--A)'}));
-  const cobs=_cobros.filter(r=>(String(r.cliente_id)===sid||(r.cliente&&c.nombre&&r.cliente.trim().toLowerCase()===c.nombre.trim().toLowerCase()))&&(r.estado_rendicion||'pendiente')!=='rechazado')
-    .map(r=>({fecha:r.fecha,tipo:'Cobro',desc:r.forma||'efectivo',importe:r.importe,
-    estado:r.estado_rendicion==='validado'?'✅ Val':'⏳ Pend',color:'var(--P)'}));
-  const movs=[...rems,...cobs].sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,15);
-  if(!movs.length){el.style.display='none';return;}
-  el.style.display='block';
-  const filas=movs.map(m=>`<tr><td>${m.fecha}</td><td style="color:${m.color};font-weight:600">${m.tipo}</td><td style="color:var(--txt2)">${m.desc}</td><td style="text-align:right;font-weight:600">${fmt(m.importe)}</td><td style="font-size:10px">${m.estado}</td></tr>`).join('');
-  el.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--PD);text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center"><span>📋 CC — ${c.nombre}</span><span style="font-size:14px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--G)'}">${fmt(c.saldo||0)}</span></div><div class="tbl-wrap"><table class="tbl" style="font-size:11px"><thead><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th><th style="text-align:right">Importe</th><th>Estado</th></tr></thead><tbody>${filas}</tbody></table></div>`;
 }
 
 // Sube un comprobante de transferencia al bucket "comprobantes" de Supabase Storage.
@@ -311,7 +293,6 @@ function selCliCob(id){
     const ti=document.getElementById('cob-total-imputar');
     if(ti){ti.value=Math.round(c.saldo);calcTotalDesdeImputacion();}
   }
-  renderCCInlineCobro(id);
   // foco manejado por buscarCodCli o dropdown
 }
 
@@ -1026,14 +1007,12 @@ function imprimirRecibo(id){
     const rem=_remitos.find(x=>x.id===imp.remito_id);
     const num=rem?'R-'+String(rem.id).padStart(4,'0'):'R-'+String(imp.remito_id).padStart(4,'0');
     const fechaEmision=rem?.fecha||'—';
-    const saldoPend=rem?fmt(rem.saldo_pendiente??rem.total):'—';
     return `<tr>
       <td style="border:1px solid #000;padding:5px 7px">${num}</td>
       <td style="border:1px solid #000;padding:5px 7px">${fechaEmision}</td>
-      <td style="border:1px solid #000;padding:5px 7px;text-align:right">${saldoPend}</td>
       <td style="border:1px solid #000;padding:5px 7px;text-align:right">${fmt(imp.monto)}</td>
     </tr>`;
-  }).join(''):`<tr><td colspan="4" style="border:1px solid #000;padding:8px;text-align:center;color:#555">Sin facturas imputadas</td></tr>`;
+  }).join(''):`<tr><td colspan="3" style="border:1px solid #000;padding:8px;text-align:center;color:#555">Sin facturas imputadas</td></tr>`;
 
   const medios=[];
   if((r.efectivo||0)>0)medios.push(['Efectivo',r.efectivo]);
@@ -1077,10 +1056,9 @@ function imprimirRecibo(id){
     <div style="flex:1.5">
       <table style="width:100%;font-size:12px">
         <thead><tr>
-          <th style="border:1px solid #000;padding:5px 7px;text-align:left">Factura</th>
-          <th style="border:1px solid #000;padding:5px 7px;text-align:left">Fecha Emisión</th>
-          <th style="border:1px solid #000;padding:5px 7px;text-align:right">Saldo Pendiente</th>
-          <th style="border:1px solid #000;padding:5px 7px;text-align:right">Monto Imputado</th>
+          <th style="border:1px solid #000;padding:5px 7px;text-align:left">Comprobante</th>
+          <th style="border:1px solid #000;padding:5px 7px;text-align:left">Fecha</th>
+          <th style="border:1px solid #000;padding:5px 7px;text-align:right">Importe</th>
         </tr></thead>
         <tbody>${filasFacturas}</tbody>
       </table>
