@@ -297,18 +297,28 @@ function usarPrecioSugerido(){
   if(v)document.getElementById('pro-precio').value=v;
 }
 
+function _poblarProvHabModal(valorActual){
+  const sel=document.getElementById('pro-provhab');if(!sel)return;
+  const nombres=[...new Set(_proveedores.map(p=>p.nombre).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  sel.innerHTML='<option value="">— Sin proveedor habitual —</option>'+nombres.map(n=>`<option value="${n}">${n}</option>`).join('');
+  sel.value=valorActual||'';
+}
+
 function abrirProducto(){
   document.getElementById('pro-edit-id').value='';
   document.getElementById('m-pro-title').textContent='Nuevo producto';
-  ['pro-cod','pro-nom','pro-unidad'].forEach(id=>document.getElementById(id).value='');
+  ['pro-cod','pro-nom','pro-unidad','pro-unidad-venta'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pro-cat-modal').value='';
   document.getElementById('pro-subcat-modal').innerHTML='<option value="">— Sin subcategoría —</option>';
   document.getElementById('pro-subcat-modal').disabled=true;
   document.getElementById('pro-activo-chk').checked=true;
-  ['pro-costo','pro-precio','pro-stock','pro-dto'].forEach(id=>document.getElementById(id).value='0');
+  ['pro-costo','pro-precio','pro-stock','pro-dto','pro-punto-pedido'].forEach(id=>document.getElementById(id).value='0');
+  document.getElementById('pro-multiplo').value='1';
   document.getElementById('pro-iva').value='21';
   document.getElementById('pro-margen').value='30';
   document.getElementById('pro-precio-sug').textContent='—';
+  document.getElementById('pro-nom-drop').style.display='none';
+  _poblarProvHabModal('');
   document.getElementById('m-producto').classList.add('on');
 }
 
@@ -322,6 +332,9 @@ function editarProducto(id){
   document.getElementById('pro-precio').value=p.precio||0;
   document.getElementById('pro-iva').value=p.iva||21;
   document.getElementById('pro-unidad').value=p.unidad||'';
+  document.getElementById('pro-unidad-venta').value=p.unidad_venta||'';
+  document.getElementById('pro-multiplo').value=p.multiplo_venta||1;
+  document.getElementById('pro-punto-pedido').value=p.punto_pedido||0;
   document.getElementById('pro-stock').value=p.stock||0;
   document.getElementById('pro-dto').value=p.descuento||0;
   document.getElementById('pro-cat-modal').value=p.rubro||'';
@@ -329,8 +342,27 @@ function editarProducto(id){
   document.getElementById('pro-subcat-modal').value=p.linea||'';
   document.getElementById('pro-margen').value=p.margen_objetivo||30;
   document.getElementById('pro-activo-chk').checked=p.activo!==false;
+  _poblarProvHabModal(p.proveedor_nom||'');
   recalcPrecioSugerido();
+  document.getElementById('pro-nom-drop').style.display='none';
   document.getElementById('m-producto').classList.add('on');
+}
+
+// Popup de búsqueda dentro del propio formulario (como "Consulta de
+// Artículos" de FoxPro): mientras tipeás el nombre, muestra productos ya
+// cargados que coincidan, para saltar a editarlos sin cerrar el modal.
+function dropProNombreModal(){
+  const inp=document.getElementById('pro-nom');
+  const drop=document.getElementById('pro-nom-drop');
+  if(!inp||!drop)return;
+  const q=(inp.value||'').trim().toLowerCase();
+  const editId=document.getElementById('pro-edit-id').value;
+  if(q.length<2){drop.style.display='none';return;}
+  const m=_productos.filter(p=>String(p.id)!==String(editId)&&(p.nombre||'').toLowerCase().includes(q)).slice(0,8);
+  drop.innerHTML=m.length?m.map(p=>`<div onmousedown="editarProducto(${p.id})">
+      <strong>${p.nombre}</strong> <span style="color:var(--txt2);font-size:11px">Cód: ${p.codigo||p.id} · Stock: ${p.stock||0}</span>
+    </div>`).join(''):'<div style="color:var(--txt2)">Sin coincidencias</div>';
+  drop.style.display='block';
 }
 
 async function guardarProducto(){
@@ -342,6 +374,10 @@ async function guardarProducto(){
     precio:parseFloat(document.getElementById('pro-precio').value)||0,
     iva:parseFloat(document.getElementById('pro-iva').value)||21,
     unidad:document.getElementById('pro-unidad').value.trim(),
+    unidad_venta:document.getElementById('pro-unidad-venta').value.trim(),
+    multiplo_venta:parseFloat(document.getElementById('pro-multiplo').value)||1,
+    punto_pedido:parseFloat(document.getElementById('pro-punto-pedido').value)||0,
+    proveedor_nom:document.getElementById('pro-provhab').value||'',
     stock:parseFloat(document.getElementById('pro-stock').value)||0,
     descuento:parseFloat(document.getElementById('pro-dto').value)||0,
     rubro:document.getElementById('pro-cat-modal').value,

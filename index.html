@@ -2683,9 +2683,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Información general</div>
   <div style="display:flex;gap:12px;margin-bottom:12px">
     <div class="fg" style="width:140px;flex-shrink:0"><label>Código</label><input id="pro-cod" style="width:100%" placeholder="Código"></div>
-    <div class="fg" style="flex:1"><label>Nombre</label><input id="pro-nom" style="width:100%" placeholder="Nombre del producto"></div>
+    <div class="fg" style="flex:1;position:relative">
+      <label>Nombre</label>
+      <input id="pro-nom" style="width:100%" placeholder="Nombre del producto" autocomplete="off" oninput="dropProNombreModal()" onfocus="dropProNombreModal()">
+      <div class="drop" id="pro-nom-drop" style="width:100%"></div>
+    </div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px">
     <div class="fg"><label>Categoría</label>
       <select id="pro-cat-modal" style="width:100%" onchange="poblarSubcats('pro-cat-modal','pro-subcat-modal')">
         <option value="">— Sin categoría —</option>
@@ -2697,7 +2701,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <option value="">— Sin subcategoría —</option>
       </select>
     </div>
-    <div class="fg"><label>Unidad</label>
+    <div class="fg"><label>Unidad de medida</label>
       <input id="pro-unidad" style="width:100%" placeholder="Kg / Un / Docena" list="pro-unidad-list" autocomplete="off">
       <datalist id="pro-unidad-list">
         <option value="kg">
@@ -2710,6 +2714,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <option value="bandeja">
       </datalist>
     </div>
+    <div class="fg"><label>Unidad de venta</label>
+      <input id="pro-unidad-venta" style="width:100%" placeholder="Igual que medida si vacío" list="pro-unidad-list" autocomplete="off">
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:20px">
+    <div class="fg"><label>Proveedor habitual</label>
+      <select id="pro-provhab" style="width:100%"><option value="">— Sin proveedor habitual —</option></select>
+    </div>
+    <div class="fg"><label>Múltiplo de venta</label><input type="number" id="pro-multiplo" value="1" min="1" step="1" style="width:100%"></div>
   </div>
 
   <!-- Bloque 2: Precios y rentabilidad -->
@@ -2737,15 +2750,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <!-- Bloque 3: Inventario y estado -->
   <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Inventario y estado</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;margin-bottom:14px">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
     <div class="fg"><label>Stock actual</label><input type="number" id="pro-stock" value="0" step="0.01" style="width:100%"></div>
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg2);border-radius:8px;height:38px;box-sizing:border-box">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap">
-        <input type="checkbox" id="pro-activo-chk" checked style="width:18px;height:18px;accent-color:var(--P)">
-        Producto activo
-      </label>
-      <span style="font-size:11px;color:var(--txt2)">Los inactivos no aparecen en pedidos ni remitos</span>
-    </div>
+    <div class="fg"><label>Punto de pedido</label><input type="number" id="pro-punto-pedido" value="0" step="0.01" style="width:100%" title="Stock mínimo antes de reponer"></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg2);border-radius:8px;margin-bottom:14px">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap">
+      <input type="checkbox" id="pro-activo-chk" checked style="width:18px;height:18px;accent-color:var(--P)">
+      Producto activo
+    </label>
+    <span style="font-size:11px;color:var(--txt2)">Los inactivos no aparecen en pedidos ni remitos</span>
   </div>
 
   <input type="hidden" id="pro-edit-id">
@@ -3459,13 +3473,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260728-26"></script>
-<script src="js/maestros.js?v=20260728-26"></script>
-<script src="js/ventas.js?v=20260728-26"></script>
-<script src="js/tesoreria.js?v=20260728-26"></script>
-<script src="js/contabilidad.js?v=20260728-26"></script>
-<script src="js/informes.js?v=20260728-26"></script>
-<script src="js/logistica.js?v=20260728-26"></script>
+<script src="js/app.js?v=20260728-27"></script>
+<script src="js/maestros.js?v=20260728-27"></script>
+<script src="js/ventas.js?v=20260728-27"></script>
+<script src="js/tesoreria.js?v=20260728-27"></script>
+<script src="js/contabilidad.js?v=20260728-27"></script>
+<script src="js/informes.js?v=20260728-27"></script>
+<script src="js/logistica.js?v=20260728-27"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
