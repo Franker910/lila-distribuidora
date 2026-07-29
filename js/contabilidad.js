@@ -1688,14 +1688,102 @@ function histProveedor(id){
   document.getElementById('m-ver').classList.add('on');
 }
 
-async function pagarComprobante(id){
+// Pagar un comprobante: pide forma de pago y graba el pago en
+// pagos_proveedores (la misma tabla que usa Tesorería → Pagos prov.),
+// además de marcar el comprobante — así la cuenta corriente, la caja y
+// Tesorería quedan todas mirando el mismo dato, en vez de dos sistemas
+// de "pagué esto" que no se enteran uno del otro.
+function pagarComprobante(id){
   const comp = _comprobantes.find(x => x.id === id);
   if(!comp) return;
-  if(!confirm(`¿Marcar como pagado el comprobante ${comp.nro_comprobante || id}?`)) return;
-  const hoy=new Date().toISOString().split('T')[0];
-  await sb.from('comprobantes_compras').update({estado: 'pagado', fecha_pago: hoy}).eq('id', id);
-  await cargarComprobantes();
-  renderComprobantes();
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:3000;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML=`<div style="background:var(--bg);border-radius:12px;padding:20px;width:360px;max-width:95vw">
+    <div style="font-weight:600;font-size:15px;margin-bottom:4px">💸 Pagar comprobante ${comp.nro_comprobante||'#'+comp.id}</div>
+    <div style="font-size:13px;color:var(--txt2);margin-bottom:14px">${comp.proveedor_nom||''} · ${fmt(comp.importe)}</div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Forma de pago</label>
+      <select id="pagcomp-forma" style="width:100%">
+        <option value="efectivo">💵 Efectivo</option>
+        <option value="transferencia">🏦 Transferencia</option>
+        <option value="cheque">📋 Cheque</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button id="pagcomp-cancel" style="padding:8px 16px;background:var(--bg2);border:1px solid var(--brd);border-radius:6px;cursor:pointer">Cancelar</button>
+      <button id="pagcomp-btn" style="padding:8px 16px;background:var(--P);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">✓ Confirmar pago</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('pagcomp-cancel').onclick=()=>modal.remove();
+  document.getElementById('pagcomp-btn').onclick=async function(){
+    const forma=document.getElementById('pagcomp-forma').value;
+    this.textContent='Guardando...';this.disabled=true;
+    const hoy=new Date().toISOString().split('T')[0];
+    const {error:e1}=await sb.from('comprobantes_compras').update({estado:'pagado', fecha_pago:hoy}).eq('id',id);
+    if(e1){alert('Error al marcar el comprobante: '+e1.message);this.textContent='✓ Confirmar pago';this.disabled=false;return;}
+    const concepto=`${(comp.tipo||'Comprobante').toUpperCase()} ${comp.nro_comprobante||'#'+comp.id}${comp.descripcion?' — '+comp.descripcion:''}`;
+    const {error:e2}=await sb.from('pagos_proveedores').insert({
+      fecha:hoy, proveedor_id:comp.proveedor_id, proveedor:comp.proveedor_nom||'',
+      importe:comp.importe, forma, concepto
+    });
+    if(e2){alert('El comprobante quedó marcado pagado, pero no se pudo registrar en Pagos proveedores: '+e2.message);}
+    await Promise.all([cargarComprobantes(), cargarPagosProv()]);
+    renderComprobantes();
+    modal.remove();
+    imprimirOrdenPago(id, hoy, forma);
+  };
+}
+
+// Busca el pago registrado en pagos_proveedores que corresponde a este
+// comprobante (no hay FK real entre las tablas, así que se matchea por
+// proveedor + que el concepto mencione el número de comprobante).
+function _pagoDeComprobante(comp){
+  if(!comp.nro_comprobante&&!comp.id)return null;
+  const ref=String(comp.nro_comprobante||comp.id);
+  return (_pagosProv||[]).find(p=>String(p.proveedor_id)===String(comp.proveedor_id)&&(p.concepto||'').includes(ref))||null;
+}
+
+// Comprobante de pago a proveedor — no lleva número de rendición (eso es
+// del circuito de cobranza a clientes, acá alcanza con el nro. de comprobante).
+function imprimirOrdenPago(id, fechaPago, forma){
+  const c=_comprobantes.find(x=>x.id===id);if(!c)return;
+  const prov=_proveedores.find(p=>p.id===c.proveedor_id);
+  const hoy=fechaPago||c.fecha_pago||new Date().toISOString().split('T')[0];
+  if(!forma){const pago=_pagoDeComprobante(c);forma=pago?.forma||'';}
+  const formaLabel=forma==='efectivo'?'💵 Efectivo':forma==='transferencia'?'🏦 Transferencia':forma==='cheque'?'📋 Cheque':'';
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Orden de pago — ${c.proveedor_nom||''}</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:30px;color:#000;max-width:520px;margin:0 auto}
+    .titulo{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:16px}
+    .empresa{font-size:18px;font-weight:bold}
+    .nro{font-size:14px;color:#555}
+    .row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;font-size:13px}
+    .row.total{font-weight:bold;font-size:15px;border-top:2px solid #000;border-bottom:none;margin-top:8px;padding-top:8px}
+    .firma{margin-top:60px;display:flex;justify-content:space-between}
+    .firma div{width:45%;border-top:1px solid #000;text-align:center;font-size:11px;padding-top:4px}
+    @media print{button{display:none}}
+  </style></head><body>
+  <div class="titulo">
+    <div class="empresa">🌸 DISTRIBUIDORA LILA</div>
+    <div class="nro">ORDEN DE PAGO</div>
+  </div>
+  <div class="row"><span><b>Fecha de pago:</b></span><span>${hoy}</span></div>
+  ${formaLabel?`<div class="row"><span><b>Forma de pago:</b></span><span>${formaLabel}</span></div>`:''}
+  <div class="row"><span><b>Proveedor:</b></span><span>${c.proveedor_nom||'—'}</span></div>
+  ${prov?.cuit?`<div class="row"><span><b>CUIT:</b></span><span>${prov.cuit}</span></div>`:''}
+  <div class="row"><span><b>Comprobante:</b></span><span>${c.nro_comprobante||'#'+c.id}</span></div>
+  <div class="row"><span><b>Fecha comprobante:</b></span><span>${c.fecha||'—'}</span></div>
+  ${c.descripcion?`<div class="row"><span><b>Descripción:</b></span><span>${c.descripcion}</span></div>`:''}
+  <div class="row total"><span>IMPORTE PAGADO</span><span>${fmt(c.importe)}</span></div>
+  <div class="firma">
+    <div>Firma proveedor</div>
+    <div>Firma responsable</div>
+  </div>
+  <div style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:8px 20px;background:#1a7a52;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">🖨️ Imprimir</button></div>
+  </body></html>`);
+  w.document.close();
 }
 
 async function eliminarComprobante(id){
@@ -1813,9 +1901,9 @@ function renderComprobantes(){
       <td style="font-size:12px;${estado==='vencido'?'color:var(--D);font-weight:600':''}">${c.fecha_vencimiento||'—'}${diasVenc!==null&&estado==='pendiente'?` <span style="font-size:10px;color:var(--txt2)">(${diasVenc}d)</span>`:''}</td>
       <td style="font-size:12px">${c.condicion_pago?c.condicion_pago+'d':'Contado'}</td>
       <td style="font-weight:600;color:var(--D)">${fmt(c.importe)}</td>
-      <td><span class="b ${badgeClass}">${estado}</span></td>
+      <td><span class="b ${badgeClass}">${estado}</span>${(()=>{ if(estado!=='pagado')return ''; const pago=_pagoDeComprobante(c); const f=pago?.forma; const lbl=f==='efectivo'?'💵':f==='transferencia'?'🏦':f==='cheque'?'📋':''; return lbl?` <span title="Forma de pago" style="font-size:12px">${lbl}</span>`:''; })()}</td>
       <td style="display:flex;gap:3px;flex-wrap:wrap">
-        ${estado!=='pagado'?`<button class="btn P sm" onclick="pagarComprobante(${c.id})">✓ Pagar</button>`:''}
+        ${estado!=='pagado'?`<button class="btn P sm" onclick="pagarComprobante(${c.id})">✓ Pagar</button>`:`<button class="btn sm" onclick="imprimirOrdenPago(${c.id})" title="Reimprimir orden de pago">🧾 Orden</button>`}
         <button class="btn sm" onclick="abrirCargaArticulos(${c.id})" title="Cargar los productos recibidos: actualiza stock y costo">📦 Artículos${c.items&&c.items.length?` (${c.items.length})`:''}</button>
         <button class="btn sm" onclick="abrirAjusteComp(${c.id},'nc')" title="Nota de crédito del proveedor" style="background:#dbeafe;color:#1e40af;border:none">NC</button>
         <button class="btn sm" onclick="abrirAjusteComp(${c.id},'nd')" title="Nota de débito del proveedor" style="background:#fef3c7;color:#92400e;border:none">ND</button>
