@@ -192,11 +192,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #rr-items .fx-grid-head{border-bottom:1.5px solid #000;color:#000;background:#e8e8e8}
 #rr-items .fx-grid-head>*{border-right:1px solid #000;padding:3px 6px}
 #rr-items .fx-grid-head>*:last-child{border-right:none}
-#rr-items .pitem{border-radius:0;border-bottom:1.5px solid #000;background:#fff;color:#000;margin-bottom:0;padding:10px 8px;font-size:14px}
+#rr-items .pitem{border-radius:0;border-bottom:1.5px solid #000;background:#fff;color:#000;margin-bottom:0;padding:4px 8px;font-size:13px}
 #rr-items .pitem>*{border-right:1px solid #000;padding-right:6px}
 #rr-items .pitem>*:last-child{border-right:none}
 #rr-items .pitem .ptot{color:#000}
-#rr-items .pitem input,#rr-items .pitem select{border:1px solid #000;border-radius:0;color:#000;background:#fff;font-family:inherit;font-size:14px;padding:6px 7px}
+#rr-items .pitem input,#rr-items .pitem select{border:1px solid #000;border-radius:0;color:#000;background:#fff;font-family:inherit;font-size:13px;padding:3px 6px}
 #rr-items .pitem input[readonly]{background:#fff;color:#000}
 #rr-items #rr-pro-q{font-weight:500}
 #rr-items .pitem.rr-staging{background:var(--PL)}
@@ -1709,55 +1709,72 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <input type="hidden" id="rr-fecha">
   <input type="hidden" id="rr-ven">
 
-  <!-- Banner facturación secuencial por carga (pesaje real) -->
-  <div id="rr-banner-carga" style="display:none;flex-shrink:0;justify-content:space-between;align-items:center;gap:10px;background:var(--PL);color:var(--PD);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;font-weight:600"></div>
+  <div style="flex:1;display:flex;gap:12px;min-height:0;overflow:hidden">
 
-  <!-- Área scrollable -->
-  <div style="flex:1;overflow-y:auto;min-height:0;padding-bottom:4px">
-    <div style="max-width:960px">
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden">
 
-      <!-- Sección cliente -->
-      <div class="card" style="margin-bottom:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px">Cliente</div>
-        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:nowrap">
-          <div class="fg" style="width:100px;flex-shrink:0">
-            <label style="font-size:11px">Código &nbsp;<span style="font-size:10px;color:var(--txt2)">[F2]</span></label>
-            <div style="display:flex;gap:3px">
-              <input id="rr-cli-cod" placeholder="40" tabindex="1" onkeydown="if(event.key==='F2'){event.preventDefault();abrirBuscadorCli('rr');}else if(event.key==='Enter'||(event.key==='Tab'&&this.value.trim())){event.preventDefault();buscarPorCodCli();}" autocomplete="off" style="font-size:15px;font-weight:600;width:60px;text-align:center">
-              <button class="btn sm" onclick="abrirBuscadorCli('rr')" title="Buscar (F2)" style="padding:4px 6px;font-size:12px">🔍</button>
+      <!-- Área scrollable -->
+      <div style="flex:1;overflow-y:auto;min-height:0;padding-bottom:4px">
+        <div style="max-width:960px">
+
+          <!-- Sección cliente -->
+          <div class="card" style="margin-bottom:10px">
+            <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px">Cliente</div>
+            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:nowrap">
+              <div class="fg" style="width:100px;flex-shrink:0">
+                <label style="font-size:11px">Código &nbsp;<span style="font-size:10px;color:var(--txt2)">[F2]</span></label>
+                <div style="display:flex;gap:3px">
+                  <input id="rr-cli-cod" placeholder="40" tabindex="1" onkeydown="if(event.key==='F2'){event.preventDefault();abrirBuscadorCli('rr');}else if(event.key==='Enter'||(event.key==='Tab'&&this.value.trim())){event.preventDefault();buscarPorCodCli();}" autocomplete="off" style="font-size:15px;font-weight:600;width:60px;text-align:center">
+                  <button class="btn sm" onclick="abrirBuscadorCli('rr')" title="Buscar (F2)" style="padding:4px 6px;font-size:12px">🔍</button>
+                </div>
+              </div>
+              <div class="fg drop-wrap" style="flex:1;min-width:0">
+                <label style="font-size:11px">Nombre</label>
+                <input id="rr-cli-q" placeholder="Buscar cliente..." oninput="dropCliRR()" autocomplete="off">
+                <div class="drop" id="rr-cli-drop"></div>
+                <input type="hidden" id="rr-cli-id">
+              </div>
+            </div>
+            <div id="rr-cli-info" style="display:none;background:var(--bg2);border-radius:8px;padding:8px 11px;font-size:12px;color:var(--txt2);margin-top:8px"></div>
+            <div id="rr-pedido-chip" style="display:none;margin-top:8px"></div>
+            <div id="rr-carga-num-wrap" style="margin-top:8px">
+              <input id="rr-carga-num" placeholder="🚚 Carga Nº (opcional, vincula este remito a una carga)" style="flex:1;font-size:12px;width:100%">
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <input id="rr-lugar" placeholder="📍 Lugar de entrega (si difiere)" style="flex:1;font-size:12px">
+              <input id="rr-obs" placeholder="Observaciones" style="flex:1;font-size:12px">
             </div>
           </div>
-          <div class="fg drop-wrap" style="flex:1;min-width:0">
-            <label style="font-size:11px">Nombre</label>
-            <input id="rr-cli-q" placeholder="Buscar cliente..." oninput="dropCliRR()" autocomplete="off">
-            <div class="drop" id="rr-cli-drop"></div>
-            <input type="hidden" id="rr-cli-id">
-          </div>
-        </div>
-        <div id="rr-cli-info" style="display:none;background:var(--bg2);border-radius:8px;padding:8px 11px;font-size:12px;color:var(--txt2);margin-top:8px"></div>
-        <div id="rr-pedido-chip" style="display:none;margin-top:8px"></div>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <input id="rr-lugar" placeholder="📍 Lugar de entrega (si difiere)" style="flex:1;font-size:12px">
-          <input id="rr-obs" placeholder="Observaciones" style="flex:1;font-size:12px">
+
+          <!-- Grilla de productos — estilo FoxPro: la última fila es la de carga, sin botón Agregar -->
+          <div id="rr-items"></div>
+
         </div>
       </div>
 
-      <!-- Grilla de productos — estilo FoxPro: la última fila es la de carga, sin botón Agregar -->
-      <div id="rr-items"></div>
+      <!-- Footer fijo: total + botones -->
+      <div style="flex-shrink:0;border-top:2px solid var(--brd);background:var(--bg);padding:10px 0 2px">
+        <div class="totbar" id="rr-totbar" style="display:none;margin-top:0;margin-bottom:8px">
+          <div style="font-size:12px;color:var(--PD)" id="rr-desglose"></div>
+          <div class="tv" id="rr-total">$0</div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn" id="rr-btn-limpiar" onclick="limpiarRR()">Limpiar</button>
+          <button class="btn P" onclick="emitirRemitoRapido()" style="min-width:140px" tabindex="9">🧾 Emitir remito</button>
+        </div>
+      </div>
 
     </div>
-  </div>
 
-  <!-- Footer fijo: total + botones -->
-  <div style="flex-shrink:0;border-top:2px solid var(--brd);background:var(--bg);padding:10px 0 2px">
-    <div class="totbar" id="rr-totbar" style="display:none;margin-top:0;margin-bottom:8px">
-      <div style="font-size:12px;color:var(--PD)" id="rr-desglose"></div>
-      <div class="tv" id="rr-total">$0</div>
+    <!-- Panel lateral: progreso de la carga (solo visible en modo facturar con pesaje) -->
+    <div id="rr-carga-sidebar" style="display:none;width:220px;flex-shrink:0;flex-direction:column;background:var(--bg);border:1px solid var(--brd);border-radius:10px;overflow:hidden">
+      <div id="rr-carga-sidebar-titulo" style="background:var(--PD);color:#fff;padding:10px 12px;font-size:13px;font-weight:700;flex-shrink:0"></div>
+      <div id="rr-carga-sidebar-lista" style="flex:1;overflow-y:auto;padding:6px"></div>
+      <div style="flex-shrink:0;padding:8px;border-top:1px solid var(--brd)">
+        <button class="btn D sm" style="width:100%" onclick="cancelarFacturarCarga()">✕ Salir de la carga</button>
+      </div>
     </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn" onclick="limpiarRR()">Limpiar</button>
-      <button class="btn P" onclick="emitirRemitoRapido()" style="min-width:140px" tabindex="9">🧾 Emitir remito</button>
-    </div>
+
   </div>
 </div>
 
@@ -3502,13 +3519,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260729-09"></script>
-<script src="js/maestros.js?v=20260729-09"></script>
-<script src="js/ventas.js?v=20260729-09"></script>
-<script src="js/tesoreria.js?v=20260729-09"></script>
-<script src="js/contabilidad.js?v=20260729-09"></script>
-<script src="js/informes.js?v=20260729-09"></script>
-<script src="js/logistica.js?v=20260729-09"></script>
+<script src="js/app.js?v=20260729-10"></script>
+<script src="js/maestros.js?v=20260729-10"></script>
+<script src="js/ventas.js?v=20260729-10"></script>
+<script src="js/tesoreria.js?v=20260729-10"></script>
+<script src="js/contabilidad.js?v=20260729-10"></script>
+<script src="js/informes.js?v=20260729-10"></script>
+<script src="js/logistica.js?v=20260729-10"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

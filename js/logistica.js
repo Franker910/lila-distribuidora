@@ -125,7 +125,7 @@ function renderCargas(){
     const fechaFmt=cg.fecha?cg.fecha.split('-').reverse().join('/'):'—';
     // Detectar si hay remitos vinculados a esta carga
     const pedIds=(cg.pedidos||[]);
-    const remsCarga=_remitos.filter(r=>pedIds.includes(r.pedido_id));
+    const remsCarga=_remitos.filter(r=>pedIds.includes(r.pedido_id)||r.carga_id===cg.id);
     // Fallback: remitos del mismo día y vendedor si no hay por pedido_id
     const remsDisp=remsCarga.length>0?remsCarga:
       (cg.fecha&&cg.vendedor?_remitos.filter(r=>r.fecha===cg.fecha&&(r.vendedor||'').toLowerCase()===(cg.vendedor||'').toLowerCase()):[]);
@@ -159,7 +159,7 @@ function renderCargas(){
 function imprimirRemitosCarga(cargaId){
   const cg=_cargas.find(x=>x.id===cargaId);if(!cg)return;
   const pedIds=(cg.pedidos||[]);
-  let rems=_remitos.filter(r=>pedIds.includes(r.pedido_id));
+  let rems=_remitos.filter(r=>pedIds.includes(r.pedido_id)||r.carga_id===cg.id);
   // Fallback: misma fecha y vendedor
   if(!rems.length&&cg.fecha&&cg.vendedor){
     rems=_remitos.filter(r=>r.fecha===cg.fecha&&(r.vendedor||'').toLowerCase()===(cg.vendedor||'').toLowerCase());
@@ -353,9 +353,13 @@ function facturarCargaConPesaje(cargaId){
   _facturarSiguientePedidoCarga();
 }
 
-function _pedidosPendientesDeCarga(cargaId){
+function _pedidosDeCarga(cargaId){
   const cg=_cargas.find(x=>x.id===cargaId);if(!cg)return [];
-  return _pedidos.filter(p=>(cg.pedidos||[]).includes(p.id)&&p.estado!=='remitado'&&!p.remito_id);
+  return (cg.pedidos||[]).map(pid=>_pedidos.find(p=>p.id===pid)).filter(Boolean);
+}
+
+function _pedidosPendientesDeCarga(cargaId){
+  return _pedidosDeCarga(cargaId).filter(p=>p.estado!=='remitado'&&!p.remito_id);
 }
 
 function _facturarSiguientePedidoCarga(){
@@ -365,6 +369,7 @@ function _facturarSiguientePedidoCarga(){
   if(!peds.length){
     toast(`✅ Terminaste de facturar la carga #${cg.id} con pesaje real.`);
     _facturandoCargaId=null;
+    _renderCargaSidebar();
     cargarCargas().then(renderCargas);
     go('carga');
     return;
@@ -374,22 +379,46 @@ function _facturarSiguientePedidoCarga(){
   limpiarRR();
   selCliRR(ped.cliente_id);
   cargarItemsDePedido(ped.id);
-  _actualizarBannerFacturarCarga(peds.length);
+  _renderCargaSidebar(ped.id);
 }
 
-function _actualizarBannerFacturarCarga(cantPend){
-  const el=document.getElementById('rr-banner-carga');
-  if(!el)return;
-  if(!_facturandoCargaId){el.style.display='none';return;}
-  el.style.display='flex';
-  el.innerHTML=`<span>📦 Facturando carga #${_facturandoCargaId} con pesaje real — quedan ${cantPend} cajón(es)</span>
-    <button class="btn D sm" onclick="cancelarFacturarCarga()">✕ Salir</button>`;
+// Panel lateral de progreso: título "Carga Nº X · nombre" + lista de clientes
+// con su estado (✅ remitado con R-XXXX clickeable, ► actual, sin marca pendiente).
+function _renderCargaSidebar(pedidoActualId){
+  const wrap=document.getElementById('rr-carga-sidebar');
+  const limpiarBtn=document.getElementById('rr-btn-limpiar');
+  const cargaNumWrap=document.getElementById('rr-carga-num-wrap');
+  if(!wrap)return;
+  if(!_facturandoCargaId){
+    wrap.style.display='none';
+    if(limpiarBtn)limpiarBtn.style.display='';
+    if(cargaNumWrap)cargaNumWrap.style.display='';
+    return;
+  }
+  const cg=_cargas.find(x=>x.id===_facturandoCargaId);
+  if(!cg){wrap.style.display='none';return;}
+  wrap.style.display='flex';
+  if(limpiarBtn)limpiarBtn.style.display='none';
+  if(cargaNumWrap)cargaNumWrap.style.display='none';
+  document.getElementById('rr-carga-sidebar-titulo').textContent=`🚚 Carga Nº ${cg.id}${cg.nombre?' · '+cg.nombre:''}`;
+  const peds=_pedidosDeCarga(cg.id);
+  const lista=document.getElementById('rr-carga-sidebar-lista');
+  lista.innerHTML=peds.map(p=>{
+    const remitado=p.estado==='remitado'&&p.remito_id;
+    const esActual=p.id===pedidoActualId;
+    const icono=remitado?'✅':(esActual?'►':'');
+    const clickAttr=remitado?` onclick="verRemito(${p.remito_id})" style="cursor:pointer"`:'';
+    return `<div${clickAttr} style="display:flex;gap:6px;align-items:center;padding:6px 8px;border-radius:6px;font-size:12px;margin-bottom:2px;${esActual?'background:var(--PL);font-weight:700':''}">
+      <span style="width:16px;flex-shrink:0;text-align:center">${icono}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${remitado?'color:var(--txt2)':''}">${p.cliente}</span>
+      ${remitado?`<span style="font-size:10px;color:var(--P);flex-shrink:0">R-${String(p.remito_id).padStart(4,'0')}</span>`:''}
+    </div>`;
+  }).join('');
 }
 
 function cancelarFacturarCarga(){
   _facturandoCargaId=null;
-  const el=document.getElementById('rr-banner-carga');
-  if(el)el.style.display='none';
+  _renderCargaSidebar();
   toast('Facturación por carga cancelada — podés seguir emitiendo remitos sueltos.');
 }
 

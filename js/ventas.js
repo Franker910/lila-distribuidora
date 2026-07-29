@@ -236,7 +236,7 @@ function initRR(){
   document.getElementById('rr-fecha').value=new Date().toISOString().split('T')[0];
   _rrItems=[];_rrProTemp=null;
   _rrStagingVals={cod:'',cant:'1',peso:'',precio:'0',dto:'0',lista:''};
-  ['rr-cli-q','rr-obs','rr-lugar'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['rr-cli-q','rr-obs','rr-lugar','rr-carga-num'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const codCli=document.getElementById('rr-cli-cod');if(codCli){codCli.value='';codCli.style.borderColor='';}
   document.getElementById('rr-cli-id').value='';
   const info=document.getElementById('rr-cli-info');if(info)info.style.display='none';
@@ -748,6 +748,45 @@ function _rrStagingRowHTML(){
   </div>`;
 }
 
+// F7/Delete elimina la fila actual; ↑/↓ mueve el foco a la misma columna de
+// la fila anterior/siguiente (o a la fila de carga, al llegar al final);
+// ←/→ mueve el foco entre columnas de la misma fila (cant → peso → precio).
+function _rrItemKeydown(e,idx,field){
+  if(e.key==='F7'||e.key==='Delete'){
+    e.preventDefault();
+    delItemRR(idx);
+    return;
+  }
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    e.preventDefault();
+    const nextIdx=idx+(e.key==='ArrowDown'?1:-1);
+    let nextEl=null;
+    if(nextIdx>=0&&nextIdx<_rrItems.length){
+      nextEl=document.querySelector(`#rr-items .pitem input[data-idx="${nextIdx}"][data-field="${field}"]`);
+    } else if(nextIdx===_rrItems.length){
+      const stagingMap={cant:'rr-cant',peso:'rr-peso',precio:'rr-precio',dto:'rr-dto'};
+      nextEl=document.getElementById(stagingMap[field]||'rr-cod');
+    }
+    if(nextEl){nextEl.focus();nextEl.select();}
+    return;
+  }
+  if(e.key==='ArrowLeft'||e.key==='ArrowRight'){
+    // Solo si el cursor ya está en el extremo del texto (si no, dejar que
+    // la flecha mueva el cursor dentro del campo, como siempre).
+    const p=e.target.selectionStart,l=e.target.value.length;
+    if(e.key==='ArrowLeft'&&p!==0)return;
+    if(e.key==='ArrowRight'&&p!==l)return;
+    const it=_rrItems[idx];if(!it)return;
+    const orden=it.esPeso?['cant','peso','precio']:['cant','precio'];
+    const oi=orden.indexOf(field);
+    const oNext=oi+(e.key==='ArrowRight'?1:-1);
+    if(oNext<0||oNext>=orden.length)return;
+    e.preventDefault();
+    const nextEl=document.querySelector(`#rr-items .pitem input[data-idx="${idx}"][data-field="${orden[oNext]}"]`);
+    if(nextEl){nextEl.focus();nextEl.select();}
+  }
+}
+
 function renderItemsRR(){
   const el=document.getElementById('rr-items'),tb=document.getElementById('rr-totbar');
   let sub=0,dtoT=0,tot=0;
@@ -758,18 +797,18 @@ function renderItemsRR(){
     const pedidoCant=it.pedido_cant?`<span style="color:var(--txt2);font-size:10px">(ped:${it.pedido_cant})</span>`:'';
     const codigo=_productos.find(p=>p.id===it.id)?.codigo||'';
     const pesoCol=it.esPeso
-      ?`<input type="text" inputmode="decimal" data-idx="${i}" data-field="peso" value="${it.peso||''}" oninput="updItemRR(${i},'peso',this.value,this)" style="width:70px;${(it.peso||0)===0?'border-color:var(--W)':''}" placeholder="kg real" title="Peso real de balanza">`
+      ?`<input type="text" inputmode="decimal" data-idx="${i}" data-field="peso" value="${it.peso||''}" oninput="updItemRR(${i},'peso',this.value,this)" onkeydown="_rrItemKeydown(event,${i},'peso')" style="width:70px;${(it.peso||0)===0?'border-color:var(--W)':''}" placeholder="kg real" title="Peso real de balanza">`
       :`<span style="width:70px;display:inline-block;text-align:center;font-size:12px;color:var(--txt2)">—</span>`;
     return `<div class="pitem" style="${it.esPeso&&(it.peso||0)===0?'border:1px solid var(--W);background:var(--WL)':''}">
       <span style="width:55px;flex-shrink:0;text-align:center;font-size:11px;color:var(--txt2)">${codigo}</span>
       <span class="pnom">${it.nom}${it.esPeso?' <span class="b bA" style="font-size:10px">kg</span>':''} ${pedidoCant}</span>
       <select onchange="actualizarListaItemRR(${i},this.value)" style="width:72px;font-size:11px" title="Lista de precios para este producto">${_rrListaOptions(it.listaId)}</select>
-      <input type="text" inputmode="decimal" data-idx="${i}" data-field="cant" value="${it.cant}" oninput="updItemRR(${i},'cant',this.value,this)" style="width:58px" title="Cantidad">
+      <input type="text" inputmode="decimal" data-idx="${i}" data-field="cant" value="${it.cant}" oninput="updItemRR(${i},'cant',this.value,this)" onkeydown="_rrItemKeydown(event,${i},'cant')" style="width:58px" title="Cantidad">
       ${pesoCol}
-      <input type="text" inputmode="decimal" data-idx="${i}" data-field="precio" value="${it.precio}" oninput="updItemRR(${i},'precio',this.value,this)" style="width:88px;text-align:right">
+      <input type="text" inputmode="decimal" data-idx="${i}" data-field="precio" value="${it.precio}" oninput="updItemRR(${i},'precio',this.value,this)" onkeydown="_rrItemKeydown(event,${i},'precio')" style="width:88px;text-align:right">
       <span style="width:42px;text-align:center;font-size:11px;color:var(--txt2)">${it.dto?it.dto+'%':''}</span>
       <span class="ptot">${q>0?fmt(neto):'—'}</span>
-      <button class="btn D sm" onclick="delItemRR(${i})">🗑</button>
+      <button class="btn D sm" onclick="delItemRR(${i})" title="Eliminar (F7)">🗑</button>
     </div>`;
   }).join('');
   const header=`<div class="fx-grid-head" style="display:flex;gap:6px;padding:2px 8px 3px;font-size:10px;font-weight:700;text-transform:uppercase">
@@ -814,6 +853,7 @@ function limpiarRR(){
   const cc=document.getElementById('rr-cli-cod');if(cc){cc.value='';cc.style.borderColor='';}
   document.getElementById('rr-cli-info').style.display='none';
   document.getElementById('rr-obs').value='';
+  const rcn=document.getElementById('rr-carga-num');if(rcn)rcn.value='';
   const chip=document.getElementById('rr-pedido-chip');
   if(chip){chip.style.display='none';chip.innerHTML='';}
   renderItemsRR();
@@ -839,6 +879,7 @@ async function emitirRemitoRapido(){
   const c=_clientes.find(x=>x.id==cid);
   let tot=0;_rrItems.forEach(it=>{const q=it.esPeso?(it.peso||0):it.cant;tot+=it.precio*q*(1-it.dto/100);});
   tot=Math.round(tot*100)/100;
+  const cargaNumVal=document.getElementById('rr-carga-num')?.value.trim();
   const {data:rem,error}=await sb.from('remitos').insert({
     cliente_id:parseInt(cid),cliente:c?.nombre||'?',localidad:c?.localidad||'',
     zona:c?.zona||'',vendedor:document.getElementById('rr-ven').value||c?.vendedor||'',
@@ -847,7 +888,8 @@ async function emitirRemitoRapido(){
     observaciones:document.getElementById('rr-obs').value,
     lugar_entrega:document.getElementById('rr-lugar')?.value||'',
     direccion:c?.direccion||c?.domicilio||'',
-    telefono:c?.telefono||''
+    telefono:c?.telefono||'',
+    carga_id:cargaNumVal?(parseInt(cargaNumVal)||null):null
   }).select().single();
   if(error){alert('Error: '+error.message);return;}
   // Calcular total descuentos
