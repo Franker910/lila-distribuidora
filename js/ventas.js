@@ -557,6 +557,10 @@ function cargarItemsDePedido(pedId){
     div.textContent=`✅ ${_rrItems.length} productos cargados del pedido #${pedId}. Ajustá los pesos reales donde corresponda.`;
     info.appendChild(div);
   }
+  // Ese pedido ya está cargado: ocultar el chip "tiene pedido pendiente"
+  // para no invitar a usarlo de nuevo (quedaba confuso mostrar los dos a la vez).
+  const chip=document.getElementById('rr-pedido-chip');
+  if(chip){chip.style.display='none';chip.innerHTML='';}
 }
 
 function buscarPorCodigoRR(){
@@ -830,6 +834,8 @@ async function emitirRemitoRapido(){
   const cid=document.getElementById('rr-cli-id').value;
   if(!cid){alert('Seleccioná un cliente');return;}
   if(!_rrItems.length){alert('Agregá al menos un producto');return;}
+  const sinPeso=_rrItems.filter(it=>it.esPeso&&(it.peso||0)===0).length;
+  if(sinPeso){alert(`⚠️ Faltan ${sinPeso} peso(s) real(es) por cargar. Completá el peso de balanza antes de emitir — si no, ese producto se factura en $0.`);return;}
   const c=_clientes.find(x=>x.id==cid);
   let tot=0;_rrItems.forEach(it=>{const q=it.esPeso?(it.peso||0):it.cant;tot+=it.precio*q*(1-it.dto/100);});
   tot=Math.round(tot*100)/100;
