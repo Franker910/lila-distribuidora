@@ -711,6 +711,9 @@ function renderRendicion(){
 function renderListaHojasRuta(){
   const el=document.getElementById('rend-hr-lista');if(!el)return;
   const q=(document.getElementById('rend-hr-q')?.value||'').toLowerCase();
+  const num=(document.getElementById('rend-hr-num')?.value||'').trim();
+  const desde=document.getElementById('rend-hr-desde')?.value||'';
+  const hasta=document.getElementById('rend-hr-hasta')?.value||'';
   const grupos={};
   _hojaRutaTodas.forEach(r=>{
     const vend=(r.vendedor||'').trim()||'—';
@@ -719,7 +722,10 @@ function renderListaHojasRuta(){
     grupos[key].filas.push(r);
   });
   let lista=Object.values(grupos).sort((a,b)=>b.fecha.localeCompare(a.fecha)||a.vendedor.localeCompare(b.vendedor));
-  if(q)lista=lista.filter(g=>g.vendedor.toLowerCase().includes(q)||g.fecha.includes(q));
+  if(q)lista=lista.filter(g=>g.vendedor.toLowerCase().includes(q));
+  if(desde)lista=lista.filter(g=>g.fecha>=desde);
+  if(hasta)lista=lista.filter(g=>g.fecha<=hasta);
+  if(num)lista=lista.filter(g=>g.filas.some(f=>String(f.numero_rendicion||'').includes(num)));
   if(!lista.length){el.innerHTML='<div class="empty">No hay hojas de ruta cargadas.</div>';return;}
   el.innerHTML=lista.map(g=>{
     const cerrada=g.filas.length>0&&g.filas.every(f=>f.cerrada);
