@@ -429,16 +429,12 @@ function resumenCarga(id){
             <th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--brd)">Producto</th>
             <th style="padding:6px 10px;text-align:right;border-bottom:1px solid var(--brd)">Cant.</th>
             <th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--brd)">Unidad</th>
-            <th style="padding:6px 10px;text-align:center;border-bottom:1px solid var(--brd)">Peso real</th>
           </tr></thead>
           <tbody>
             ${(p.items||[]).map(it=>`<tr>
               <td style="padding:7px 10px;border-bottom:0.5px solid var(--brd)">${it.nom}</td>
               <td style="padding:7px 10px;border-bottom:0.5px solid var(--brd);text-align:right;font-weight:700">${fmtN(it.cant,2)}</td>
               <td style="padding:7px 10px;border-bottom:0.5px solid var(--brd);color:var(--txt2)">${it.un||''}</td>
-              <td style="padding:7px 10px;border-bottom:0.5px solid var(--brd);text-align:center">
-                ${(it.un||'').toLowerCase()==='kg'?`<input type="number" placeholder="0.00" step="0.01" style="width:80px;padding:3px 6px;border:1px solid var(--brd);border-radius:4px;text-align:center">`:'-'}
-              </td>
             </tr>`).join('')}
           </tbody>
         </table>
