@@ -676,6 +676,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="btn sm" onclick="cerrar('m-comprobante')">✕</button>
     </div>
   </div>
+  <div class="mb">
   <div id="comp-ia-status" style="display:none;padding:8px 18px;background:var(--AL);border-radius:6px;font-size:12px;color:var(--A);margin:6px 18px 0;text-align:center">🤖 Leyendo factura con IA...</div>
   <div class="mb">
     <div class="fr">
@@ -772,6 +773,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="comp-costos-lista" style="display:flex;flex-direction:column;gap:5px"></div>
       <button type="button" class="btn sm A" onclick="agregarItemCostoComp()" style="margin-top:8px">+ Agregar producto</button>
     </div>
+  </div>
   </div>
   <div class="mf">
     <button class="btn" onclick="cerrar('m-comprobante')">Cancelar</button>
@@ -2657,6 +2659,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="mbg" id="m-cliente">
 <div class="mdl" style="width:560px">
   <div class="mh"><h3 id="m-cli-title">Nuevo cliente</h3><button class="btn sm" onclick="cerrar('m-cliente')">✕</button></div>
+  <div class="mb">
   <div class="fr x2">
     <div class="fg" style="grid-column:1/-1"><label>Nombre / Razón social</label><input id="cli-nom" style="width:100%" placeholder="Nombre del cliente"></div>
     <div class="fg"><label>CUIT</label><input id="cli-cuit" style="width:100%" placeholder="20-12345678-9"></div>
@@ -2681,6 +2684,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
     <button class="btn" onclick="cerrar('m-cliente')">Cancelar</button>
     <button class="btn P" onclick="guardarCliente()">✓ Guardar</button>
+  </div>
   </div>
 </div>
 </div>
@@ -2787,6 +2791,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="mbg" id="m-pedido">
 <div class="mdl" style="width:700px;max-width:98vw">
   <div class="mh"><h3>Nuevo pedido</h3><button class="btn sm" onclick="cerrar('m-pedido')">✕</button></div>
+  <div class="mb">
   <div class="fr x2" style="margin-bottom:10px">
     <div class="fg drop-wrap">
       <label>Cliente &nbsp;<span style="font-size:10px;color:var(--txt2)">[código o nombre]</span></label>
@@ -2830,6 +2835,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="btn" onclick="cerrar('m-pedido')">Cancelar</button>
     <button class="btn P" onclick="guardarPedido()">✓ Confirmar pedido</button>
   </div>
+  </div>
 </div>
 </div>
 
@@ -2845,7 +2851,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="btn sm" onclick="cerrar('m-ver')">✕</button>
     </div>
   </div>
-  <div id="m-ver-body" style="font-size:13px"></div>
+  <div id="m-ver-body" class="mb" style="font-size:13px"></div>
 </div>
 </div>
 
@@ -2853,6 +2859,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="mbg" id="m-carga">
 <div class="mdl" style="width:600px;max-width:98vw">
   <div class="mh"><h3>Nueva carga</h3><button class="btn sm" onclick="cerrar('m-carga')">✕</button></div>
+  <div class="mb">
   <div class="fr x2" style="margin-bottom:10px">
     <div class="fg"><label>Fecha</label><input type="date" id="car-fecha" style="width:100%"></div>
     <div class="fg"><label>Chofer / Reparto</label><input id="car-chofer" style="width:100%" placeholder="Nombre del chofer"></div>
@@ -2863,6 +2870,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="btn" onclick="cerrar('m-carga')">Cancelar</button>
     <button class="btn P" onclick="guardarCarga()">✓ Guardar carga</button>
   </div>
+  </div>
 </div>
 </div>
 
@@ -2870,11 +2878,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="mbg" id="m-editar-carga">
 <div class="mdl" style="width:400px">
   <div class="mh"><h3>Editar ítem de carga</h3><button class="btn sm" onclick="cerrar('m-editar-carga')">✕</button></div>
+  <div class="mb">
   <div class="fg"><label>Cantidad</label><input type="number" id="ecar-cant" style="width:100%"></div>
   <input type="hidden" id="ecar-id">
   <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
     <button class="btn" onclick="cerrar('m-editar-carga')">Cancelar</button>
     <button class="btn P" onclick="guardarEditCarga()">✓ Guardar</button>
+  </div>
   </div>
 </div>
 </div>
@@ -2886,6 +2896,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <h3>📋 Nueva nota de crédito</h3>
     <button class="btn sm" onclick="cerrar('m-nc')">✕</button>
   </div>
+  <div class="mb">
 
   <!-- Modo: por factura completa o por producto -->
   <div style="display:flex;gap:8px;margin-bottom:14px;background:var(--bg2);padding:8px;border-radius:8px">
@@ -2994,6 +3005,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="btn" onclick="cerrar('m-nc')">Cancelar</button>
     <button class="btn P" onclick="guardarNC()">✓ Emitir nota de crédito</button>
   </div>
+  </div>
 </div>
 </div>
 
@@ -3004,6 +3016,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <h3>⚠️ Nueva nota de débito</h3>
     <button class="btn sm" onclick="cerrar('m-nd')">✕</button>
   </div>
+  <div class="mb">
   <div class="fr x2">
     <div class="fg"><label>Fecha</label><input type="date" id="nd-fecha" style="width:100%"></div>
     <div class="fg"><label>Motivo</label>
@@ -3043,6 +3056,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
     <button class="btn" onclick="cerrar('m-nd')">Cancelar</button>
     <button class="btn A" onclick="guardarND()">⚠️ Emitir nota de débito</button>
+  </div>
   </div>
 </div>
 </div>
@@ -3486,13 +3500,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260729-05"></script>
-<script src="js/maestros.js?v=20260729-05"></script>
-<script src="js/ventas.js?v=20260729-05"></script>
-<script src="js/tesoreria.js?v=20260729-05"></script>
-<script src="js/contabilidad.js?v=20260729-05"></script>
-<script src="js/informes.js?v=20260729-05"></script>
-<script src="js/logistica.js?v=20260729-05"></script>
+<script src="js/app.js?v=20260729-07"></script>
+<script src="js/maestros.js?v=20260729-07"></script>
+<script src="js/ventas.js?v=20260729-07"></script>
+<script src="js/tesoreria.js?v=20260729-07"></script>
+<script src="js/contabilidad.js?v=20260729-07"></script>
+<script src="js/informes.js?v=20260729-07"></script>
+<script src="js/logistica.js?v=20260729-07"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
