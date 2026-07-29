@@ -1,4 +1,5 @@
 // ─── LOGÍSTICA: cargas, remitos (despacho), hoja de ruta ───
+let _carNombreSugerido='';
 
 async function cargarRemitos(){const {data}=await sb.from('remitos').select('*').order('created_at',{ascending:false});_remitos=data||[];}
 
@@ -10,6 +11,9 @@ function mostrarNuevaCarga(){
   document.getElementById('carga-vista-nueva').style.display='block';
   const fecha=document.getElementById('car-fecha');
   if(fecha)fecha.value=new Date().toISOString().split('T')[0];
+  const nomEl=document.getElementById('car-nombre');
+  if(nomEl)nomEl.value='';
+  _carNombreSugerido='';
   // Poblar filtros
   const zonas=[...new Set(_pedidos.filter(p=>p.estado==='pendiente').map(p=>p.zona||'').filter(Boolean))].sort();
   const locs=[...new Set(_pedidos.filter(p=>p.estado==='pendiente').map(p=>p.localidad||'').filter(Boolean))].sort();
@@ -42,6 +46,12 @@ function actualizarResumenCarga(){
   const tot=peds.reduce((a,p)=>a+(p.total||0),0);
   const el=document.getElementById('car-resumen');
   if(el)el.innerHTML=`<b>${peds.length}</b> pedidos seleccionados · Total: <b style="color:var(--PD)">${fmt(tot)}</b>`;
+  // Sugerir nombre de carga según la zona, si todos los pedidos seleccionados son de la misma
+  const zonasSel=[...new Set(peds.map(p=>p.zona||'').filter(Boolean))];
+  const sugerido=zonasSel.length===1?nombreZona(zonasSel[0]):'';
+  const nomEl=document.getElementById('car-nombre');
+  if(nomEl&&(nomEl.value===''||nomEl.value===_carNombreSugerido))nomEl.value=sugerido;
+  _carNombreSugerido=sugerido;
 }
 
 async function loadPedsCarga(){
@@ -79,7 +89,7 @@ async function guardarCarga(){
   const tot=peds.reduce((a,p)=>a+p.total,0);
   const ven=document.getElementById('car-chofer')?.value||'';
   const fecha=document.getElementById('car-fecha')?.value||new Date().toISOString().split('T')[0];
-  const nombre=ven||'';
+  const nombre=document.getElementById('car-nombre')?.value.trim()||ven||'';
   ocultarNuevaCarga();
   const {data:carga,error}=await sb.from('cargas').insert({fecha,vendedor:ven,pedidos:pedIds,total:tot,estado:'armando',nombre}).select().single();
   if(error){alert('Error: '+error.message);return;}
