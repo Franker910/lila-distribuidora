@@ -129,7 +129,7 @@ function renderCargas(){
             ${cg.nombre?`<span class="ccard-nm">${cg.nombre}</span>`:''}
             ${cg.vendedor?`<span class="ccard-nm">— ${cg.vendedor}</span>`:''}
           </div>
-          <div class="ccard-sub">${(cg.pedidos||[]).length} pedidos · ${peds.map(p=>p.cliente).join(' · ')}</div>
+          <div class="ccard-sub">${(cg.pedidos||[]).length} pedidos · ${peds.slice(0,6).map(p=>p.cliente).join(' · ')}${peds.length>6?` · +${peds.length-6} más`:''}</div>
         </div>
         <div style="text-align:right"><div class="ccard-tot">${fmt(cg.total)}</div><span class="b ${cg.estado==='armando'?'bW':cg.estado==='lista'?'bA':cg.estado==='emitida'?'bP':'bP'}">${cg.estado}</span></div>
       </div>
