@@ -1218,7 +1218,7 @@ async function hrCerrarYGenerarRendicion(){
   if(_hrRuta.every(r=>r.cerrada)){alert('Esta hoja de ruta ya está cerrada.');return;}
   if(!confirm(`¿Cerrar la hoja de ruta de ${vend||'(todos)'} del ${fecha} y generar su rendición?\nLos cobros de estos clientes quedarán listos para aprobar en Rendición.`))return;
   const num=await _proximoNumeroRendicion();
-  const dq=sb.from('hoja_ruta').update({cerrada:true,numero_rendicion:num}).eq('fecha',fecha);
+  const dq=sb.from('hoja_ruta').update({cerrada:true,numero_rendicion:num,cerrado_por:usuarioActual?.nombre||''}).eq('fecha',fecha);
   if(vend)dq.eq('vendedor',vend);
   const {error}=await dq;
   if(error){alert('Error al cerrar: '+error.message);return;}
