@@ -619,18 +619,17 @@ function imprimirHojaCarga(){
     const codCliente=c.codigo||p.cliente_id||'';
     const filasProd=(p.items||[]).map((it,j)=>{
       const esPeso=(it.un||'').toLowerCase()==='kg';
-      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:1px 0;border-bottom:1px solid #000">'
+      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:2px 0;border-bottom:1px solid #000">'
         +'<span style="flex:1">'+(j+1)+'. '+it.cant+' × '+it.nom+'</span>'
-        +(esPeso?'<span style="border:1px solid #000;width:42px;height:13px;display:inline-block;flex-shrink:0"></span>':'')
+        +(esPeso?'<span style="border:1px solid #000;width:50px;height:16px;display:inline-block;flex-shrink:0"></span>':'')
       +'</div>';
     }).join('');
 
-    return '<div style="margin-bottom:8px;page-break-inside:avoid;border:1px solid #000;padding:3px 5px">'
-      +'<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1.5px solid #000;padding-bottom:2px;margin-bottom:2px">'
-        +'<div style="font-weight:900;font-size:12px">'+(i+1)+'. '+p.cliente+'</div>'
-        +'<div style="font-size:9px;font-weight:700">Vend: '+vendedor+'</div>'
-      +'</div>'
-      +'<div style="font-size:9px;margin-bottom:2px">Cód: '+codCliente+' · '+(p.localidad||c.localidad||'')+'</div>'
+    return '<div style="margin-bottom:12px;page-break-inside:avoid;border:1.5px solid #000;padding:5px 7px">'
+      +'<div style="font-weight:900;font-size:13px;border-bottom:1.5px solid #000;padding-bottom:3px;margin-bottom:3px">'+(i+1)+'. Cliente: '+p.cliente+'</div>'
+      +'<div style="font-size:11px;margin-bottom:1px">Código: '+codCliente+'</div>'
+      +'<div style="font-size:11px;margin-bottom:1px">Localidad: '+(p.localidad||c.localidad||'—')+'</div>'
+      +'<div style="font-size:11px;font-weight:700;margin-bottom:4px">Vendedor: '+vendedor+'</div>'
       +filasProd
     +'</div>';
   }).join('');
@@ -639,14 +638,15 @@ function imprimirHojaCarga(){
   w.document.write('<!DOCTYPE html><html><head><title>Hoja de Carga #'+cg.id+'</title>'
     +'<style>'
     +'*{box-sizing:border-box}'
-    +'body{font-family:Arial,sans-serif;padding:0;color:#000;font-size:10px;margin:0}'
-    +'@page{size:A4 portrait;margin:5mm}'
+    +'body{font-family:Arial,sans-serif;padding:0;color:#000;font-size:11px;margin:0}'
+    +'@page{size:A4 portrait;margin:6mm}'
     +'@media print{.no-print{display:none}*{color:#000!important;background:#fff!important}}'
-    +'.hc-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 6px}'
+    +'.hc-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;position:relative}'
+    +'.hc-grid::after{content:"";position:absolute;top:0;bottom:0;left:50%;border-left:1.5px solid #000}'
     +'</style></head><body>'
-    +'<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #000;padding-bottom:4px;margin-bottom:6px">'
-      +'<div style="font-size:13px;font-weight:900">DISTRIBUIDORA LILA — Hoja de Carga #'+cg.id+(cg.nombre?' · '+cg.nombre:'')+'</div>'
-      +'<div style="font-size:10px"><b>Repartidor:</b> '+vendedor+' &nbsp; <b>Fecha de reparto:</b> '+fecha+' &nbsp; <b>Zona/localidad:</b> '+zonasTxt+' &nbsp; <b>'+peds.length+' parada'+(peds.length===1?'':'s')+'</b></div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #000;padding-bottom:5px;margin-bottom:8px">'
+      +'<div style="font-size:14px;font-weight:900">DISTRIBUIDORA LILA — Hoja de Carga #'+cg.id+(cg.nombre?' · '+cg.nombre:'')+'</div>'
+      +'<div style="font-size:11px"><b>Repartidor:</b> '+vendedor+' &nbsp; <b>Fecha de reparto:</b> '+fecha+' &nbsp; <b>Zona/localidad:</b> '+zonasTxt+' &nbsp; <b>'+peds.length+' parada'+(peds.length===1?'':'s')+'</b></div>'
     +'</div>'
     +'<div class="hc-grid">'+bloques+'</div>'
     +'<div class="no-print" style="text-align:center;margin-top:16px">'
