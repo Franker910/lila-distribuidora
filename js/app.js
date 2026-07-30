@@ -60,7 +60,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260729-24';
+const APP_VERSION = '20260730-01';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -278,6 +278,12 @@ async function cargarTodo(){
 // forma calculaba mal "hoy" durante 3 horas todas las noches.
 function hoyLocal(){
   const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+// Fecha local de hace N días (N negativo = en el futuro), mismo criterio que hoyLocal().
+function hoyLocalOffset(dias){
+  const d=new Date();
+  d.setDate(d.getDate()+dias);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 function fmt(n){return '$'+(Math.round(n||0)).toLocaleString('es-AR');}

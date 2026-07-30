@@ -987,9 +987,12 @@ async function cargarHojaRutaRepartidor(){
   _hrClientesHoy=ids.length?ids:[];
 
   // Carga/reparto activo: no siempre reparte la misma persona, así que no
-  // se filtra por nombre de chofer — se muestran todas las cargas emitidas
-  // hoy y, si hay más de una, el repartidor elige cuál está haciendo.
-  _cargasHoyCandidatas=(_cargas||[]).filter(c=>c.estado==='emitida'&&c.fecha===hoy).sort((a,b)=>b.id-a.id);
+  // se filtra por nombre de chofer — se muestran las cargas emitidas de los
+  // últimos días (no solo las de HOY, para no perderlas de vista apenas
+  // pasa la medianoche mientras todavía se está cobrando) y, si hay más de
+  // una, el repartidor elige cuál está haciendo.
+  const desdeCarga=hoyLocalOffset(-3);
+  _cargasHoyCandidatas=(_cargas||[]).filter(c=>c.estado==='emitida'&&c.fecha>=desdeCarga).sort((a,b)=>b.id-a.id);
   if(_cargasHoyCandidatas.length===1) _cargaActivaHoy=_cargasHoyCandidatas[0];
   else if(!_cargasHoyCandidatas.some(c=>c.id===_cargaActivaHoy?.id)) _cargaActivaHoy=null;
 
