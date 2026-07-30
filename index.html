@@ -73,9 +73,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .login-error{color:var(--D);font-size:12px;margin-top:8px}
 
 /* APP */
-#app{display:none;flex-direction:column;height:100vh;overflow:hidden}
+#app{display:none;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
 .topbar{background:var(--P);color:#fff;padding:10px 18px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50}
-.app-layout{display:flex;flex:1;height:calc(100vh - 42px);overflow:hidden;gap:0}
+.app-layout{display:flex;flex:1;height:calc(100vh - 42px);height:calc(100dvh - 42px);overflow:hidden;gap:0}
 .sidebar{position:fixed;top:42px;left:0;bottom:0;width:200px;min-width:200px;background:var(--PD);overflow-y:auto;z-index:200;transform:translateX(-100%);transition:transform .25s ease;box-shadow:2px 0 16px rgba(0,0,0,.3)}
 .sidebar.open{transform:translateX(0)}
 .sidebar-overlay{position:fixed;inset:0;top:42px;background:rgba(0,0,0,.45);z-index:150;opacity:0;pointer-events:none;transition:opacity .25s ease}
@@ -3526,13 +3526,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260729-23"></script>
-<script src="js/maestros.js?v=20260729-23"></script>
-<script src="js/ventas.js?v=20260729-23"></script>
-<script src="js/tesoreria.js?v=20260729-23"></script>
-<script src="js/contabilidad.js?v=20260729-23"></script>
-<script src="js/informes.js?v=20260729-23"></script>
-<script src="js/logistica.js?v=20260729-23"></script>
+<script src="js/app.js?v=20260729-24"></script>
+<script src="js/maestros.js?v=20260729-24"></script>
+<script src="js/ventas.js?v=20260729-24"></script>
+<script src="js/tesoreria.js?v=20260729-24"></script>
+<script src="js/contabilidad.js?v=20260729-24"></script>
+<script src="js/informes.js?v=20260729-24"></script>
+<script src="js/logistica.js?v=20260729-24"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
