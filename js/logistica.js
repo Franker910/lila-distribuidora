@@ -980,19 +980,42 @@ async function cargarHojaRutaRepartidor(){
   const ids=(data||[]).map(r=>r.cliente_id).filter(Boolean);
   _hrClientesHoy=ids.length?ids:[];
 
-  // Carga/reparto activo: la carga emitida hoy a nombre de este chofer/repartidor
-  const candidatas=(_cargas||[]).filter(c=>c.estado==='emitida'&&c.fecha===hoy&&(c.vendedor||'').toLowerCase()===nombre.toLowerCase());
-  _cargaActivaHoy=candidatas.length?candidatas.sort((a,b)=>b.id-a.id)[0]:null;
+  // Carga/reparto activo: no siempre reparte la misma persona, así que no
+  // se filtra por nombre de chofer — se muestran todas las cargas emitidas
+  // hoy y, si hay más de una, el repartidor elige cuál está haciendo.
+  _cargasHoyCandidatas=(_cargas||[]).filter(c=>c.estado==='emitida'&&c.fecha===hoy).sort((a,b)=>b.id-a.id);
+  if(_cargasHoyCandidatas.length===1) _cargaActivaHoy=_cargasHoyCandidatas[0];
+  else if(!_cargasHoyCandidatas.some(c=>c.id===_cargaActivaHoy?.id)) _cargaActivaHoy=null;
 
-  // Mostrar badge indicador
+  _renderRutaBadge(ids.length);
+}
+
+let _cargasHoyCandidatas=[];
+
+function _renderRutaBadge(cantClientesRuta){
   const badge=document.getElementById('cobm-ruta-badge');
-  if(badge){
-    const partes=[];
-    partes.push(ids.length?`📍 Ruta del día: ${ids.length} cliente${ids.length>1?'s':''}`:'⚠️ Sin hoja de ruta hoy — mostrando todos tus clientes');
-    partes.push(_cargaActivaHoy?`🚚 ${_cargaActivaHoy.nombre||'Reparto #'+_cargaActivaHoy.id}`:'⚠️ Sin reparto emitido hoy — el cobro no quedará vinculado a una carga');
-    badge.textContent=partes.join(' · ');
+  if(!badge)return;
+  const rutaTxt=cantClientesRuta?`📍 Ruta del día: ${cantClientesRuta} cliente${cantClientesRuta>1?'s':''}`:'⚠️ Sin hoja de ruta hoy — mostrando todos tus clientes';
+  if(_cargasHoyCandidatas.length>1&&!_cargaActivaHoy){
+    // Varias cargas emitidas hoy y ninguna elegida todavía: elegir.
+    badge.innerHTML=`<div style="margin-bottom:6px">${rutaTxt}</div>
+      <div style="font-weight:700;margin-bottom:4px">🚚 ¿Qué carga estás repartiendo?</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        ${_cargasHoyCandidatas.map(c=>`<button onclick="elegirCargaActiva(${c.id})" style="text-align:left;padding:7px 10px;border-radius:6px;border:1.5px solid var(--P);background:#fff;color:var(--P);font-weight:600;font-family:inherit;cursor:pointer">Carga #${c.id}${c.nombre?' · '+c.nombre:''}</button>`).join('')}
+      </div>`;
     badge.style.display='block';
+    return;
   }
+  const partes=[rutaTxt];
+  if(_cargaActivaHoy)partes.push(`🚚 ${_cargaActivaHoy.nombre||'Reparto #'+_cargaActivaHoy.id}${_cargasHoyCandidatas.length>1?' <a href="#" onclick="event.preventDefault();_cargaActivaHoy=null;_renderRutaBadge('+cantClientesRuta+')" style="color:inherit;text-decoration:underline">(cambiar)</a>':''}`);
+  else partes.push('⚠️ Sin reparto emitido hoy — el cobro no quedará vinculado a una carga');
+  badge.innerHTML=partes.join(' · ');
+  badge.style.display='block';
+}
+
+function elegirCargaActiva(cargaId){
+  _cargaActivaHoy=_cargasHoyCandidatas.find(c=>c.id===cargaId)||null;
+  _renderRutaBadge((_hrClientesHoy||[]).length);
 }
 
 // ─── HOJA DE RUTA ──────────────────────────────────────────────
