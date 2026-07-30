@@ -116,6 +116,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .body{flex:1;padding:14px;overflow-y:auto;min-width:0;min-height:0;scroll-behavior:smooth}
 .panel{display:none!important;width:100%;box-sizing:border-box}.panel.on{display:block!important;width:100%}#p-informes.on,#p-cuentas.on,#p-remitos.on,#p-remito-rapido.on,#p-clientes.on,#p-productos.on{display:flex!important;flex-direction:column;height:100%;overflow:hidden}
 #p-rendicion.on{display:flex!important;flex-direction:column;height:100%;overflow:hidden}
+#p-hoja-ruta.on{display:flex!important;flex-direction:column;height:100%;overflow:hidden}
 #p-tesoreria.on{display:flex!important;justify-content:center}
 #p-tesoreria>.doc-window{max-width:1100px;width:100%;min-width:0}
 #p-rendicion.on .rend-scroll{flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;align-items:center}
@@ -3243,7 +3244,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <!-- HOJA DE RUTA -->
 <div class="panel" id="p-hoja-ruta">
-  <div style="padding:0 0 16px;display:flex;align-items:center;gap:8px">
+  <div style="padding:0 0 16px;display:flex;align-items:center;gap:8px;flex-shrink:0">
     <button onclick="go('vendedor-home')" id="hr-btn-volver"
       style="display:none;min-width:48px;min-height:48px;padding:0 10px 0 4px;background:none;border:none;cursor:pointer;color:var(--PD);flex-shrink:0;align-items:center;gap:4px;border-radius:10px;-webkit-tap-highlight-color:transparent"
       aria-label="Volver al inicio">
@@ -3253,12 +3254,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <!-- TABS: Admin / Mi ruta (vendedor) -->
-  <div style="display:flex;gap:8px;margin-bottom:16px" id="hr-tabs">
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-shrink:0" id="hr-tabs">
     <button id="hr-tab-admin" onclick="hrTab('admin')"
       style="flex:1;min-height:48px;padding:10px 14px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--P);background:var(--P);color:#fff;-webkit-tap-highlight-color:transparent">🛠 Armar ruta (Admin)</button>
     <button id="hr-tab-mia" onclick="hrTab('mia')"
       style="flex:1;min-height:48px;padding:10px 14px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--brd);background:var(--bg);color:var(--txt);-webkit-tap-highlight-color:transparent">📱 Mi ruta</button>
   </div>
+
+  <!-- Área scrollable: solo esto se mueve, el header/tabs de arriba quedan fijos -->
+  <div style="flex:1;overflow-y:auto;min-height:0">
 
   <!-- PANEL ADMIN: armar la ruta del día -->
   <div id="hr-panel-admin">
@@ -3313,6 +3317,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
     <div id="hr-mia-lista" style="margin-top:8px"><div class="empty">Sin clientes asignados para hoy</div></div>
+  </div>
+
   </div>
 </div>
 
@@ -3526,13 +3532,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260730-01"></script>
-<script src="js/maestros.js?v=20260730-01"></script>
-<script src="js/ventas.js?v=20260730-01"></script>
-<script src="js/tesoreria.js?v=20260730-01"></script>
-<script src="js/contabilidad.js?v=20260730-01"></script>
-<script src="js/informes.js?v=20260730-01"></script>
-<script src="js/logistica.js?v=20260730-01"></script>
+<script src="js/app.js?v=20260730-02"></script>
+<script src="js/maestros.js?v=20260730-02"></script>
+<script src="js/ventas.js?v=20260730-02"></script>
+<script src="js/tesoreria.js?v=20260730-02"></script>
+<script src="js/contabilidad.js?v=20260730-02"></script>
+<script src="js/informes.js?v=20260730-02"></script>
+<script src="js/logistica.js?v=20260730-02"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
