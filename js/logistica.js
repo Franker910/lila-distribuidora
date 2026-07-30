@@ -619,7 +619,7 @@ function imprimirHojaCarga(){
     const codCliente=c.codigo||p.cliente_id||'';
     const filasProd=(p.items||[]).map((it,j)=>{
       const esPeso=(it.un||'').toLowerCase()==='kg';
-      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:2px 0;border-bottom:1px solid #000">'
+      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #000">'
         +'<span style="flex:1">'+(j+1)+'. '+it.cant+' × '+it.nom+'</span>'
         +(esPeso?'<span style="border:1px solid #000;width:50px;height:16px;display:inline-block;flex-shrink:0"></span>':'')
       +'</div>';
