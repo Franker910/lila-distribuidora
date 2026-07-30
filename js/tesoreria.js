@@ -1101,6 +1101,7 @@ function imprimirRecibo(id){
     @media print{button,.no-print{display:none}}
   </style></head><body>
 
+  <div id="recibo-print-area" style="background:#fff">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px">
     <div>
       <div style="font-size:22px;font-weight:bold">DISTRIBUIDORA LILA</div>
@@ -1146,16 +1147,43 @@ function imprimirRecibo(id){
   <div style="margin-top:50px;text-align:center;font-size:14px">
     <div style="border-top:1px solid #000;width:260px;margin:0 auto;padding-top:6px">Firma del cliente</div>
   </div>
+  </div>
 
   <div class="no-print" style="text-align:center;margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
     <button onclick="window.print()" style="padding:10px 20px;background:#1a7a52;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:15px">🖨️ Imprimir</button>
-    <button id="btn-compartir-rec" style="padding:10px 20px;background:#1a6fa8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:15px">📤 Compartir</button>
+    <button id="btn-compartir-rec" style="padding:10px 20px;background:#1a6fa8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:15px">📤 Compartir como imagen</button>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"><\/script>
   <script>
     document.getElementById('btn-compartir-rec').onclick=function(){
       var texto=${JSON.stringify(textoCompartir)};
-      if(navigator.share){navigator.share({title:'Recibo ${nro}',text:texto}).catch(function(){});}
-      else{navigator.clipboard&&navigator.clipboard.writeText(texto);alert('Copiado — pegalo en WhatsApp (tu navegador no permite compartir directo).');}
+      var btn=this; var textoOriginal=btn.textContent;
+      btn.textContent='Generando...'; btn.disabled=true;
+      function volver(){btn.textContent=textoOriginal;btn.disabled=false;}
+      if(typeof html2canvas==='undefined'){
+        // La librería no cargó (sin internet, bloqueada, etc.) — compartir solo texto.
+        if(navigator.share){navigator.share({title:'Recibo ${nro}',text:texto}).catch(function(){});}
+        else{navigator.clipboard&&navigator.clipboard.writeText(texto);alert('Copiado — pegalo en WhatsApp.');}
+        volver();return;
+      }
+      html2canvas(document.getElementById('recibo-print-area'),{scale:2,backgroundColor:'#ffffff'}).then(function(canvas){
+        canvas.toBlob(function(blob){
+          if(!blob){volver();return;}
+          var file=new File([blob],'recibo-${nro}.png',{type:'image/png'});
+          if(navigator.canShare&&navigator.canShare({files:[file]})){
+            navigator.share({files:[file],title:'Recibo ${nro}',text:texto}).catch(function(){}).then(volver);
+          } else if(navigator.share){
+            navigator.share({title:'Recibo ${nro}',text:texto}).catch(function(){});
+            volver();
+          } else {
+            var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='recibo-${nro}.png';a.click();
+            alert('Se descargó la imagen del recibo — compartila desde tu galería.');
+            volver();
+          }
+        },'image/png');
+      }).catch(function(){volver();alert('No se pudo generar la imagen — se comparte como texto.');
+        if(navigator.share)navigator.share({title:'Recibo ${nro}',text:texto}).catch(function(){});
+      });
     };
   <\/script>
   </body></html>`);

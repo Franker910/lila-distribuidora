@@ -60,7 +60,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260730-16';
+const APP_VERSION = '20260730-17';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -286,7 +286,7 @@ function hoyLocalOffset(dias){
   d.setDate(d.getDate()+dias);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
-function fmt(n){return '$'+(Math.round(n||0)).toLocaleString('es-AR');}
+function fmt(n){return '$'+((Math.round(n||0))||0).toLocaleString('es-AR');}
 
 function fmtN(n,d=2){return (n||0).toFixed(d);}
 
