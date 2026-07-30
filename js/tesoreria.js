@@ -81,6 +81,7 @@ function detalleHTML(d,isRem){
         <div style="font-size:16px;font-weight:700;color:#1a7a52">${num}</div>
         <div style="color:#555">Fecha: ${d.fecha||''}</div>
         ${d.vendedor?`<div style="color:#555">Vendedor: ${d.vendedor}</div>`:''}
+        ${isRem&&d.carga_id?`<div style="color:#555">Carga: #${d.carga_id}${_cargas.find(c=>c.id===d.carga_id)?.nombre?' · '+_cargas.find(c=>c.id===d.carga_id).nombre:''}</div>`:''}
       </div>
       <div style="text-align:right;border-left:3px solid #1a7a52;padding-left:12px">
         <div style="font-weight:700;font-size:14px">${d.cliente}</div>
@@ -1403,6 +1404,10 @@ function histCliente(id){
 }
 
 async function initRendicion(){
+  // Por defecto, últimos 7 días — si no, se acumula todo el historial de
+  // hojas de ruta (muchas de una sola parada, abiertas y ya sin uso).
+  const desdeEl=document.getElementById('rend-hr-desde');
+  if(desdeEl&&!desdeEl.value)desdeEl.value=hoyLocalOffset(-7);
   await Promise.all([cargarHojaRutaTodas(),cargarGastosReparto()]);
   renderRendicion();
 }
