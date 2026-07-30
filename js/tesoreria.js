@@ -1101,7 +1101,7 @@ function imprimirRecibo(id){
     @media print{button,.no-print{display:none}}
   </style></head><body>
 
-  <div id="recibo-print-area" style="background:#fff">
+  <div id="recibo-print-area" style="background:#fff;padding:26px;border:1px solid #ddd;border-radius:14px">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px">
     <div>
       <div style="font-size:22px;font-weight:bold">DISTRIBUIDORA LILA</div>
