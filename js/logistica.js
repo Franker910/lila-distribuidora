@@ -1355,7 +1355,12 @@ async function _asegurarHojaRutaParaCobro(clienteId,fecha,vendedor,visitado=true
 // completa (cobrado o no), no solo los que ya tienen un cobro cargado.
 async function _generarHojaRutaParaCarga(cargaId){
   const cg=_cargas.find(x=>x.id===cargaId);if(!cg)return;
-  const fecha=cg.fecha||hoyLocal();
+  // Usar la fecha de HOY (no la "fecha de reparto" de la carga): los cobros
+  // ya cargados quedan fechados con el día real en que se cobraron, que
+  // puede no coincidir con la fecha de reparto planeada al armar la carga.
+  // Si no coinciden, esto generaba un grupo nuevo separado en vez de sumarse
+  // a la hoja de ruta donde ya están los cobros.
+  const fecha=hoyLocal();
   const peds=_pedidosDeCarga(cargaId);
   for(const p of peds){
     const vend=(p.vendedor||cg.vendedor||'').trim();
