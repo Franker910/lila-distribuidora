@@ -897,7 +897,8 @@ async function emitirRemitoRapido(){
     lugar_entrega:document.getElementById('rr-lugar')?.value||'',
     direccion:c?.direccion||c?.domicilio||'',
     telefono:c?.telefono||'',
-    carga_id:cargaNumVal?(parseInt(cargaNumVal)||null):null
+    carga_id:cargaNumVal?(parseInt(cargaNumVal)||null):null,
+    pedido_id:_rrPedidoId||null
   }).select().single();
   if(error){alert('Error: '+error.message);return;}
   // Calcular total descuentos
@@ -930,7 +931,10 @@ async function emitirRemitoRapido(){
     await sb.from('asientos_detalle').insert(detalle);
   }
   await descontarStock(_rrItems);
-  if(_rrPedidoId){await sb.from('pedidos').update({estado:'remitado',remito_id:rem.id}).eq('id',_rrPedidoId);}
+  if(_rrPedidoId){
+    const {error:errPed}=await sb.from('pedidos').update({estado:'remitado',remito_id:rem.id}).eq('id',_rrPedidoId);
+    if(errPed)alert('⚠️ El remito se grabó pero no se pudo marcar el pedido como remitado: '+errPed.message);
+  }
   await Promise.all([cargarRemitos(),cargarClientes(),cargarProductos(),cargarPedidos()]);
   limpiarRR();
   // En modo facturar carga el foco lo maneja _facturarSiguientePedidoCarga():
