@@ -1041,9 +1041,9 @@ function hrInit(){
   const sel = document.getElementById('hr-vendedor');
   const vens = [...new Set(_clientes.map(c=>c.vendedor||'').filter(Boolean))].sort();
   sel.innerHTML = '<option value="">— Todos —</option>' + vens.map(v=>`<option value="${v}">${v}</option>`).join('');
-  // Si soy vendedor, pre-seleccionar mi nombre y mostrar botón volver
+  // Si soy vendedor o repartidor, pre-seleccionar mi nombre y mostrar botón volver
   const btnVolver = document.getElementById('hr-btn-volver');
-  if(usuarioActual?.rol==='vendedor'){
+  if(usuarioActual?.rol==='vendedor'||usuarioActual?.rol==='repartidor'){
     sel.value=usuarioActual.nombre||'';sel.disabled=true;
     if(btnVolver){btnVolver.style.display='flex';btnVolver.style.alignItems='center';}
     hrTab('mia');
