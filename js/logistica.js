@@ -1184,7 +1184,41 @@ async function hrVerMiRuta(){
     if(buscador) buscador.style.display='none';
   }
   const el = document.getElementById('hr-mia-lista');
-  if(!ruta.length){el.innerHTML='<div class="empty">Sin clientes asignados para hoy</div>';return;}
+  if(!ruta.length){
+    // No hay hoja de ruta armada a mano — ofrecer la carga del día como
+    // alternativa (misma carga que se usa en Cobranza → Facturar con pesaje).
+    await cargarHojaRutaRepartidor();
+    if(_cargasHoyCandidatas.length>1&&!_cargaActivaHoy){
+      el.innerHTML=`<div class="empty" style="margin-bottom:10px">Sin hoja de ruta armada para hoy</div>
+        <div style="font-weight:700;margin-bottom:6px">🚚 ¿Qué carga estás repartiendo?</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${_cargasHoyCandidatas.map(c=>`<button onclick="elegirCargaActiva(${c.id});hrVerMiRuta()" style="text-align:left;padding:10px 12px;border-radius:10px;border:1.5px solid var(--P);background:#fff;color:var(--P);font-weight:700;font-family:inherit;cursor:pointer">Carga #${c.id}${c.nombre?' · '+c.nombre:''}</button>`).join('')}
+        </div>`;
+      return;
+    }
+    if(_cargaActivaHoy){
+      const peds=_pedidosDeCarga(_cargaActivaHoy.id);
+      el.innerHTML=`<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">🚚 Carga #${_cargaActivaHoy.id}${_cargaActivaHoy.nombre?' · '+_cargaActivaHoy.nombre:''} — sin hoja de ruta armada, mostrando sus clientes`
+        +(_cargasHoyCandidatas.length>1?` · <a href="#" onclick="event.preventDefault();_cargaActivaHoy=null;hrVerMiRuta()" style="color:var(--P)">cambiar</a>`:'')+'</div>'
+        +peds.map((p,i)=>{
+          const rem=p.remito_id?_remitos.find(r=>r.id===p.remito_id):null;
+          const cobrado=rem?.cobrado;
+          const c=_clientes.find(x=>x.id===p.cliente_id);
+          return `<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:${cobrado?'var(--PL)':'var(--bg)'};border-radius:14px;margin-bottom:8px;border:2px solid ${cobrado?'var(--P)':'var(--brd)'}">
+            <div style="font-size:24px;font-weight:700;min-width:44px;text-align:center;color:${cobrado?'var(--P)':'var(--txt2)'}">${cobrado?'✓':i+1}</div>
+            <div onclick="hrIrACobrar(${p.cliente_id})" style="flex:1;min-width:0;cursor:pointer">
+              <div style="font-weight:700;font-size:16px;${cobrado?'text-decoration:line-through;color:var(--txt2)':''}">${p.cliente}</div>
+              ${c?.direccion||p.localidad?`<div style="font-size:12px;color:var(--txt2);margin-top:2px">${[c?.direccion,p.localidad].filter(Boolean).join(' · ')}</div>`:''}
+              ${c?.telefono?`<a href="tel:${c.telefono.replace(/\D/g,'')}" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;font-size:13px;color:var(--P);font-weight:600;text-decoration:none;padding:4px 10px;background:var(--PL);border-radius:8px">📞 ${c.telefono}</a>`:''}
+            </div>
+            <div onclick="hrIrACobrar(${p.cliente_id})" style="font-size:12px;color:var(--P);text-align:right;flex-shrink:0;font-weight:700;cursor:pointer;min-width:58px;padding:8px 4px">${cobrado?'Cobrar<br>de nuevo':'💵 Cobrar'}</div>
+          </div>`;
+        }).join('');
+      return;
+    }
+    el.innerHTML='<div class="empty">Sin clientes asignados para hoy</div>';
+    return;
+  }
   el.innerHTML = (cerrada?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">🔒 Ruta cerrada — ya se generó su rendición</div>':'') + ruta.map((r,i)=>`
     <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:${r.visitado?'var(--PL)':'var(--bg)'};border-radius:14px;margin-bottom:8px;border:2px solid ${r.visitado?'var(--P)':'var(--brd)'};transition:background .15s">
       <div onclick="hrMarcarVisitado(${r.id},${!r.visitado})" title="Tocar para marcar visitado sin cobrar"
