@@ -53,14 +53,14 @@ const MENUS_REPARTIDOR=['vendedor-home','cobranza','hoja-ruta','nc'];
 let usuarioActual = null;
 
 // ─── ESTADO LOCAL ───
-let _clientes=[], _productos=[], _pedidos=[], _pedidosTodos=[], _remitos=[], _cobros=[], _cargas=[];
+let _clientes=[], _productos=[], _pedidos=[], _pedidosTodos=[], _remitos=[], _cobros=[], _cargas=[], _gastosReparto=[];
 
 let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260730-02';
+const APP_VERSION = '20260730-03';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -264,7 +264,7 @@ async function cargarTodo(){
   // Guardar HTML original del panel pedido-movil
   const pmPanel = document.getElementById('p-pedido-movil');
   if(pmPanel && !window._pmPanelOriginal) window._pmPanelOriginal = pmPanel.innerHTML;
-  await Promise.all([cargarClientes(),cargarProductos(),cargarPedidos(),cargarRemitos(),cargarCobros(),cargarCargas(),cargarGastos(),cargarProveedores(),cargarZonas(),cargarComprobantes(),cargarListasPrecios(),cargarNCs()]);
+  await Promise.all([cargarClientes(),cargarProductos(),cargarPedidos(),cargarRemitos(),cargarCobros(),cargarCargas(),cargarGastos(),cargarGastosReparto(),cargarProveedores(),cargarZonas(),cargarComprobantes(),cargarListasPrecios(),cargarNCs()]);
   renderDash();renderPedidos();renderClientes();renderProductos();renderProveedores();renderRemitos();renderCobros();renderCC();renderCargas();renderGastos();renderNCs();
   poblarZonas();
   // Asegurar que el panel activo sea el correcto

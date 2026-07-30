@@ -1027,6 +1027,57 @@ function elegirCargaActiva(cargaId){
   _renderRutaBadge((_hrClientesHoy||[]).length);
 }
 
+async function cargarGastosReparto(){
+  const {data}=await sb.from('gastos_reparto').select('*').order('created_at',{ascending:false});
+  _gastosReparto=data||[];
+}
+
+// Carga rápida de gastos de reparto (celu, "Mi ruta") — un botón por preset,
+// importe con teclado numérico, todo en 2 toques.
+function hrAbrirGasto(concepto){
+  const body=`<div class="fg"><label>Importe</label><input type="number" inputmode="decimal" id="hrg-imp" placeholder="0" style="width:100%;font-size:20px;font-weight:700;text-align:center" autofocus></div>
+    <div class="fg" style="margin-top:8px"><label>Proveedor (opcional)</label><input id="hrg-prov" style="width:100%" placeholder="Ej: YPF, gomería Pérez..."></div>
+    <button class="btn P" style="width:100%;margin-top:14px;min-height:48px;font-size:15px" onclick="hrGuardarGasto('${concepto}')">✓ Guardar gasto</button>`;
+  popupDetalle('⛽ '+concepto,'',body);
+  setTimeout(()=>document.getElementById('hrg-imp')?.focus(),50);
+}
+
+async function hrGuardarGasto(concepto){
+  const imp=parseFloat(document.getElementById('hrg-imp')?.value)||0;
+  if(imp<=0){alert('Ingresá el importe');return;}
+  const prov=document.getElementById('hrg-prov')?.value.trim()||'';
+  const fecha=document.getElementById('hr-fecha-mia')?.value||hoyLocal();
+  const vendedor=usuarioActual?.nombre||'';
+  const {error}=await sb.from('gastos_reparto').insert({fecha,vendedor,concepto,proveedor:prov,importe:imp});
+  document.getElementById('detalle-popup')?.remove();
+  if(error){alert('Error al guardar: '+error.message);return;}
+  await cargarGastosReparto();
+  _renderGastosHoy();
+}
+
+async function hrEliminarGasto(id){
+  if(!confirm('¿Eliminar este gasto?'))return;
+  await sb.from('gastos_reparto').delete().eq('id',id);
+  await cargarGastosReparto();
+  _renderGastosHoy();
+}
+
+function _renderGastosHoy(){
+  const fecha=document.getElementById('hr-fecha-mia')?.value||hoyLocal();
+  const vendedor=usuarioActual?.nombre||'';
+  const gastos=(_gastosReparto||[]).filter(g=>g.fecha===fecha&&(g.vendedor||'').toLowerCase()===vendedor.toLowerCase());
+  const total=gastos.reduce((a,g)=>a+(g.importe||0),0);
+  const totalEl=document.getElementById('hr-mia-gastos-total');
+  if(totalEl)totalEl.textContent=fmt(total);
+  const listaEl=document.getElementById('hr-mia-gastos-lista');
+  if(listaEl){
+    listaEl.innerHTML=gastos.map(g=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;color:var(--txt2)">
+      <span>${g.concepto}${g.proveedor?' · '+g.proveedor:''}</span>
+      <span style="display:flex;align-items:center;gap:6px"><b style="color:var(--txt)">${fmt(g.importe)}</b><button onclick="hrEliminarGasto(${g.id})" style="background:none;border:none;color:var(--D);cursor:pointer;font-size:14px;padding:2px 4px">✕</button></span>
+    </div>`).join('');
+  }
+}
+
 // ─── HOJA DE RUTA ──────────────────────────────────────────────
 let _hrRuta = [];
 
@@ -1170,7 +1221,11 @@ async function hrCerrarYGenerarRendicion(){
   for(const cid of clienteIds){
     await sb.from('cobros').update({numero_rendicion:num}).eq('cliente_id',cid).eq('fecha',fecha).is('numero_rendicion',null);
   }
-  await cargarCobros();
+  // Los gastos de reparto cargados ese día (por ese vendedor) quedan bajo la misma rendición.
+  const gq=sb.from('gastos_reparto').update({numero_rendicion:num}).eq('fecha',fecha).is('numero_rendicion',null);
+  if(vend)gq.eq('vendedor',vend);
+  await gq;
+  await Promise.all([cargarCobros(),cargarGastosReparto()]);
   alert(`✅ Hoja de ruta cerrada — Rendición #${num} generada.`);
   hrCargarRuta();
 }
@@ -1181,6 +1236,7 @@ async function hrVerMiRuta(){
   const fecha = document.getElementById('hr-fecha-mia').value;
   const vend = usuarioActual?.nombre||'';
   if(!fecha) return;
+  _renderGastosHoy();
   const q = sb.from('hoja_ruta').select('*').eq('fecha',fecha);
   if(vend) q.eq('vendedor',vend);
   const {data} = await q.order('orden');

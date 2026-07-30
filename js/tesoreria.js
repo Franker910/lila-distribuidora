@@ -836,6 +836,9 @@ function renderGrillaRendicion(){
   const pct=totalClientes?Math.round(cobrados/totalClientes*100):0;
   const totalRemitos=filas.reduce((a,f)=>a+f.importeRemito,0);
   const totalCobrado=filas.reduce((a,f)=>a+f.importeCobrado,0);
+  const gastos=(_gastosReparto||[]).filter(g=>g.fecha===fecha&&(g.vendedor||'').toLowerCase()===vendedor.toLowerCase());
+  const totalGastos=gastos.reduce((a,g)=>a+(g.importe||0),0);
+  const liquido=totalCobrado-totalGastos;
   const resEl=document.getElementById('rend-resumen');
   if(resEl)resEl.innerHTML=`
     <div class="g4">
@@ -843,7 +846,21 @@ function renderGrillaRendicion(){
       <div class="card"><div style="font-size:11px;color:var(--txt2)">COBRADOS</div><div style="font-size:20px;font-weight:700">${cobrados} <span style="font-size:13px;color:var(--txt2)">(${pct}%)</span></div></div>
       <div class="card"><div style="font-size:11px;color:var(--txt2)">TOTAL REMITOS</div><div style="font-size:20px;font-weight:700">${fmt(totalRemitos)}</div></div>
       <div class="card"><div style="font-size:11px;color:var(--txt2)">TOTAL COBRADO</div><div style="font-size:20px;font-weight:700;color:var(--P)">${fmt(totalCobrado)}</div></div>
-    </div>`;
+    </div>
+    ${gastos.length?`
+    <div class="card" style="margin-top:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;margin-bottom:8px">⛽ Gastos de reparto</div>
+      ${gastos.map(g=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:var(--txt2)"><span>${g.concepto}${g.proveedor?' · '+g.proveedor:''}</span><span>${fmt(g.importe)}</span></div>`).join('')}
+      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--brd);margin-top:8px;padding-top:8px;font-size:13px;font-weight:700">
+        <span>Total cobrado</span><span>${fmt(totalCobrado)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:var(--D)">
+        <span>− Total gastos</span><span>${fmt(totalGastos)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:800;color:var(--P);border-top:2px solid var(--brd);margin-top:6px;padding-top:6px">
+        <span>LÍQUIDO A RENDIR</span><span>${fmt(liquido)}</span>
+      </div>
+    </div>`:''}`;
 }
 
 function rendToggleAll(cb){
@@ -1026,13 +1043,17 @@ function imprimirRecibo(id){
   if((r.transferencia||0)>0)medios.push(['Transferencia',r.transferencia]);
   if((r.cheque_propio||0)>0)medios.push(['Cheque propio',r.cheque_propio]);
   if((r.cheque_terceros||0)>0)medios.push([`Cheque de terceros${r.banco_cheque?' ('+r.banco_cheque+')':''}${r.nro_cheque?' Nro:'+r.nro_cheque:''}`,r.cheque_terceros]);
-  if((r.retencion_ganancias||0)>0)medios.push(['Ret. Ganancias',r.retencion_ganancias]);
-  if((r.retencion_ing_brutos||0)>0)medios.push(['Ret. Ing. Brutos',r.retencion_ing_brutos]);
-  if((r.retencion_otras||0)>0)medios.push(['Otras retenciones',r.retencion_otras]);
   const filasMedios=medios.map(([label,val])=>`
     <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #000;font-size:12px">
       <span>${label}</span><span>${fmt(val)}</span>
     </div>`).join('');
+
+  // Comisión del vendedor sobre este cobro puntual (misma config que usan
+  // los resúmenes de Rendición: persona.pct_cobranza).
+  cargarComPersonas();
+  const personaRec=_comPersonas.find(p=>(p.nombre||'').toLowerCase()===(r.vendedor||'').toLowerCase());
+  const pctCobranza=personaRec?.pct_cobranza??0;
+  const comisionRecibo=pctCobranza>0?(r.importe||0)*(pctCobranza/100):0;
 
   const totalImputado=imps.reduce((a,i)=>a+(i.monto||0),0);
   const diferencia=Math.round((r.importe-totalImputado)*100)/100;
@@ -1082,6 +1103,7 @@ function imprimirRecibo(id){
     <table style="font-size:13px;min-width:260px">
       <tr><td style="border:1px solid #000;padding:6px 10px">TOTAL</td><td style="border:1px solid #000;padding:6px 10px;text-align:right;font-weight:bold">${fmt(r.importe)}</td></tr>
       <tr><td style="border:1px solid #000;padding:6px 10px">DIFERENCIA</td><td style="border:1px solid #000;padding:6px 10px;text-align:right">${fmt(diferencia)}</td></tr>
+      ${comisionRecibo>0?`<tr><td style="border:1px solid #000;padding:6px 10px;color:#555">Comisión vendedor (${pctCobranza}%)</td><td style="border:1px solid #000;padding:6px 10px;text-align:right;color:#555">${fmt(comisionRecibo)}</td></tr>`:''}
     </table>
   </div>
 
@@ -1363,7 +1385,7 @@ function histCliente(id){
 }
 
 async function initRendicion(){
-  await cargarHojaRutaTodas();
+  await Promise.all([cargarHojaRutaTodas(),cargarGastosReparto()]);
   renderRendicion();
 }
 
