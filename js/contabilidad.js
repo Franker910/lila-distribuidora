@@ -261,7 +261,7 @@ function contTab(tab){
   if(tab==='mensual')rmInit();
   if(tab==='gastos')renderGastos();
   if(tab==='mayor'){
-    const hoy=new Date().toISOString().split('T')[0];
+    const hoy=hoyLocal();
     const desde=document.getElementById('may-desde');
     const hasta=document.getElementById('may-hasta');
     if(desde&&!desde.value)desde.value=hoy.substring(0,7)+'-01';
@@ -272,7 +272,7 @@ function contTab(tab){
     const desde=document.getElementById('res-desde');
     const hasta=document.getElementById('res-hasta');
     if(desde&&!desde.value)desde.value=hoy.getFullYear()+'-01-01';
-    if(hasta&&!hasta.value)hasta.value=hoy.toISOString().split('T')[0];
+    if(hasta&&!hasta.value)hasta.value=hoyLocal();
   }
 }
 
@@ -408,7 +408,7 @@ async function cargarGastos(){
 }
 
 function abrirGasto(){
-  document.getElementById('gas-fecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('gas-fecha').value=hoyLocal();
   document.getElementById('gas-tipo').value='';
   document.getElementById('gas-desc').value='';
   document.getElementById('gas-comp').value='';
@@ -650,16 +650,16 @@ async function aplicarGastosFijos(){
 
 function initGastosFijos(){
   cargarGF();renderGastosFijos();
-  const hoy=new Date();
+  const hoy=hoyLocal();
   const mes=document.getElementById('gf-mes');
   const fc=document.getElementById('gf-fecha-comp');
-  if(mes&&!mes.value)mes.value=hoy.toISOString().substring(0,7);
-  if(fc&&!fc.value)fc.value=hoy.toISOString().split('T')[0];
+  if(mes&&!mes.value)mes.value=hoy.substring(0,7);
+  if(fc&&!fc.value)fc.value=hoy;
 }
 
 // ─── CONTRIBUCIÓN MARGINAL POR ZONA ───
 function initContribZona(){
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
   const primerDia=hoy.substring(0,7)+'-01';
   const d=document.getElementById('cm-desde'),h=document.getElementById('cm-hasta');
   if(d&&!d.value)d.value=primerDia;
@@ -821,7 +821,7 @@ function agregarPersonaCom(){
 
 function initComisiones(){
   cargarComPersonas();renderComPersonas();
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
   const primerDia=hoy.substring(0,7)+'-01';
   const desde=document.getElementById('com-desde');const hasta=document.getElementById('com-hasta');
   if(desde&&!desde.value)desde.value=primerDia;
@@ -1045,7 +1045,7 @@ function navBusqProv(e){
 async function abrirComprobante(){
   document.getElementById('comp-edit-id').value = '';
   document.getElementById('m-comp-title').textContent = 'Nuevo comprobante';
-  document.getElementById('comp-fecha').value = new Date().toISOString().split('T')[0];
+  document.getElementById('comp-fecha').value = hoyLocal();
   document.getElementById('comp-nro').value = '';
   document.getElementById('comp-desc').value = '';
   document.getElementById('comp-importe').value = '0';
@@ -1152,7 +1152,7 @@ async function guardarComprobante(){
   const [pagoCod, pagoNom] = formapago.split('|');
   
   // Determinar estado
-  const hoy = new Date().toISOString().split('T')[0];
+  const hoy = hoyLocal();
   const estado = condpago === 0 ? 'pagado' : (venc < hoy ? 'vencido' : 'pendiente');
   
   const editId = document.getElementById('comp-edit-id').value;
@@ -1719,7 +1719,7 @@ function pagarComprobante(id){
   document.getElementById('pagcomp-btn').onclick=async function(){
     const forma=document.getElementById('pagcomp-forma').value;
     this.textContent='Guardando...';this.disabled=true;
-    const hoy=new Date().toISOString().split('T')[0];
+    const hoy=hoyLocal();
     const {error:e1}=await sb.from('comprobantes_compras').update({estado:'pagado', fecha_pago:hoy}).eq('id',id);
     if(e1){alert('Error al marcar el comprobante: '+e1.message);this.textContent='✓ Confirmar pago';this.disabled=false;return;}
     const concepto=`${(comp.tipo||'Comprobante').toUpperCase()} ${comp.nro_comprobante||'#'+comp.id}${comp.descripcion?' — '+comp.descripcion:''}`;
@@ -1749,7 +1749,7 @@ function _pagoDeComprobante(comp){
 function imprimirOrdenPago(id, fechaPago, forma){
   const c=_comprobantes.find(x=>x.id===id);if(!c)return;
   const prov=_proveedores.find(p=>p.id===c.proveedor_id);
-  const hoy=fechaPago||c.fecha_pago||new Date().toISOString().split('T')[0];
+  const hoy=fechaPago||c.fecha_pago||hoyLocal();
   if(!forma){const pago=_pagoDeComprobante(c);forma=pago?.forma||'';}
   const formaLabel=forma==='efectivo'?'💵 Efectivo':forma==='transferencia'?'🏦 Transferencia':forma==='cheque'?'📋 Cheque':'';
   const w=window.open('','_blank');
@@ -1795,7 +1795,7 @@ async function eliminarComprobante(id){
 
 function imprimirComprobante(id){
   const c=_comprobantes.find(x=>x.id===id);if(!c)return;
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
   let estado=c.estado;
   if(estado==='pendiente'&&c.fecha_vencimiento&&c.fecha_vencimiento<hoy)estado='vencido';
   const w=window.open('','_blank');
@@ -1827,7 +1827,7 @@ function imprimirComprobante(id){
 
 function verComprobanteCompra(id){
   const c=_comprobantes.find(x=>x.id===id);if(!c)return;
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
   let estado=c.estado;
   if(estado==='pendiente'&&c.fecha_vencimiento&&c.fecha_vencimiento<hoy)estado='vencido';
   const body=`
@@ -1848,7 +1848,7 @@ function renderComprobantes(){
   const mes = document.getElementById('comp-mes')?.value||'';
   
   // Actualizar estado vencidos
-  const hoy = new Date().toISOString().split('T')[0];
+  const hoy = hoyLocal();
   
   const fFecha=document.getElementById('comp-f-fecha')?.value||'';
   const fProv=document.getElementById('comp-f-prov')?.value||'';
@@ -2041,7 +2041,7 @@ async function importarCSVAfip(input){
     }
   }
 
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
   const aInsertar=[]; let dup=0, sinProv=0, sinCuenta=0;
   for(const f of filas){
     if(!f.prov){sinProv++;continue;}

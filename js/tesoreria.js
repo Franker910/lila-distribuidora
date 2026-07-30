@@ -40,7 +40,7 @@ async function cobrarRemito(id){
     this.textContent = 'Guardando...'; this.disabled = true;
     const reactivar=()=>{this.textContent='✓ Confirmar cobro';this.disabled=false;};
 
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = hoyLocal();
     const {error:cobErr}=await sb.from('cobros').insert({
       cliente_id: r.cliente_id, cliente: r.cliente||'',
       fecha: hoy, importe: imp, forma: medio,
@@ -170,7 +170,7 @@ function limpiarModalCobro(){
   const fch=document.getElementById('cob-fecha-cheque');if(fch)fch.value='';
   const td=document.getElementById('cob-total-display');if(td)td.textContent='$0';
   const ti=document.getElementById('cob-total-imputar');if(ti)ti.value='0';
-  const fecEl=document.getElementById('cob-fecha');if(fecEl)fecEl.value=new Date().toISOString().split('T')[0];
+  const fecEl=document.getElementById('cob-fecha');if(fecEl)fecEl.value=hoyLocal();
   const rp=document.getElementById('cob-remitos-pendientes');if(rp)rp.innerHTML='';
   const rEmpty=document.getElementById('cob-remitos-empty');
   if(rEmpty){rEmpty.textContent='Seleccioná un cliente para ver sus facturas';rEmpty.style.display='block';}
@@ -1543,7 +1543,7 @@ function renderSaldosZona(){
   const zonaFil=document.getElementById('sz-zona')?.value||'';
   const filtro=document.getElementById('sz-filtro')?.value||'deudores';
   const orden=document.getElementById('sz-orden')?.value||'saldo';
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
 
   let lista=_clientes.filter(c=>c.activo!==false);
   if(zonaFil)lista=lista.filter(c=>(c.zona||'Sin zona')===zonaFil);
@@ -1754,7 +1754,7 @@ function cobmSetPeriodo(periodo){
   if(fw) fw.style.display=periodo==='dia'?'block':'none';
   if(periodo==='dia'){
     const fi=document.getElementById('cobmc-fecha-input');
-    if(fi&&!fi.value) fi.value=new Date().toISOString().split('T')[0];
+    if(fi&&!fi.value) fi.value=hoyLocal();
   }
   cobmRenderMisCobranzas();
 }
@@ -1776,7 +1776,7 @@ function cobmRenderMisCobranzas(){
 
   const ven=(usuarioActual?.nombre||'').toLowerCase();
   const venAlt=(usuarioActual?.vendedor||'').toLowerCase(); // campo vendedor como fallback
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
   let desde,hasta=hoy;
   if(_cobmcPeriodo==='semana'){
     const d=new Date(); d.setDate(d.getDate()-((d.getDay()+6)%7));
@@ -2102,7 +2102,7 @@ async function guardarCobMovil(){
   const {error:cobErr}=await sb.from('cobros').insert({
     nro_cheque:nroCheque||null,
     cliente_id:_cobMovilCliId,cliente:c?.nombre||'?',
-    fecha:new Date().toISOString().split('T')[0],
+    fecha:hoyLocal(),
     forma:_cobMovilForma,importe,
     efectivo:_cobMovilForma==='efectivo'?importe:0,
     transferencia:_cobMovilForma==='transferencia'?importe:0,
@@ -2131,7 +2131,7 @@ function _renderComisionCard(){
   const card=document.getElementById('vh-comision-card');
   if(!card)return;
   const ven=(usuarioActual?.nombre||'').toLowerCase();
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
   const iniMes=hoy.substring(0,7)+'-01';
   const misCobros=(_cobros||[]).filter(c=>{
     return (c.vendedor||'').toLowerCase()===ven&&c.fecha>=iniMes&&c.fecha<=hoy;
@@ -2212,7 +2212,7 @@ async function initTesoreria(){
     if(cur)sel.value=cur;
   }
   // Defaults de fecha
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
   const pagF=document.getElementById('pag-fecha');if(pagF&&!pagF.value)pagF.value=hoy;
   const concF=document.getElementById('conc-fecha');if(concF&&!concF.value)concF.value=hoy;
   // Default para rango de cobros: mes actual

@@ -60,7 +60,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260729-21';
+const APP_VERSION = '20260729-22';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -181,7 +181,7 @@ function entrarApp(found){
   document.getElementById('app').style.flexDirection='column';
   document.getElementById('top-usuario').textContent=found.nombre+' ('+found.rol+')';
   document.getElementById('top-fecha').textContent=new Date().toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'});
-  ['np-fecha','cob-fecha','nc-fecha'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=new Date().toISOString().split('T')[0];});
+  ['np-fecha','cob-fecha','nc-fecha'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=hoyLocal();});
   
   // Aplicar permisos de navegación
   const sidebar=document.getElementById('sidebar');
@@ -272,6 +272,14 @@ async function cargarTodo(){
 }
 
 // ─── HELPERS ───
+// Fecha de "hoy" en formato YYYY-MM-DD usando la hora LOCAL del dispositivo.
+// new Date().toISOString() da la fecha en UTC — en Argentina (UTC-3), entre
+// las 21:00 y las 23:59 locales ya es el día siguiente en UTC, así que esa
+// forma calculaba mal "hoy" durante 3 horas todas las noches.
+function hoyLocal(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function fmt(n){return '$'+(Math.round(n||0)).toLocaleString('es-AR');}
 
 function fmtN(n,d=2){return (n||0).toFixed(d);}
@@ -762,7 +770,7 @@ function go(p){
   if(p==='tesoreria')initTesoreria();
   if(p==='cheques')renderChequesCartera();
   if(p==='compras'){renderComprobantes();setTimeout(()=>{const q=document.getElementById('comp-q');if(q)q.focus();},100);}
-  if(p==='remitos'){const f=document.getElementById('rem-grupo-fecha');if(f&&!f.value)f.value=new Date().toISOString().split('T')[0];}
+  if(p==='remitos'){const f=document.getElementById('rem-grupo-fecha');if(f&&!f.value)f.value=hoyLocal();}
   // Actualizar sidebar activo
   document.querySelectorAll('.sidebar-item,.sidebar-dash').forEach(b=>b.classList.remove('on'));
   document.querySelectorAll(`[data-p="${p}"]`).forEach(b=>b.classList.add('on'));

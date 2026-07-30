@@ -274,7 +274,7 @@ function exportarProductosCSV(){
   const csv=BOM+[hdr.map(h=>`"${h}"`).join(';'),...rows].join('\r\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
-  a.download=`productos${_getSufijoCsv()}_${new Date().toISOString().split('T')[0]}.csv`;
+  a.download=`productos${_getSufijoCsv()}_${hoyLocal()}.csv`;
   a.click();
 }
 

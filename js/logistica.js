@@ -10,7 +10,7 @@ function mostrarNuevaCarga(){
   document.getElementById('carga-vista-lista').style.display='none';
   document.getElementById('carga-vista-nueva').style.display='block';
   const fecha=document.getElementById('car-fecha');
-  if(fecha)fecha.value=new Date().toISOString().split('T')[0];
+  if(fecha)fecha.value=hoyLocal();
   const nomEl=document.getElementById('car-nombre');
   if(nomEl)nomEl.value='';
   _carNombreSugerido='';
@@ -88,7 +88,7 @@ async function guardarCarga(){
   const peds=_pedidos.filter(p=>pedIds.includes(p.id));
   const tot=peds.reduce((a,p)=>a+p.total,0);
   const ven=document.getElementById('car-chofer')?.value||'';
-  const fecha=document.getElementById('car-fecha')?.value||new Date().toISOString().split('T')[0];
+  const fecha=document.getElementById('car-fecha')?.value||hoyLocal();
   const nombre=document.getElementById('car-nombre')?.value.trim()||ven||'';
   ocultarNuevaCarga();
   const {data:carga,error}=await sb.from('cargas').insert({fecha,vendedor:ven,pedidos:pedIds,total:tot,estado:'armando',nombre}).select().single();
@@ -303,7 +303,7 @@ async function emitirRemitos(cargaId){
   const cg=_cargas.find(x=>x.id===cargaId);if(!cg)return;
   const peds=_pedidos.filter(p=>(cg.pedidos||[]).includes(p.id)&&p.estado!=='remitado'&&!p.remito_id);
   if(!peds.length){toast('Todos los pedidos de esta carga ya tienen remito.');return;}
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
   // Acumular totales por cliente antes de actualizar para evitar sobrescritura con múltiples pedidos del mismo cliente
   const acumCliente={};
   for(const p of peds){acumCliente[p.cliente_id]=(acumCliente[p.cliente_id]||{total:0,comprado:0,fecha:hoy});acumCliente[p.cliente_id].total+=p.total;acumCliente[p.cliente_id].comprado+=p.total;}
@@ -622,7 +622,7 @@ function imprimirHojaCarga(){
   const cg=_cargaActual;
   if(!cg){alert('No hay carga activa');return;}
   const peds=_pedidos.filter(p=>(cg.pedidos||[]).includes(p.id));
-  const fecha=cg.fecha||new Date().toISOString().split('T')[0];
+  const fecha=cg.fecha||hoyLocal();
   const vendedor=cg.vendedor||'—';
   const zonasTxt=[...new Set(peds.map(p=>p.localidad||nombreZona(p.zona)||'').filter(Boolean))].join(', ')||'—';
 
@@ -673,7 +673,7 @@ function imprimirHojaRuta(){
   if(!cg){alert('No hay carga activa');return;}
   const peds=_pedidos.filter(p=>(cg.pedidos||[]).includes(p.id));
   const totalGeneral=peds.reduce((a,p)=>a+p.total,0);
-  const fecha=cg.fecha||new Date().toISOString().split('T')[0];
+  const fecha=cg.fecha||hoyLocal();
   const vendedor=cg.vendedor||'—';
 
   const filas=peds.map((p,i)=>{
@@ -974,7 +974,7 @@ let _cargaActivaHoy = null;
  // null = no cargado, [] = cargado sin ruta, [ids] = ruta del día
 async function cargarHojaRutaRepartidor(){
   if(usuarioActual?.rol!=='repartidor'&&usuarioActual?.rol!=='vendedor'){_hrClientesHoy=null;_cargaActivaHoy=null;return;}
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
   const nombre=usuarioActual.nombre||'';
   const {data}=await sb.from('hoja_ruta').select('cliente_id').eq('fecha',hoy).ilike('vendedor',nombre);
   const ids=(data||[]).map(r=>r.cliente_id).filter(Boolean);
@@ -1034,7 +1034,7 @@ function hrTab(tab){
 }
 
 function hrInit(){
-  const hoy = new Date().toISOString().split('T')[0];
+  const hoy = hoyLocal();
   document.getElementById('hr-fecha').value = hoy;
   document.getElementById('hr-fecha-mia').value = hoy;
   // Poblar vendedores
@@ -1251,7 +1251,7 @@ function hrIrACobrar(clienteId){
 
 // Si el cliente cobrado tiene una parada sin visitar en la ruta de hoy, se tilda sola.
 async function hrMarcarVisitadoPorCliente(clienteId){
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
   const vend=usuarioActual?.nombre||'';
   const {data}=await sb.from('hoja_ruta').select('id').eq('fecha',hoy).eq('cliente_id',clienteId).eq('vendedor',vend).eq('visitado',false);
   if(data&&data.length) await sb.from('hoja_ruta').update({visitado:true}).in('id',data.map(x=>x.id));

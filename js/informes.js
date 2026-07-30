@@ -441,7 +441,7 @@ function gerUpdateDetalle() {
 
 // ─── DASHBOARD ───
 function renderDash(){
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
   const pedPend=_pedidos.filter(p=>p.estado==='pendiente').length;
   const remHoy=_remitos.filter(r=>r.fecha===hoy);
   const ventaHoy=remHoy.reduce((a,r)=>a+(r.total||0),0);
@@ -464,7 +464,7 @@ function renderDash(){
 // ─── INFORMES ───
 function initInformes(){
   infTab('ventas');
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
   const hace30=new Date(Date.now()-30*864e5).toISOString().split('T')[0];
   ['inf-desde','inf-vd-desde','inf-com-desde','desc-cli-desde','desc-pro-desde','desc-ctdo-desde'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.value)el.value=hace30;});
   ['inf-hasta','inf-vd-hasta','inf-com-hasta','desc-cli-hasta','desc-pro-hasta','desc-ctdo-hasta'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.value)el.value=hoy;});
@@ -898,7 +898,7 @@ async function informePrecios(){
 
   const desde=document.getElementById('prec-desde')?.value||'';
   const hasta=document.getElementById('prec-hasta')?.value||'';
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
   const hace30=new Date(Date.now()-30*864e5).toISOString().split('T')[0];
   const fd=desde||hace30, fh=hasta||hoy;
 

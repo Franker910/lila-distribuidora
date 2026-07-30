@@ -233,7 +233,7 @@ let _rrItems=[], _rrProTemp=null, _rrPedidoId=null;
 let _rrStagingVals={cod:'',cant:'1',peso:'',precio:'0',dto:'0',lista:''};
 
 function initRR(){
-  document.getElementById('rr-fecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('rr-fecha').value=hoyLocal();
   _rrItems=[];_rrProTemp=null;
   _rrStagingVals={cod:'',cant:'1',peso:'',precio:'0',dto:'0',lista:''};
   ['rr-cli-q','rr-obs','rr-lugar','rr-carga-num'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -891,7 +891,7 @@ async function emitirRemitoRapido(){
   const {data:rem,error}=await sb.from('remitos').insert({
     cliente_id:parseInt(cid),cliente:c?.nombre||'?',localidad:c?.localidad||'',
     zona:c?.zona||'',vendedor:document.getElementById('rr-ven').value||c?.vendedor||'',
-    fecha:document.getElementById('rr-fecha').value||new Date().toISOString().split('T')[0],
+    fecha:document.getElementById('rr-fecha').value||hoyLocal(),
     items:_rrItems,total:tot,cobrado:false,
     observaciones:document.getElementById('rr-obs').value,
     lugar_entrega:document.getElementById('rr-lugar')?.value||'',
@@ -1013,7 +1013,7 @@ function abrirNC(){
   const precio=document.getElementById('nc-precio');if(precio)precio.value='0';
   const motivo=document.getElementById('nc-motivo');if(motivo)motivo.value='devolucion';
   const imp=document.getElementById('nc-importe');if(imp)imp.value='0';
-  const fecha=document.getElementById('nc-fecha-m');if(fecha)fecha.value=new Date().toISOString().split('T')[0];
+  const fecha=document.getElementById('nc-fecha-m');if(fecha)fecha.value=hoyLocal();
   const hist=document.getElementById('nc-historial-precio');if(hist)hist.style.display='none';
   ncSetModo('producto');
   toggleNCItems();
@@ -1319,7 +1319,7 @@ function abrirND(){
   ['nd-cli-q','nd-obs'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['nd-cli-id','nd-cli-cod'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';el.style.borderColor='';}});
   const imp=document.getElementById('nd-importe');if(imp)imp.value='';
-  const fecha=document.getElementById('nd-fecha');if(fecha)fecha.value=new Date().toISOString().split('T')[0];
+  const fecha=document.getElementById('nd-fecha');if(fecha)fecha.value=hoyLocal();
   const motivo=document.getElementById('nd-motivo');if(motivo)motivo.value='interes';
   const saldo=document.getElementById('nd-cli-saldo');if(saldo)saldo.textContent='—';
   document.getElementById('m-nd').classList.add('on');
@@ -1718,7 +1718,7 @@ async function confirmarPedidoMovil(){
     cliente_id:_pmCliId,cliente:c?.nombre||'?',
     localidad:c?.localidad||'',zona:c?.zona||'',
     vendedor:usuarioActual?.nombre||'',
-    fecha:new Date().toISOString().split('T')[0],
+    fecha:hoyLocal(),
     items,total:tot,estado:'pendiente',
     visita:document.getElementById('pm-visita').value||null,
     observaciones:document.getElementById('pm-obs').value||null
@@ -1762,7 +1762,7 @@ function mostrarConfirmacionMovil(tipo, cliente, detalle){
 
 function verCobranzaHoy(){
   go('cobranza-hoy');
-  const hoy = new Date().toISOString().split('T')[0];
+  const hoy = hoyLocal();
   const nombre = (usuarioActual?.nombre||'').toLowerCase();
   const vendedor = (usuarioActual?.vendedor||'').toLowerCase();
 
@@ -1870,7 +1870,7 @@ function detalleMovilHTML(p){
 }
 
 function verMisPedidosHoy(){
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
   const misPedidos=_pedidos.filter(p=>
     p.vendedor===usuarioActual?.nombre && p.fecha===hoy
   ).sort((a,b)=>b.id-a.id);
