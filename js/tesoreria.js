@@ -732,7 +732,8 @@ function renderListaHojasRuta(){
     const numRend=g.filas.find(f=>f.numero_rendicion)?.numero_rendicion;
     const fechaFmt=g.fecha.split('-').reverse().join('/');
     const sel=_rendHojaSel&&_rendHojaSel.fecha===g.fecha&&_rendHojaSel.vendedor===g.vendedor;
-    return `<div onclick="seleccionarHojaRendicion('${g.fecha}',${JSON.stringify(g.vendedor)})"
+    const vendJsSafe=g.vendedor.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<div onclick="seleccionarHojaRendicion('${g.fecha}','${vendJsSafe}')"
       style="cursor:pointer;padding:10px 14px;border-radius:8px;margin-bottom:6px;border:1.5px solid ${sel?'var(--P)':'var(--brd)'};background:${sel?'var(--PL)':'var(--bg)'};display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <div><b>${g.vendedor}</b> <span style="color:var(--txt2);font-size:12px">— ${fechaFmt} · ${g.filas.length} cliente${g.filas.length>1?'s':''}</span></div>
       <div style="display:flex;gap:8px;align-items:center;font-size:11px">
