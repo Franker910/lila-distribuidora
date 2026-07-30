@@ -382,8 +382,9 @@ function _facturarSiguientePedidoCarga(){
   _renderCargaSidebar(ped.id);
 }
 
-// Panel lateral de progreso: título "Carga Nº X · nombre" + lista de clientes
-// con su estado (✅ remitado con R-XXXX clickeable, ► actual, sin marca pendiente).
+// Panel lateral de progreso: título "Carga Nº X · nombre · fecha" + tabla
+// Código | Nombre | Remito | Importe (✅ remitado clickeable para ver el
+// remito, ► el actual, sin marca los pendientes) + total acumulado al pie.
 function _renderCargaSidebar(pedidoActualId){
   const wrap=document.getElementById('rr-carga-sidebar');
   const limpiarBtn=document.getElementById('rr-btn-limpiar');
@@ -400,20 +401,30 @@ function _renderCargaSidebar(pedidoActualId){
   wrap.style.display='flex';
   if(limpiarBtn)limpiarBtn.style.display='none';
   if(cargaNumWrap)cargaNumWrap.style.display='none';
-  document.getElementById('rr-carga-sidebar-titulo').textContent=`🚚 Carga Nº ${cg.id}${cg.nombre?' · '+cg.nombre:''}`;
+  const fechaFmt=cg.fecha?cg.fecha.split('-').reverse().join('/'):'';
+  document.getElementById('rr-carga-sidebar-titulo').textContent=`🚚 Carga Nº ${cg.id}${cg.nombre?' · '+cg.nombre:''}${fechaFmt?' · '+fechaFmt:''}`;
   const peds=_pedidosDeCarga(cg.id);
   const lista=document.getElementById('rr-carga-sidebar-lista');
+  let totalAcum=0;
   lista.innerHTML=peds.map(p=>{
     const remitado=p.estado==='remitado'&&p.remito_id;
     const esActual=p.id===pedidoActualId;
     const icono=remitado?'✅':(esActual?'►':'');
+    const c=_clientes.find(x=>x.id===p.cliente_id);
+    const rem=remitado?_remitos.find(r=>r.id===p.remito_id):null;
+    const importe=remitado?(rem?.total??p.total??0):null;
+    if(remitado)totalAcum+=importe||0;
     const clickAttr=remitado?` onclick="verRemito(${p.remito_id})" style="cursor:pointer"`:'';
-    return `<div${clickAttr} style="display:flex;gap:6px;align-items:center;padding:6px 8px;border-radius:6px;font-size:12px;margin-bottom:2px;${esActual?'background:var(--PL);font-weight:700':''}">
-      <span style="width:16px;flex-shrink:0;text-align:center">${icono}</span>
+    return `<div${clickAttr} style="display:flex;gap:4px;align-items:center;padding:4px 4px;border-radius:6px;font-size:11px;margin-bottom:1px;${esActual?'background:var(--PL);font-weight:700':''}">
+      <span style="width:14px;flex-shrink:0;text-align:center">${icono}</span>
+      <span style="width:34px;flex-shrink:0;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c?.codigo||p.cliente_id||''}</span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${remitado?'color:var(--txt2)':''}">${p.cliente}</span>
-      ${remitado?`<span style="font-size:10px;color:var(--P);flex-shrink:0">R-${String(p.remito_id).padStart(4,'0')}</span>`:''}
+      <span style="width:48px;text-align:center;font-size:10px;color:var(--P);flex-shrink:0">${remitado?'R-'+String(p.remito_id).padStart(4,'0'):''}</span>
+      <span style="width:56px;text-align:right;flex-shrink:0">${importe!=null?fmt(importe):''}</span>
     </div>`;
   }).join('');
+  const totalEl=document.getElementById('rr-carga-sidebar-total');
+  if(totalEl)totalEl.innerHTML=`<span>Total facturado</span><span>${fmt(totalAcum)}</span>`;
 }
 
 function cancelarFacturarCarga(){
@@ -601,6 +612,7 @@ function imprimirHojaCarga(){
   const peds=_pedidos.filter(p=>(cg.pedidos||[]).includes(p.id));
   const fecha=cg.fecha||new Date().toISOString().split('T')[0];
   const vendedor=cg.vendedor||'—';
+  const zonasTxt=[...new Set(peds.map(p=>p.localidad||nombreZona(p.zona)||'').filter(Boolean))].join(', ')||'—';
 
   const bloques=peds.map((p,i)=>{
     const c=_clientes.find(x=>x.id==p.cliente_id)||{};
@@ -633,8 +645,8 @@ function imprimirHojaCarga(){
     +'.hc-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 6px}'
     +'</style></head><body>'
     +'<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #000;padding-bottom:4px;margin-bottom:6px">'
-      +'<div style="font-size:13px;font-weight:900">DISTRIBUIDORA LILA — Hoja de Carga #'+cg.id+'</div>'
-      +'<div style="font-size:10px"><b>Repartidor:</b> '+vendedor+' &nbsp; <b>Fecha:</b> '+fecha+' &nbsp; <b>'+peds.length+' parada'+(peds.length===1?'':'s')+'</b></div>'
+      +'<div style="font-size:13px;font-weight:900">DISTRIBUIDORA LILA — Hoja de Carga #'+cg.id+(cg.nombre?' · '+cg.nombre:'')+'</div>'
+      +'<div style="font-size:10px"><b>Repartidor:</b> '+vendedor+' &nbsp; <b>Fecha de reparto:</b> '+fecha+' &nbsp; <b>Zona/localidad:</b> '+zonasTxt+' &nbsp; <b>'+peds.length+' parada'+(peds.length===1?'':'s')+'</b></div>'
     +'</div>'
     +'<div class="hc-grid">'+bloques+'</div>'
     +'<div class="no-print" style="text-align:center;margin-top:16px">'
@@ -688,7 +700,7 @@ function imprimirHojaRuta(){
       +'<div>'
         +'<div style="font-size:16px;font-weight:700;color:#1a7a52">🌸 DISTRIBUIDORA LILA</div>'
         +'<div style="font-size:12px;margin-top:3px"><b>Repartidor:</b> '+vendedor+'</div>'
-        +'<div style="font-size:12px"><b>Fecha:</b> '+fecha+' &nbsp;&nbsp; <b>Carga #:</b> '+cg.id+'</div>'
+        +'<div style="font-size:12px"><b>Fecha de reparto:</b> '+fecha+' &nbsp;&nbsp; <b>Carga #:</b> '+cg.id+'</div>'
       +'</div>'
       +'<div style="text-align:right;font-size:12px">'
         +'<div>Salida: ____________</div>'

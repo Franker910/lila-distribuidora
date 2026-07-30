@@ -546,17 +546,7 @@ function cargarItemsDePedido(pedId){
     });
   });
   renderItemsRR();
-  
-  // Mostrar aviso
-  const info=document.getElementById('rr-cli-info');
-  const avisoEl=info.querySelector('.aviso-pedido');
-  if(!avisoEl){
-    const div=document.createElement('div');
-    div.className='aviso-pedido';
-    div.style.cssText='margin-top:6px;padding:6px 10px;background:var(--PL);border-radius:6px;font-size:11px;color:var(--PD)';
-    div.textContent=`✅ ${_rrItems.length} productos cargados del pedido #${pedId}. Ajustá los pesos reales donde corresponda.`;
-    info.appendChild(div);
-  }
+
   // Ese pedido ya está cargado: ocultar el chip "tiene pedido pendiente"
   // para no invitar a usarlo de nuevo (quedaba confuso mostrar los dos a la vez).
   const chip=document.getElementById('rr-pedido-chip');
@@ -799,7 +789,7 @@ function renderItemsRR(){
     const pesoCol=it.esPeso
       ?`<input type="text" inputmode="decimal" data-idx="${i}" data-field="peso" value="${it.peso||''}" oninput="updItemRR(${i},'peso',this.value,this)" onkeydown="_rrItemKeydown(event,${i},'peso')" style="width:70px;${(it.peso||0)===0?'border-color:var(--W)':''}" placeholder="kg real" title="Peso real de balanza">`
       :`<span style="width:70px;display:inline-block;text-align:center;font-size:12px;color:var(--txt2)">—</span>`;
-    return `<div class="pitem" style="${it.esPeso&&(it.peso||0)===0?'border:1px solid var(--W);background:var(--WL)':''}">
+    return `<div class="pitem">
       <span style="width:55px;flex-shrink:0;text-align:center;font-size:11px;color:var(--txt2)">${codigo}</span>
       <span class="pnom">${it.nom}${it.esPeso?' <span class="b bA" style="font-size:10px">kg</span>':''} ${pedidoCant}</span>
       <select onchange="actualizarListaItemRR(${i},this.value)" style="width:72px;font-size:11px" title="Lista de precios para este producto">${_rrListaOptions(it.listaId)}</select>
@@ -822,7 +812,9 @@ function renderItemsRR(){
     <span style="min-width:80px;text-align:right">Subtotal</span>
     <span style="width:32px"></span>
   </div>`;
-  el.innerHTML=header+rows+_rrStagingRowHTML();
+  // En modo facturar carga con pesaje no se agregan productos nuevos —
+  // ocultar la fila de carga para no dejar un renglón vacío sin uso.
+  el.innerHTML=header+rows+(_facturandoCargaId?'':_rrStagingRowHTML());
   const sinPeso=_rrItems.filter(it=>it.esPeso&&(it.peso||0)===0).length;
   if(sinPeso){
     el.innerHTML+=`<div style="background:var(--WL);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--W);margin-top:6px">⚠️ ${sinPeso} producto(s) por kg sin peso. Completá el peso real de la balanza.</div>`;

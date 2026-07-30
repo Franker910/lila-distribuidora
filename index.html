@@ -866,8 +866,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <!-- Cabecera -->
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;background:var(--bg2);padding:10px;border-radius:8px;align-items:flex-end">
-      <div class="fg" style="width:140px">
-        <label>Fecha</label>
+      <div class="fg" style="width:150px">
+        <label>Fecha de reparto</label>
         <input type="date" id="car-fecha" style="width:100%">
       </div>
       <div class="fg" style="width:160px">
@@ -1753,8 +1753,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
 
       <!-- Footer fijo: total + botones -->
-      <div style="flex-shrink:0;border-top:2px solid var(--brd);background:var(--bg);padding:10px 0 2px">
-        <div class="totbar" id="rr-totbar" style="display:none;margin-top:0;margin-bottom:8px">
+      <div style="flex-shrink:0;border-top:2px solid var(--brd);background:var(--bg);padding:6px 0 0">
+        <div class="totbar" id="rr-totbar" style="display:none;margin-top:0;margin-bottom:6px;padding:7px 12px">
           <div style="font-size:12px;color:var(--PD)" id="rr-desglose"></div>
           <div class="tv" id="rr-total">$0</div>
         </div>
@@ -1767,9 +1767,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
 
     <!-- Panel lateral: progreso de la carga (solo visible en modo facturar con pesaje) -->
-    <div id="rr-carga-sidebar" style="display:none;width:220px;flex-shrink:0;flex-direction:column;background:var(--bg);border:1px solid var(--brd);border-radius:10px;overflow:hidden">
-      <div id="rr-carga-sidebar-titulo" style="background:var(--PD);color:#fff;padding:10px 12px;font-size:13px;font-weight:700;flex-shrink:0"></div>
-      <div id="rr-carga-sidebar-lista" style="flex:1;overflow-y:auto;padding:6px"></div>
+    <div id="rr-carga-sidebar" style="display:none;width:300px;flex-shrink:0;flex-direction:column;background:var(--bg);border:1px solid var(--brd);border-radius:10px;overflow:hidden">
+      <div id="rr-carga-sidebar-titulo" style="background:var(--PD);color:#fff;padding:9px 10px;font-size:12px;font-weight:700;flex-shrink:0"></div>
+      <div style="display:flex;gap:4px;padding:5px 8px 3px;font-size:9px;font-weight:700;text-transform:uppercase;color:var(--txt2);border-bottom:1px solid var(--brd);flex-shrink:0">
+        <span style="width:34px">Cód</span>
+        <span style="flex:1">Nombre</span>
+        <span style="width:48px;text-align:center">Remito</span>
+        <span style="width:56px;text-align:right">Importe</span>
+      </div>
+      <div id="rr-carga-sidebar-lista" style="flex:1;overflow-y:auto;padding:4px 6px"></div>
+      <div id="rr-carga-sidebar-total" style="flex-shrink:0;padding:7px 10px;border-top:1px solid var(--brd);font-size:12px;font-weight:700;display:flex;justify-content:space-between;color:var(--PD)"></div>
       <div style="flex-shrink:0;padding:8px;border-top:1px solid var(--brd)">
         <button class="btn D sm" style="width:100%" onclick="cancelarFacturarCarga()">✕ Salir de la carga</button>
       </div>
@@ -2897,7 +2904,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="mh"><h3>Editar carga</h3><button class="btn sm" onclick="cerrar('m-editar-carga')">✕</button></div>
   <div class="mb">
   <div class="fg"><label>Nombre de la carga</label><input id="ec-nombre" style="width:100%" placeholder="Ej: Casilda mañana"></div>
-  <div class="fg"><label>Fecha</label><input type="date" id="ec-fecha" style="width:100%"></div>
+  <div class="fg"><label>Fecha de reparto</label><input type="date" id="ec-fecha" style="width:100%"></div>
   <div class="fg"><label>Chofer / Reparto</label><input id="ec-ven" style="width:100%" placeholder="Nombre del chofer"></div>
   <input type="hidden" id="ec-id">
   <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
@@ -3519,13 +3526,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260729-11"></script>
-<script src="js/maestros.js?v=20260729-11"></script>
-<script src="js/ventas.js?v=20260729-11"></script>
-<script src="js/tesoreria.js?v=20260729-11"></script>
-<script src="js/contabilidad.js?v=20260729-11"></script>
-<script src="js/informes.js?v=20260729-11"></script>
-<script src="js/logistica.js?v=20260729-11"></script>
+<script src="js/app.js?v=20260729-12"></script>
+<script src="js/maestros.js?v=20260729-12"></script>
+<script src="js/ventas.js?v=20260729-12"></script>
+<script src="js/tesoreria.js?v=20260729-12"></script>
+<script src="js/contabilidad.js?v=20260729-12"></script>
+<script src="js/informes.js?v=20260729-12"></script>
+<script src="js/logistica.js?v=20260729-12"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
