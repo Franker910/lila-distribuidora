@@ -379,6 +379,7 @@ function verCobroDetalle(id){
     ${r.observaciones?`<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">Obs: ${r.observaciones}</div>`:''}
     ${r.comprobante_url?`<div style="margin-bottom:8px"><a href="${r.comprobante_url}" target="_blank">📎 Ver comprobante adjunto</a></div>`:''}
     <div style="text-align:right;font-size:16px;font-weight:700;color:var(--PD);border-top:2px solid var(--brd);padding-top:10px">Total: ${fmt(r.importe)}</div>
+    <button class="btn P" style="width:100%;margin-top:12px" onclick="imprimirRecibo(${r.id})">🧾 Ver / imprimir recibo</button>
   `;
   popupDetalle('RC-'+String(r.id).padStart(4,'0'),`${r.cliente||''} · ${r.fecha}`,body);
 }
@@ -2426,7 +2427,8 @@ function renderTesCobros(){
     <td style="color:var(--W)">${((r.cheque_terceros||0)+(r.cheque_propio||0))>0?fmt((r.cheque_terceros||0)+(r.cheque_propio||0)):'—'}</td>
     <td style="font-weight:700">${fmt(r.importe||0)}</td>
     <td style="color:var(--txt2);font-size:12px">${r.vendedor||'—'}</td>
-  </tr>`).join(''):'<tr><td colspan="8"><div class="empty">Sin cobros para el período seleccionado</div></td></tr>';
+    <td><button class="btn sm" onclick="imprimirRecibo(${r.id})" title="Ver / imprimir recibo">🧾</button></td>
+  </tr>`).join(''):'<tr><td colspan="9"><div class="empty">Sin cobros para el período seleccionado</div></td></tr>';
   pag('tco-pg',data.length,pg,p=>{_tesoPg.cobros=p;renderTesCobros();});
 }
 
