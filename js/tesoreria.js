@@ -2200,7 +2200,7 @@ async function guardarCobMovil(){
   }
 
   const nombreTransf=_cobMovilForma==='transferencia'?(document.getElementById('cobm-transf-nombre')?.value||'').trim():'';
-  const {error:cobErr}=await sb.from('cobros').insert({
+  const {data:cobNuevo,error:cobErr}=await sb.from('cobros').insert({
     nro_cheque:nroCheque||null,
     cliente_id:_cobMovilCliId,cliente:c?.nombre||'?',
     fecha:hoyLocal(),
@@ -2216,7 +2216,7 @@ async function guardarCobMovil(){
     imputaciones,saldo_favor:resto>0?resto:0,
     comprobante_url,
     nombre_transferencia:nombreTransf||null
-  });
+  }).select().single();
   if(cobErr){alert('Error al guardar cobro: '+cobErr.message);reactivar();return;}
 
   // ⚠️ El saldo del cliente y remitos NO se toca aquí.
@@ -2227,7 +2227,7 @@ async function guardarCobMovil(){
   if(_cargaActivaHoy){await _asegurarHojaRutaParaCobro(_cobMovilCliId,hoyLocal(),usuarioActual?.nombre||'');}
   await Promise.all([cargarCobros(),cargarRemitos(),hrMarcarVisitadoPorCliente(_cobMovilCliId)]);
   renderDash();
-  mostrarConfirmacionMovil('cobro', c?.nombre, fmt(importe)+(resto>0?' · Resto a favor: '+fmt(resto):'') + ' — pendiente de validación');
+  mostrarConfirmacionMovil('cobro', c?.nombre, fmt(importe)+(resto>0?' · Resto a favor: '+fmt(resto):'') + ' — pendiente de validación', cobNuevo?.id);
   limpiarCobMovil();
   reactivar();
 }

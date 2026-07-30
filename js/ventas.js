@@ -1734,7 +1734,7 @@ async function confirmarPedidoMovil(){
   mostrarConfirmacionMovil('pedido', c?.nombre, _pmCarrito.length+' productos · '+fmt(tot));
 }
 
-function mostrarConfirmacionMovil(tipo, cliente, detalle){
+function mostrarConfirmacionMovil(tipo, cliente, detalle, cobId){
   // Mostrar panel de éxito con opciones
   const panel=document.getElementById('p-pedido-movil');
   if(!panel)return;
@@ -1748,15 +1748,19 @@ function mostrarConfirmacionMovil(tipo, cliente, detalle){
         <div style="font-size:13px;color:var(--txt2);margin-top:4px">${detalle}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:10px">
-        <button onclick="${esCobranza?'go(\'cobranza\')':'resetYNuevoPedido()'}" 
+        ${esCobranza&&cobId?`<button onclick="imprimirRecibo(${cobId})"
           style="width:100%;padding:14px;background:var(--P);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer">
-  // Modo nuevo pedido: actualizar _pmCarrito
+          🧾 Ver / imprimir recibo
+        </button>`:''}
+        <button onclick="${esCobranza?'go(\'cobranza\')':'resetYNuevoPedido()'}"
+          style="width:100%;padding:14px;background:${esCobranza?'var(--bg2)':'var(--P)'};color:${esCobranza?'var(--PD)':'#fff'};border:${esCobranza?'2px solid var(--P)':'none'};border-radius:10px;font-size:16px;font-weight:600;cursor:pointer">
+          ${esCobranza?'💰 Cargar otro cobro':'🆕 Nuevo pedido'}
         </button>
         <button onclick="${esCobranza?'go(\'cobranza\');setTimeout(()=>cobmAbrirMisCobranzas(),50);setTimeout(()=>cobmSetPeriodo(\'dia\'),80)':'verMisPedidosHoy()'}"
           style="width:100%;padding:14px;background:var(--bg2);color:var(--PD);border:2px solid var(--P);border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">
           ${esCobranza?'📊 Ver mis cobros de hoy':'📋 Ver mis pedidos de hoy'}
         </button>
-        <button onclick="go('vendedor-home')" 
+        <button onclick="go('vendedor-home')"
           style="width:100%;padding:12px;background:transparent;color:var(--txt2);border:1px solid var(--brd);border-radius:10px;font-size:14px;cursor:pointer">
           🏠 Volver al inicio
         </button>
