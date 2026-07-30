@@ -370,7 +370,12 @@ function _facturarSiguientePedidoCarga(){
     toast(`✅ Terminaste de facturar la carga #${cg.id} con pesaje real.`);
     _facturandoCargaId=null;
     _renderCargaSidebar();
-    cargarCargas().then(renderCargas);
+    // Marcar la carga como emitida — igual que hace emitirRemitos() en el
+    // flujo en lote. Sin esto, el celu del repartidor (que solo busca
+    // cargas con estado 'emitida') nunca la encontraba.
+    sb.from('cargas').update({estado:'emitida'}).eq('id',cg.id).then(()=>{
+      cargarCargas().then(renderCargas);
+    });
     go('carga');
     return;
   }
