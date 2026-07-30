@@ -1330,6 +1330,21 @@ async function hrMarcarVisitadoPorCliente(clienteId){
   if(data&&data.length) await sb.from('hoja_ruta').update({visitado:true}).in('id',data.map(x=>x.id));
 }
 
+// Un cobro hecho desde el flujo de carga (sin hoja de ruta armada a mano)
+// generaba un huérfano en Rendición → "Cobros sin hoja de ruta". Esto crea
+// la fila de hoja_ruta que falta, para que quede integrado normalmente.
+async function _asegurarHojaRutaParaCobro(clienteId,fecha,vendedor){
+  const {data:existe}=await sb.from('hoja_ruta').select('id').eq('fecha',fecha).eq('cliente_id',clienteId).eq('vendedor',vendedor);
+  if(existe&&existe.length)return;
+  const c=_clientes.find(x=>x.id===clienteId);if(!c)return;
+  const {data:actuales}=await sb.from('hoja_ruta').select('orden').eq('fecha',fecha).eq('vendedor',vendedor);
+  const maxOrden=(actuales||[]).reduce((m,r)=>Math.max(m,r.orden||0),0);
+  await sb.from('hoja_ruta').insert({
+    cliente_id:c.id,nombre:c.nombre,direccion:c.direccion||'',localidad:c.localidad||'',
+    zona:c.zona||'',telefono:c.telefono||'',vendedor,orden:maxOrden+1,visitado:true,fecha
+  });
+}
+
 // ─── Agregar cliente sobre la marcha (vista móvil del repartidor/vendedor) ──
 function hrMiRutaAgregarToggle(){
   const w=document.getElementById('hr-mia-buscador');if(!w)return;

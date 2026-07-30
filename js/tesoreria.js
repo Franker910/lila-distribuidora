@@ -938,11 +938,28 @@ function renderSinHojaRuta(){
       <button class="btn sm P" onclick="rendAprobarSelSinHoja()">✅ Aprobar seleccionados</button>
       <button class="btn sm D" onclick="rendRechazarSelSinHoja()">❌ Rechazar seleccionados</button>
       <button class="btn sm" onclick="rendAsignarNumeroAutoSinHoja()">🔢 Asignar número automático</button>
+      <button class="btn sm A" onclick="rendGenerarHojaRutaFaltante()" title="Crea la hoja de ruta que falta para estos cobros (vinieron de una carga sin hoja armada a mano)">🔗 Generar hoja de ruta</button>
     </div>
     <div class="tbl-wrap"><table class="tbl" style="font-size:12px">
       <thead><tr><th></th><th>Cliente</th><th>Fecha</th><th>Vendedor</th><th style="text-align:right">Importe</th><th>Forma</th><th>Nº Rend.</th><th>Estado</th><th></th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
+}
+
+// Backfill: crea la hoja_ruta que falta para los cobros ya guardados que
+// vinieron del flujo de carga (sin pasar por "Armar ruta"), para que dejen
+// de aparecer como huérfanos acá y se integren a la grilla normal.
+async function rendGenerarHojaRutaFaltante(){
+  const hojaKeys=new Set(_hojaRutaTodas.map(r=>String(r.cliente_id)+'|'+r.fecha));
+  const cobrosSinHoja=_cobros.filter(c=>!hojaKeys.has(String(c.cliente_id)+'|'+c.fecha));
+  if(!cobrosSinHoja.length){toast('No hay cobros sin hoja de ruta.');return;}
+  if(!confirm(`¿Generar la hoja de ruta faltante para ${cobrosSinHoja.length} cobro(s)?`))return;
+  for(const c of cobrosSinHoja){
+    await _asegurarHojaRutaParaCobro(c.cliente_id,c.fecha,c.vendedor||'');
+  }
+  await cargarHojaRutaTodas();
+  renderRendicion();
+  toast('✅ Hoja de ruta generada para los cobros sueltos.');
 }
 
 async function aprobarTodoRendicion(ids){
@@ -2142,6 +2159,10 @@ async function guardarCobMovil(){
 
   // ⚠️ El saldo del cliente y remitos NO se toca aquí.
   // Se aplica recién cuando un admin valida el cobro (validarCobro).
+  // Si el cobro vino de una carga (no de una hoja de ruta armada a mano),
+  // generar esa hoja de ruta ahora para que en Rendición no quede huérfano
+  // en "Cobros sin hoja de ruta".
+  if(_cargaActivaHoy){await _asegurarHojaRutaParaCobro(_cobMovilCliId,hoyLocal(),usuarioActual?.nombre||'');}
   await Promise.all([cargarCobros(),cargarRemitos(),hrMarcarVisitadoPorCliente(_cobMovilCliId)]);
   renderDash();
   mostrarConfirmacionMovil('cobro', c?.nombre, fmt(importe)+(resto>0?' · Resto a favor: '+fmt(resto):'') + ' — pendiente de validación');
