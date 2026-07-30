@@ -241,11 +241,15 @@ function initRR(){
   document.getElementById('rr-cli-id').value='';
   const info=document.getElementById('rr-cli-info');if(info)info.style.display='none';
   renderItemsRR();
-  // Foco al campo de código de cliente
-  setTimeout(()=>{
-    const codCli=document.getElementById('rr-cli-cod');
-    if(codCli) codCli.focus();
-  }, 100);
+  // Foco al campo de código de cliente — salvo en modo facturar carga, donde
+  // el foco lo maneja _facturarSiguientePedidoCarga() para no pelear por él
+  // con varios timers a la vez (eso causaba saltos a un cliente equivocado).
+  if(!_facturandoCargaId){
+    setTimeout(()=>{
+      const codCli=document.getElementById('rr-cli-cod');
+      if(codCli) codCli.focus();
+    }, 100);
+  }
 }
 
 // Opciones <option> de lista de precios para la columna "Lista" de la grilla.
@@ -515,7 +519,11 @@ function selCliRR(id){
     chip.style.display='none';
     chip.innerHTML='';
   }
-  setTimeout(()=>{const f=document.getElementById('rr-cod');if(f){f.focus();f.select();}},120);
+  // En modo facturar carga no hay fila de carga (está oculta) y el foco lo
+  // maneja _facturarSiguientePedidoCarga() al final de la secuencia.
+  if(!_facturandoCargaId){
+    setTimeout(()=>{const f=document.getElementById('rr-cod');if(f){f.focus();f.select();}},120);
+  }
 }
 
 function cargarItemsDePedido(pedId){
@@ -868,6 +876,14 @@ async function emitirRemitoRapido(){
   if(!_rrItems.length){alert('Agregá al menos un producto');return;}
   const sinPeso=_rrItems.filter(it=>it.esPeso&&(it.peso||0)===0).length;
   if(sinPeso){alert(`⚠️ Faltan ${sinPeso} peso(s) real(es) por cargar. Completá el peso de balanza antes de emitir — si no, ese producto se factura en $0.`);return;}
+  // En modo facturar carga, este remito SIEMPRE debe venir de un pedido de
+  // la carga — si no hay _rrPedidoId acá es que algo desincronizó el cliente
+  // (ej. un código viejo re-buscado sin querer) y el remito no quedaría
+  // vinculado a la carga. Mejor frenar que grabar mal.
+  if(_facturandoCargaId&&!_rrPedidoId){
+    alert('⚠️ Este cliente no quedó vinculado al pedido de la carga (puede que se haya reseleccionado por error). Salí de la carga y volvé a entrar con "Facturar con pesaje real" para retomar correctamente.');
+    return;
+  }
   const c=_clientes.find(x=>x.id==cid);
   let tot=0;_rrItems.forEach(it=>{const q=it.esPeso?(it.peso||0):it.cant;tot+=it.precio*q*(1-it.dto/100);});
   tot=Math.round(tot*100)/100;
@@ -875,7 +891,7 @@ async function emitirRemitoRapido(){
   const {data:rem,error}=await sb.from('remitos').insert({
     cliente_id:parseInt(cid),cliente:c?.nombre||'?',localidad:c?.localidad||'',
     zona:c?.zona||'',vendedor:document.getElementById('rr-ven').value||c?.vendedor||'',
-    fecha:document.getElementById('rr-fecha').value,
+    fecha:document.getElementById('rr-fecha').value||new Date().toISOString().split('T')[0],
     items:_rrItems,total:tot,cobrado:false,
     observaciones:document.getElementById('rr-obs').value,
     lugar_entrega:document.getElementById('rr-lugar')?.value||'',
@@ -917,7 +933,12 @@ async function emitirRemitoRapido(){
   if(_rrPedidoId){await sb.from('pedidos').update({estado:'remitado',remito_id:rem.id}).eq('id',_rrPedidoId);}
   await Promise.all([cargarRemitos(),cargarClientes(),cargarProductos(),cargarPedidos()]);
   limpiarRR();
-  setTimeout(()=>{const el=document.getElementById('rr-cli-cod');if(el){el.focus();el.select();}},80);
+  // En modo facturar carga el foco lo maneja _facturarSiguientePedidoCarga():
+  // este timer competía con esa lógica y a veces terminaba re-buscando un
+  // código de cliente viejo en el campo, saltando a otro cliente por error.
+  if(!_facturandoCargaId){
+    setTimeout(()=>{const el=document.getElementById('rr-cli-cod');if(el){el.focus();el.select();}},80);
+  }
   renderDash();renderCC();renderRemitos();
   // Guardar remito actual por si quiere imprimir después
   _remActual=rem;_verTipo='remito';

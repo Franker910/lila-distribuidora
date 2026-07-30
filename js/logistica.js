@@ -380,6 +380,13 @@ function _facturarSiguientePedidoCarga(){
   selCliRR(ped.cliente_id);
   cargarItemsDePedido(ped.id);
   _renderCargaSidebar(ped.id);
+  // Foco al primer campo de peso a completar (o al primero de la lista si
+  // no hay ninguno por kg) — único punto que mueve el foco en este modo.
+  setTimeout(()=>{
+    const f=document.querySelector('#rr-items .pitem input[data-field="peso"]')
+      ||document.querySelector('#rr-items .pitem input[data-field="cant"]');
+    if(f){f.focus();f.select();}
+  },150);
 }
 
 // Panel lateral de progreso: título "Carga Nº X · nombre · fecha" + tabla
