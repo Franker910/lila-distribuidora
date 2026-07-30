@@ -1694,12 +1694,20 @@ function renderSaldosZona(){
         <span style="font-weight:700">${fmt(totalZ)} · ${clientes.length} cliente${clientes.length!==1?'s':''}</span>
       </div>
       <div class="tbl-wrap"><table class="tbl" style="border-radius:0 0 8px 8px">
-        <thead><tr><th>Cód.</th><th>Cliente</th><th>Localidad</th><th>Vendedor</th><th>Último remito</th><th>Días</th><th style="text-align:right">Saldo</th></tr></thead>
+        <thead><tr><th>Cód.</th><th>Cliente</th><th>Localidad</th><th>Vendedor</th><th>Último remito</th><th>Días</th><th>Último cobro</th><th style="text-align:right">Saldo vencido</th><th style="text-align:right">Saldo</th></tr></thead>
         <tbody>
           ${clientes.map(c=>{
             const dias=c.ultimo_remito?Math.floor((new Date(hoy)-new Date(c.ultimo_remito))/864e5):null;
             const condPago=c.condicion_pago||0;
             const diasColor=dias===null?'color:var(--txt2)':dias>(condPago+5)?'color:var(--D);font-weight:700':dias>condPago?'color:var(--W)':'color:var(--P)';
+            // Vencido = remitos sin cobrar cuya antigüedad supera los días de
+            // condición de pago del cliente (lo que estipule cada vendedor).
+            const remsCli=_remitos.filter(r=>String(r.cliente_id)===String(c.id)&&!r.anulado&&!r.cobrado);
+            const vencido=remsCli.filter(r=>{
+              const dRem=Math.floor((new Date(hoy)-new Date(r.fecha))/864e5);
+              return dRem>condPago;
+            }).reduce((s,r)=>s+(r.saldo_pendiente??r.total??0),0);
+            const ultimoCobro=_cobros.filter(co=>String(co.cliente_id)===String(c.id)).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(-1)[0]?.fecha||'—';
             return `<tr onclick="histCliente(${c.id})" style="cursor:pointer" title="Ver cuenta corriente">
               <td style="color:var(--txt2)">${c.codigo||'—'}</td>
               <td style="font-weight:600">${c.nombre}</td>
@@ -1707,11 +1715,13 @@ function renderSaldosZona(){
               <td style="font-size:12px;color:var(--txt2)">${c.vendedor||'—'}</td>
               <td style="font-size:12px;color:var(--txt2)">${c.ultimo_remito||'—'}</td>
               <td style="${diasColor}">${dias!==null?dias+' d':'—'}</td>
+              <td style="font-size:12px;color:var(--txt2)">${ultimoCobro}</td>
+              <td style="text-align:right;font-weight:700;color:${vencido>0?'var(--D)':'var(--txt2)'}">${vencido>0?fmt(vencido):'—'}</td>
               <td style="text-align:right;font-weight:700;color:var(--D)">${fmt(c.saldo||0)}</td>
             </tr>`;
           }).join('')}
           <tr style="background:var(--PL);font-weight:700">
-            <td colspan="6" style="padding:7px 8px;border-top:2px solid var(--brd)">Total zona ${zona}</td>
+            <td colspan="8" style="padding:7px 8px;border-top:2px solid var(--brd)">Total zona ${zona}</td>
             <td style="text-align:right;color:var(--D);padding:7px 8px;border-top:2px solid var(--brd)">${fmt(totalZ)}</td>
           </tr>
         </tbody>
