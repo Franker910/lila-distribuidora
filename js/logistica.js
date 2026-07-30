@@ -973,7 +973,7 @@ let _cargaActivaHoy = null;
 
  // null = no cargado, [] = cargado sin ruta, [ids] = ruta del día
 async function cargarHojaRutaRepartidor(){
-  if(usuarioActual?.rol!=='repartidor'){_hrClientesHoy=null;_cargaActivaHoy=null;return;}
+  if(usuarioActual?.rol!=='repartidor'&&usuarioActual?.rol!=='vendedor'){_hrClientesHoy=null;_cargaActivaHoy=null;return;}
   const hoy=new Date().toISOString().split('T')[0];
   const nombre=usuarioActual.nombre||'';
   const {data}=await sb.from('hoja_ruta').select('cliente_id').eq('fecha',hoy).ilike('vendedor',nombre);
