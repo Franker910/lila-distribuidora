@@ -272,7 +272,7 @@ function selCliCob(id){
            <div style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
              <input type="number" id="imp-rem-${r.id}" value="0" min="0" max="${r.saldo_pendiente||r.total}" step="0.01"
                style="width:90px;padding:5px 6px;border:1.5px solid var(--brd);border-radius:5px;text-align:right;font-size:13px;font-weight:700"
-               placeholder="0" oninput="limitarImputacion(this,${r.saldo_pendiente||r.total});calcTotalDesdeImputacion()"
+               placeholder="0" onfocus="this.select()" oninput="limitarImputacion(this,${r.saldo_pendiente||r.total});calcTotalDesdeImputacion()"
                ondblclick="imputarTotal(${r.id},${r.saldo_pendiente||r.total});this.select();"
                title="F = todo · → o Tab = botón Todo · Inicio = ver factura"
                onkeydown="cobImpKeydown(event,${r.id},${r.saldo_pendiente||r.total})">
@@ -1080,60 +1080,84 @@ function imprimirRecibo(id){
   const totalImputado=imps.reduce((a,i)=>a+(i.monto||0),0);
   const diferencia=Math.round((r.importe-totalImputado)*100)/100;
 
+  // Saldo restante del cliente después de este cobro — para cuando pregunta
+  // "¿cuánto me queda debiendo?". Si ya está validado, c.saldo ya lo excluye;
+  // si todavía está pendiente de aprobar, se lo resta acá como proyección.
+  const cliRec=_clientes.find(x=>String(x.id)===String(r.cliente_id))||_clientes.find(x=>x.nombre&&r.cliente&&x.nombre.trim().toLowerCase()===r.cliente.trim().toLowerCase());
+  const validadoRec=(r.estado_rendicion||'pendiente')==='validado';
+  const saldoRestante=cliRec?Math.round(((cliRec.saldo||0)-(validadoRec?0:r.importe))*100)/100:null;
+
+  const textoCompartir=`Recibo ${nro} — Distribuidora Lila\nCliente: ${r.cliente}\nFecha: ${r.fecha}\nImporte: ${fmt(r.importe)}${saldoRestante!=null?`\nSaldo restante: ${fmt(saldoRestante)}`:''}`;
+
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><title>Recibo ${nro}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body{font-family:Arial,sans-serif;padding:26px;color:#000;background:#fff;max-width:760px;margin:0 auto}
-    table{border-collapse:collapse}
-    @media print{button{display:none}}
+    *{box-sizing:border-box}
+    body{font-family:Arial,sans-serif;padding:18px;color:#000;background:#fff;max-width:760px;margin:0 auto;font-size:15px}
+    table{border-collapse:collapse;width:100%}
+    .fila-medios{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+    .fila-medios>div{flex:1;min-width:220px}
+    @media print{button,.no-print{display:none}}
   </style></head><body>
 
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px">
     <div>
-      <div style="font-size:20px;font-weight:bold">DISTRIBUIDORA LILA</div>
-      <div style="font-size:15px;font-weight:bold;margin-top:4px">RECIBO DE COBRO Nro ${nro}</div>
+      <div style="font-size:22px;font-weight:bold">DISTRIBUIDORA LILA</div>
+      <div style="font-size:17px;font-weight:bold;margin-top:4px">RECIBO DE COBRO Nro ${nro}</div>
     </div>
-    <div style="text-align:right;font-size:13px">Fecha: <b>${r.fecha}</b></div>
+    <div style="text-align:right;font-size:15px">Fecha: <b>${r.fecha}</b></div>
   </div>
 
-  <div style="font-size:13px;margin-bottom:14px">
+  <div style="font-size:15px;margin-bottom:14px">
     <b>Cliente:</b> ${r.cliente}${r.cliente_id?' (Cód: '+r.cliente_id+')':''}<br>
     ${r.vendedor?`<b>Vendedor:</b> ${r.vendedor}<br>`:''}
     ${r.reparto?`<b>Reparto:</b> ${r.reparto}<br>`:''}
   </div>
 
-  <div style="display:flex;gap:16px;align-items:flex-start">
-    <div style="flex:1.5">
-      <table style="width:100%;font-size:12px">
+  <div class="fila-medios">
+    <div>
+      <table style="font-size:14px">
         <thead><tr>
-          <th style="border:1px solid #000;padding:5px 7px;text-align:left">Comprobante</th>
-          <th style="border:1px solid #000;padding:5px 7px;text-align:left">Fecha</th>
-          <th style="border:1px solid #000;padding:5px 7px;text-align:right">Importe</th>
+          <th style="border:1px solid #000;padding:6px 7px;text-align:left">Comprobante</th>
+          <th style="border:1px solid #000;padding:6px 7px;text-align:left">Fecha</th>
+          <th style="border:1px solid #000;padding:6px 7px;text-align:right">Importe</th>
         </tr></thead>
         <tbody>${filasFacturas}</tbody>
       </table>
     </div>
-    <div style="flex:1;border:1px solid #000;padding:9px 12px">
-      <div style="font-weight:bold;font-size:12px;border-bottom:1px solid #000;padding-bottom:5px;margin-bottom:5px">MEDIOS DE PAGO</div>
-      ${filasMedios||'<div style="font-size:12px;color:#555">—</div>'}
+    <div style="border:1px solid #000;padding:9px 12px">
+      <div style="font-weight:bold;font-size:14px;border-bottom:1px solid #000;padding-bottom:5px;margin-bottom:5px">MEDIOS DE PAGO</div>
+      ${filasMedios||'<div style="font-size:14px;color:#555">—</div>'}
     </div>
   </div>
 
-  ${r.observaciones?`<div style="font-size:12px;margin-top:10px">Obs: ${r.observaciones}</div>`:''}
+  ${r.observaciones?`<div style="font-size:14px;margin-top:10px">Obs: ${r.observaciones}</div>`:''}
 
   <div style="display:flex;justify-content:flex-end;margin-top:16px">
-    <table style="font-size:13px;min-width:260px">
-      <tr><td style="border:1px solid #000;padding:6px 10px">TOTAL</td><td style="border:1px solid #000;padding:6px 10px;text-align:right;font-weight:bold">${fmt(r.importe)}</td></tr>
-      <tr><td style="border:1px solid #000;padding:6px 10px">DIFERENCIA</td><td style="border:1px solid #000;padding:6px 10px;text-align:right">${fmt(diferencia)}</td></tr>
-      ${comisionRecibo>0?`<tr><td style="border:1px solid #000;padding:6px 10px;color:#555">Comisión vendedor (${pctCobranza}%)</td><td style="border:1px solid #000;padding:6px 10px;text-align:right;color:#555">${fmt(comisionRecibo)}</td></tr>`:''}
+    <table style="font-size:15px;min-width:260px;width:auto">
+      <tr><td style="border:1px solid #000;padding:7px 10px">TOTAL</td><td style="border:1px solid #000;padding:7px 10px;text-align:right;font-weight:bold">${fmt(r.importe)}</td></tr>
+      <tr><td style="border:1px solid #000;padding:7px 10px">DIFERENCIA</td><td style="border:1px solid #000;padding:7px 10px;text-align:right">${fmt(diferencia)}</td></tr>
+      ${comisionRecibo>0?`<tr><td style="border:1px solid #000;padding:7px 10px;color:#555">Comisión vendedor (${pctCobranza}%)</td><td style="border:1px solid #000;padding:7px 10px;text-align:right;color:#555">${fmt(comisionRecibo)}</td></tr>`:''}
+      ${saldoRestante!=null?`<tr><td style="border:1px solid #000;padding:7px 10px;font-weight:bold">SALDO RESTANTE</td><td style="border:1px solid #000;padding:7px 10px;text-align:right;font-weight:bold;color:${saldoRestante>0?'#c0392b':'#1a7a52'}">${fmt(saldoRestante)}</td></tr>`:''}
     </table>
   </div>
 
-  <div style="margin-top:60px;text-align:center;font-size:12px">
+  <div style="margin-top:50px;text-align:center;font-size:14px">
     <div style="border-top:1px solid #000;width:260px;margin:0 auto;padding-top:6px">Firma del cliente</div>
   </div>
 
-  <div style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:8px 20px;background:#1a7a52;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">🖨️ Imprimir</button></div>
+  <div class="no-print" style="text-align:center;margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+    <button onclick="window.print()" style="padding:10px 20px;background:#1a7a52;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:15px">🖨️ Imprimir</button>
+    <button id="btn-compartir-rec" style="padding:10px 20px;background:#1a6fa8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:15px">📤 Compartir</button>
+  </div>
+  <script>
+    document.getElementById('btn-compartir-rec').onclick=function(){
+      var texto=${JSON.stringify(textoCompartir)};
+      if(navigator.share){navigator.share({title:'Recibo ${nro}',text:texto}).catch(function(){});}
+      else{navigator.clipboard&&navigator.clipboard.writeText(texto);alert('Copiado — pegalo en WhatsApp (tu navegador no permite compartir directo).');}
+    };
+  <\/script>
   </body></html>`);
   w.document.close();
 }
@@ -2123,7 +2147,7 @@ function selClienteCobMovil(id){
       <div style="font-size:11px;color:var(--txt2)">${r.fecha} · Saldo: ${fmt(r.saldo_pendiente||r.total)}</div></div>
       <input type="number" id="cobm-imp-${r.id}" value="0" min="0" step="0.01"
         style="width:120px;padding:8px;border:2px solid var(--brd);border-radius:8px;font-size:16px;font-weight:700;text-align:right"
-        oninput="calcCobMovil()" ondblclick="cobmImputarTodo(${r.id},${r.saldo_pendiente||r.total})"
+        oninput="calcCobMovil()" onfocus="this.select()" ondblclick="cobmImputarTodo(${r.id},${r.saldo_pendiente||r.total})"
         onkeydown="if(event.key==='Home'){event.preventDefault();verRemitoEnCobro(${r.id})}"
         title="Doble toque = todo · Inicio = ver factura">
     </div>`).join('');
