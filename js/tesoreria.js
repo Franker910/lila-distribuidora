@@ -1315,7 +1315,8 @@ function histCliente(id){
     const imp=r.imputaciones||[];
     const obs=r.observaciones||'';
     const detalle=imp.length?imp.map(i=>`R-${String(i.remito_id).padStart(4,'0')}: ${fmt(i.monto)}`).join(', '):'';
-    movs.push({id:r.id,fecha:r.fecha,tipo:'RECIBO',nro:'RC-'+String(r.id).padStart(4,'0'),debe:0,haber:r.importe,reparto:r.reparto||'',obs:detalle||obs,forma:r.forma||''});
+    const rendTxt=r.numero_rendicion?`Rendición #${r.numero_rendicion}`:'sin rendición aún';
+    movs.push({id:r.id,fecha:r.fecha,tipo:'RECIBO',nro:'RC-'+String(r.id).padStart(4,'0'),debe:0,haber:r.importe,reparto:r.reparto||'',obs:[detalle||obs,rendTxt].filter(Boolean).join(' · '),forma:r.forma||''});
   });
   // Agregar NC como HABER
   ncs.forEach(r=>movs.push({id:r.id,fecha:r.fecha,tipo:'N.CRED',nro:'NC-'+String(r.id).padStart(4,'0'),debe:0,haber:r.importe,reparto:'',obs:r.motivo||''}));
