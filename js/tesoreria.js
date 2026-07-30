@@ -1572,10 +1572,50 @@ async function generarRendicion(){
 }
 
 function imprimirRendicion(){
-  const body=document.getElementById('rend-resultado').innerHTML;
+  if(!_rendHojaSel){alert('Seleccioná una hoja de ruta primero');return;}
+  const titulo=document.getElementById('rend-grilla-titulo')?.textContent||'Rendición';
+  const numRend=document.querySelector('#rend-grilla-tbody')?.closest('.tbl-wrap')?.previousElementSibling;
+
+  // Clonar la tabla y sacar las columnas que no aplican en papel (check y acciones).
+  const tablaOrig=document.querySelector('#rend-grilla-tbody')?.closest('table');
+  let filasHTML='';
+  if(tablaOrig){
+    const clon=tablaOrig.cloneNode(true);
+    clon.querySelectorAll('tr').forEach(tr=>{
+      if(tr.children.length)tr.removeChild(tr.children[tr.children.length-1]); // acciones
+      if(tr.children.length)tr.removeChild(tr.children[0]); // checkbox
+    });
+    clon.querySelectorAll('.tbl-autofiltro').forEach(tr=>tr.remove());
+    clon.querySelectorAll('input,select,button').forEach(el=>el.remove());
+    filasHTML=clon.outerHTML;
+  }
+  const resumenHTML=document.getElementById('rend-resumen')?.innerHTML||'';
+
   const w=window.open('','_blank');
-  w.document.write(`<html><head><title>Rendición</title><style>body{font-family:Arial;padding:20px;font-size:13px}table{width:100%;border-collapse:collapse}.card{border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:8px}</style></head><body><h2>Rendición de cobranza — Distribuidora Lila</h2>${body}</body></html>`);
-  w.document.close();w.print();
+  w.document.write(`<!DOCTYPE html><html><head><title>Rendición — ${titulo}</title><style>
+    body{font-family:Arial,sans-serif;padding:24px;font-size:12px;color:#000}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px}
+    th,td{border:1px solid #000;padding:5px 7px;text-align:left}
+    th{background:#eee}
+    .g4{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+    .card{border:1px solid #000;border-radius:4px;padding:8px 10px;flex:1;min-width:120px}
+    @media print{.no-print{display:none}}
+  </style></head><body>
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:14px">
+      <div style="font-size:16px;font-weight:900">DISTRIBUIDORA LILA — Rendición de cobranza</div>
+      <div style="font-size:13px;font-weight:700">${titulo}</div>
+    </div>
+    ${filasHTML}
+    ${resumenHTML}
+    <div style="margin-top:30px;display:flex;justify-content:space-between;font-size:12px">
+      <div>Firma repartidor/vendedor: _____________________</div>
+      <div>Firma recibí conforme: _____________________</div>
+    </div>
+    <div class="no-print" style="text-align:center;margin-top:16px">
+      <button onclick="window.print()" style="padding:8px 24px;background:#1a7a52;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🖨️ Imprimir</button>
+    </div>
+  </body></html>`);
+  w.document.close();
 }
 
 // ─── SALDOS POR ZONA ───
