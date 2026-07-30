@@ -4,7 +4,12 @@ let _items=[], _proTemp=null;
 
 async function cargarPedidos(){
   const {data}=await sb.from('pedidos').select('*').order('created_at',{ascending:false});
-  // Vendedor ve sus pedidos + los que no tienen vendedor asignado
+  // _pedidosTodos: sin filtrar, para todo lo que sea "carga de reparto" (una
+  // carga mezcla pedidos de varios vendedores — el repartidor tiene que ver
+  // a todos sus clientes, no solo los de su propio vendedor).
+  _pedidosTodos=data||[];
+  // Vendedor ve sus pedidos + los que no tienen vendedor asignado (para la
+  // pantalla de Pedidos propiamente dicha)
   _pedidos=usuarioActual.vendedor?(data||[]).filter(p=>{const v=p.vendedor||'';return v===''||v.toLowerCase().includes(usuarioActual.vendedor.toLowerCase());}):data||[];
 }
 

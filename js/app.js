@@ -53,14 +53,14 @@ const MENUS_REPARTIDOR=['vendedor-home','cobranza','hoja-ruta','nc'];
 let usuarioActual = null;
 
 // ─── ESTADO LOCAL ───
-let _clientes=[], _productos=[], _pedidos=[], _remitos=[], _cobros=[], _cargas=[];
+let _clientes=[], _productos=[], _pedidos=[], _pedidosTodos=[], _remitos=[], _cobros=[], _cargas=[];
 
 let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260729-22';
+const APP_VERSION = '20260729-23';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el

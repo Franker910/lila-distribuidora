@@ -355,7 +355,10 @@ function facturarCargaConPesaje(cargaId){
 
 function _pedidosDeCarga(cargaId){
   const cg=_cargas.find(x=>x.id===cargaId);if(!cg)return [];
-  return (cg.pedidos||[]).map(pid=>_pedidos.find(p=>p.id===pid)).filter(Boolean);
+  // Una carga mezcla pedidos de varios vendedores — usar _pedidosTodos (sin
+  // el filtro por vendedor propio de _pedidos) para no perder clientes.
+  const fuente=(_pedidosTodos&&_pedidosTodos.length)?_pedidosTodos:_pedidos;
+  return (cg.pedidos||[]).map(pid=>fuente.find(p=>p.id===pid)).filter(Boolean);
 }
 
 function _pedidosPendientesDeCarga(cargaId){
@@ -970,6 +973,9 @@ let _hrClientesHoy = null;
 
 // Carga/reparto activo del repartidor para hoy (o null si no tiene ninguna carga emitida hoy)
 let _cargaActivaHoy = null;
+// Si ya se tocó una carga en "Mi ruta" para ver sus clientes (se resetea al
+// re-entrar a la pestaña, para siempre arrancar mostrando el/los nombres).
+let _hrCargaExpandida = false;
 
  // null = no cargado, [] = cargado sin ruta, [ids] = ruta del día
 async function cargarHojaRutaRepartidor(){
@@ -1034,6 +1040,7 @@ function hrTab(tab){
 }
 
 function hrInit(){
+  _hrCargaExpandida=false;
   const hoy = hoyLocal();
   document.getElementById('hr-fecha').value = hoy;
   document.getElementById('hr-fecha-mia').value = hoy;
@@ -1187,19 +1194,26 @@ async function hrVerMiRuta(){
   if(!ruta.length){
     // No hay hoja de ruta armada a mano — ofrecer la carga del día como
     // alternativa (misma carga que se usa en Cobranza → Facturar con pesaje).
+    // Siempre se muestra primero la carga (con su nombre) para elegirla, aun
+    // si hay una sola — así queda claro qué reparto es antes de desplegar
+    // los clientes, y es más fácil ubicarse si hubiera 2 repartos el mismo día.
     await cargarHojaRutaRepartidor();
-    if(_cargasHoyCandidatas.length>1&&!_cargaActivaHoy){
+    if(!_hrCargaExpandida){
+      if(!_cargasHoyCandidatas.length){
+        el.innerHTML='<div class="empty">Sin clientes asignados para hoy</div>';
+        return;
+      }
       el.innerHTML=`<div class="empty" style="margin-bottom:10px">Sin hoja de ruta armada para hoy</div>
         <div style="font-weight:700;margin-bottom:6px">🚚 ¿Qué carga estás repartiendo?</div>
         <div style="display:flex;flex-direction:column;gap:6px">
-          ${_cargasHoyCandidatas.map(c=>`<button onclick="elegirCargaActiva(${c.id});hrVerMiRuta()" style="text-align:left;padding:10px 12px;border-radius:10px;border:1.5px solid var(--P);background:#fff;color:var(--P);font-weight:700;font-family:inherit;cursor:pointer">Carga #${c.id}${c.nombre?' · '+c.nombre:''}</button>`).join('')}
+          ${_cargasHoyCandidatas.map(c=>`<button onclick="elegirCargaActiva(${c.id});_hrCargaExpandida=true;hrVerMiRuta()" style="text-align:left;padding:14px 16px;border-radius:14px;border:2px solid var(--P);background:#fff;color:var(--P);font-weight:700;font-size:16px;font-family:inherit;cursor:pointer">🚚 Carga #${c.id}${c.nombre?' · '+c.nombre:''}</button>`).join('')}
         </div>`;
       return;
     }
     if(_cargaActivaHoy){
       const peds=_pedidosDeCarga(_cargaActivaHoy.id);
       el.innerHTML=`<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">🚚 Carga #${_cargaActivaHoy.id}${_cargaActivaHoy.nombre?' · '+_cargaActivaHoy.nombre:''} — sin hoja de ruta armada, mostrando sus clientes`
-        +(_cargasHoyCandidatas.length>1?` · <a href="#" onclick="event.preventDefault();_cargaActivaHoy=null;hrVerMiRuta()" style="color:var(--P)">cambiar</a>`:'')+'</div>'
+        +` · <a href="#" onclick="event.preventDefault();_hrCargaExpandida=false;hrVerMiRuta()" style="color:var(--P)">‹ cambiar carga</a></div>`
         +peds.map((p,i)=>{
           const rem=p.remito_id?_remitos.find(r=>r.id===p.remito_id):null;
           const cobrado=rem?.cobrado;
