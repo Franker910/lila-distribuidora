@@ -1316,7 +1316,8 @@ function histCliente(id){
     const obs=r.observaciones||'';
     const detalle=imp.length?imp.map(i=>`R-${String(i.remito_id).padStart(4,'0')}: ${fmt(i.monto)}`).join(', '):'';
     const rendTxt=r.numero_rendicion?`Rendición #${r.numero_rendicion}`:'sin rendición aún';
-    movs.push({id:r.id,fecha:r.fecha,tipo:'RECIBO',nro:'RC-'+String(r.id).padStart(4,'0'),debe:0,haber:r.importe,reparto:r.reparto||'',obs:[detalle||obs,rendTxt].filter(Boolean).join(' · '),forma:r.forma||''});
+    const validado=(r.estado_rendicion||'pendiente')==='validado';
+    movs.push({id:r.id,fecha:r.fecha,tipo:'RECIBO',nro:'RC-'+String(r.id).padStart(4,'0'),debe:0,haber:r.importe,reparto:r.reparto||'',obs:[detalle||obs,rendTxt].filter(Boolean).join(' · '),forma:r.forma||'',pendienteAprobar:!validado});
   });
   // Agregar NC como HABER
   ncs.forEach(r=>movs.push({id:r.id,fecha:r.fecha,tipo:'N.CRED',nro:'NC-'+String(r.id).padStart(4,'0'),debe:0,haber:r.importe,reparto:'',obs:r.motivo||''}));
@@ -1353,32 +1354,33 @@ function histCliente(id){
       <span style="font-weight:600;font-size:13px">Saldo actual</span>
       <span style="font-size:20px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo)}</span>
     </div>
+    ${(()=>{const pend=movs.filter(m=>m.pendienteAprobar).reduce((a,m)=>a+m.haber,0);return pend>0?`<div style="font-size:12px;color:#946200;background:#fff3d6;margin-bottom:8px;padding:7px 10px;border-radius:6px">⏳ Hay ${fmt(pend)} en cobros pendientes de aprobar en Rendición — todavía no están descontados del saldo de arriba.</div>`:'';})()}
     ${saldoInicial>0?`<div style="font-size:12px;color:var(--txt2);margin-bottom:8px;padding:6px 10px;background:var(--bg2);border-radius:6px">Saldo inicial al inicio del sistema: <b>${fmt(saldoInicial)}</b></div>`:''}
     ${_ccAngosta()?_ccTarjetasHTML(movs,c):`
     <div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <table style="width:100%;border-collapse:collapse;font-size:14px">
       <thead>
         <tr style="background:var(--bg2)">
-          <th style="padding:7px 8px;text-align:left;border-bottom:1px solid var(--brd)">Fecha</th>
-          <th style="padding:7px 8px;text-align:left;border-bottom:1px solid var(--brd)">Comprobante</th>
-          <th style="padding:7px 8px;text-align:left;border-bottom:1px solid var(--brd)">Nro</th>
-          <th style="padding:7px 8px;text-align:right;border-bottom:1px solid var(--brd);color:var(--D)">Debe</th>
-          <th style="padding:7px 8px;text-align:right;border-bottom:1px solid var(--brd);color:var(--P)">Haber</th>
-          <th style="padding:7px 8px;text-align:right;border-bottom:1px solid var(--brd)">Saldo</th>
-          <th style="padding:7px 8px;text-align:center;border-bottom:1px solid var(--brd)">Reparto</th>
-          <th style="padding:7px 8px;text-align:left;border-bottom:1px solid var(--brd)">Obs</th>
+          <th style="padding:9px 10px;text-align:left;border-bottom:1px solid var(--brd)">Fecha</th>
+          <th style="padding:9px 10px;text-align:left;border-bottom:1px solid var(--brd)">Comprobante</th>
+          <th style="padding:9px 10px;text-align:left;border-bottom:1px solid var(--brd)">Nro</th>
+          <th style="padding:9px 10px;text-align:right;border-bottom:1px solid var(--brd);color:var(--D)">Debe</th>
+          <th style="padding:9px 10px;text-align:right;border-bottom:1px solid var(--brd);color:var(--P)">Haber</th>
+          <th style="padding:9px 10px;text-align:right;border-bottom:1px solid var(--brd)">Saldo</th>
+          <th style="padding:9px 10px;text-align:center;border-bottom:1px solid var(--brd)">Reparto</th>
+          <th style="padding:9px 10px;text-align:left;border-bottom:1px solid var(--brd)">Obs</th>
         </tr>
       </thead>
       <tbody>
         ${movs.length?movs.map(m=>`<tr tabindex="0" onclick="histAbrirDetalle('${m.tipo}',${m.id})" onkeydown="histNavFila(event,this,'${m.tipo}',${m.id})" onfocus="this.style.outline='2px solid var(--P)'" onblur="this.style.outline=''" title="↑↓ navegar · Inicio o Enter para ver el detalle" style="cursor:pointer;${m.tipo==='RECIBO'?'background:#f0faf5':m.tipo==='N.CRED'?'background:#fef9f0':''}">
-          <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd)">${m.fecha}</td>
-          <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd);font-weight:500">${m.tipo}</td>
-          <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd);color:var(--A)">${m.nro}</td>
-          <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd);text-align:right;color:var(--D)">${m.debe>0?fmt(m.debe):''}</td>
-          <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd);text-align:right;color:var(--P)">${m.haber>0?fmt(m.haber):''}</td>
-          <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd);text-align:right;font-weight:600;color:${m.saldo>0?'var(--D)':'var(--P)'}">${fmt(m.saldo)}</td>
-          <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd);text-align:center;color:var(--txt2)">${m.reparto||'—'}</td>
-          <td style="padding:6px 8px;border-bottom:0.5px solid var(--brd);color:var(--txt2);font-size:11px">${m.obs||''}</td>
+          <td style="padding:8px 10px;border-bottom:0.5px solid var(--brd)">${m.fecha}</td>
+          <td style="padding:8px 10px;border-bottom:0.5px solid var(--brd);font-weight:600">${m.tipo}${m.pendienteAprobar?' <span title="Todavía no se aprobó en Rendición — el saldo real del cliente no lo refleja aún" style="font-size:10px;font-weight:700;color:#946200;background:#fff3d6;border-radius:4px;padding:2px 5px">⏳ pendiente</span>':''}</td>
+          <td style="padding:8px 10px;border-bottom:0.5px solid var(--brd);color:var(--A)">${m.nro}</td>
+          <td style="padding:8px 10px;border-bottom:0.5px solid var(--brd);text-align:right;color:var(--D)">${m.debe>0?fmt(m.debe):''}</td>
+          <td style="padding:8px 10px;border-bottom:0.5px solid var(--brd);text-align:right;color:var(--P)">${m.haber>0?fmt(m.haber):''}</td>
+          <td style="padding:8px 10px;border-bottom:0.5px solid var(--brd);text-align:right;font-weight:700;color:${m.saldo>0?'var(--D)':'var(--P)'}">${fmt(m.saldo)}${m.pendienteAprobar?'<span style="font-size:10px;font-weight:400;color:var(--txt2)"> (proy.)</span>':''}</td>
+          <td style="padding:8px 10px;border-bottom:0.5px solid var(--brd);text-align:center;color:var(--txt2)">${m.reparto||'—'}</td>
+          <td style="padding:8px 10px;border-bottom:0.5px solid var(--brd);color:var(--txt2);font-size:12px">${m.obs||''}</td>
         </tr>`).join(''):`<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--txt2)">Sin movimientos registrados en el sistema nuevo.<br><small>El saldo inicial refleja la historia anterior.</small></td></tr>`}
       </tbody>
       ${movs.length?`<tfoot>
