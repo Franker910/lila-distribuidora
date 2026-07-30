@@ -604,60 +604,37 @@ function imprimirHojaCarga(){
 
   const bloques=peds.map((p,i)=>{
     const c=_clientes.find(x=>x.id==p.cliente_id)||{};
+    const codCliente=c.codigo||p.cliente_id||'';
     const filasProd=(p.items||[]).map((it,j)=>{
       const esPeso=(it.un||'').toLowerCase()==='kg';
-      const rawUn=(it.un||'').trim();
-      const unitDisplay=rawUn&&!/\s/.test(rawUn)&&rawUn.length<=6?rawUn:'—';
-      const prod=_productos.find(px=>px.id==it.id);
-      const codProd=prod?.codigo||it.cod||'';
-      return '<tr>'
-        +'<td style="padding:3px 4px;border:1px solid #ccc;text-align:center;font-size:10px;color:#555;white-space:nowrap">'+codProd+'</td>'
-        +'<td style="padding:3px 4px;border:1px solid #ccc;font-weight:500">'+it.nom+'</td>'
-        +'<td style="padding:3px 4px;border:1px solid #ccc;text-align:center">'+it.cant+'</td>'
-        +'<td style="padding:3px 4px;border:1px solid #ccc;text-align:center;color:#555">'+unitDisplay+'</td>'
-        +'<td style="padding:3px 4px;border:1px solid #ccc;text-align:center;letter-spacing:1px">'+(esPeso?'_____':'—')+'</td>'
-        +'</tr>';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:1px 0;border-bottom:1px solid #000">'
+        +'<span style="flex:1">'+(j+1)+'. '+it.cant+' × '+it.nom+'</span>'
+        +(esPeso?'<span style="border:1px solid #000;width:42px;height:13px;display:inline-block;flex-shrink:0"></span>':'')
+      +'</div>';
     }).join('');
-    const codCliente=c.codigo||p.cliente_id||'';
 
-    return '<div style="margin-bottom:10px;page-break-inside:avoid">'
-      +'<div style="background:#1a7a52;color:#fff;padding:4px 7px;font-weight:700;font-size:11px;border-radius:4px 4px 0 0;line-height:1.35">'
-        +(i+1)+'. <span style="font-size:13px;font-weight:900;background:rgba(255,255,255,0.2);padding:1px 5px;border-radius:3px;letter-spacing:1px">'+codCliente+'</span> '+p.cliente
-        +'<br><span style="font-size:10px;font-weight:400">'+(c.direccion||'')+' '+(p.localidad||'')+'</span>'
+    return '<div style="margin-bottom:8px;page-break-inside:avoid;border:1px solid #000;padding:3px 5px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1.5px solid #000;padding-bottom:2px;margin-bottom:2px">'
+        +'<div style="font-weight:900;font-size:12px">'+(i+1)+'. '+p.cliente+'</div>'
+        +'<div style="font-size:9px;font-weight:700">Vend: '+vendedor+'</div>'
       +'</div>'
-      +'<table style="width:100%;border-collapse:collapse">'
-        +'<thead><tr style="background:#e8f5e9">'
-          +'<th style="padding:3px 4px;border:1px solid #ccc;text-align:center;width:10%;font-size:10px">Cód.</th>'
-          +'<th style="padding:3px 4px;border:1px solid #ccc;text-align:left;font-size:10px">Producto</th>'
-          +'<th style="padding:3px 4px;border:1px solid #ccc;text-align:center;width:12%;font-size:10px">Cant.</th>'
-          +'<th style="padding:3px 4px;border:1px solid #ccc;text-align:center;width:10%;font-size:10px">Unid.</th>'
-          +'<th style="padding:3px 4px;border:1px solid #ccc;text-align:center;width:20%;font-size:10px">Peso real</th>'
-        +'</tr></thead>'
-        +'<tbody>'+filasProd+'</tbody>'
-      +'</table>'
-      +'<div style="text-align:right;padding:3px 6px;border:1px solid #ccc;border-top:none;font-size:10px;background:#fafafa">'
-        +'Vend: <b>'+vendedor+'</b> &nbsp; Total: <b>'+fmt(p.total)+'</b>'
-      +'</div>'
+      +'<div style="font-size:9px;margin-bottom:2px">Cód: '+codCliente+' · '+(p.localidad||c.localidad||'')+'</div>'
+      +filasProd
     +'</div>';
   }).join('');
 
   const w=window.open('','_blank');
   w.document.write('<!DOCTYPE html><html><head><title>Hoja de Carga #'+cg.id+'</title>'
     +'<style>'
-    +'body{font-family:Arial,sans-serif;padding:10px;color:#000;font-size:11px;margin:0}'
-    +'@page{size:A4 portrait;margin:8mm}'
-    +'@media print{.no-print{display:none}}'
-    +'.hc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px}'
+    +'*{box-sizing:border-box}'
+    +'body{font-family:Arial,sans-serif;padding:0;color:#000;font-size:10px;margin:0}'
+    +'@page{size:A4 portrait;margin:5mm}'
+    +'@media print{.no-print{display:none}*{color:#000!important;background:#fff!important}}'
+    +'.hc-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 6px}'
     +'</style></head><body>'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1a7a52;padding-bottom:8px;margin-bottom:12px">'
-      +'<div>'
-        +'<div style="font-size:14px;font-weight:700;color:#1a7a52">🌸 DISTRIBUIDORA LILA — Hoja de Carga</div>'
-        +'<div style="font-size:11px;margin-top:3px"><b>Repartidor:</b> '+vendedor+' &nbsp;&nbsp; <b>Fecha:</b> '+fecha+' &nbsp;&nbsp; <b>'+peds.length+' parada'+(peds.length===1?'':'s')+'</b></div>'
-      +'</div>'
-      +'<div style="text-align:center;background:#1a7a52;color:#fff;border-radius:8px;padding:5px 18px;flex-shrink:0">'
-        +'<div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;opacity:.85">Carga</div>'
-        +'<div style="font-size:24px;font-weight:900;line-height:1.1">#'+cg.id+'</div>'
-      +'</div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #000;padding-bottom:4px;margin-bottom:6px">'
+      +'<div style="font-size:13px;font-weight:900">DISTRIBUIDORA LILA — Hoja de Carga #'+cg.id+'</div>'
+      +'<div style="font-size:10px"><b>Repartidor:</b> '+vendedor+' &nbsp; <b>Fecha:</b> '+fecha+' &nbsp; <b>'+peds.length+' parada'+(peds.length===1?'':'s')+'</b></div>'
     +'</div>'
     +'<div class="hc-grid">'+bloques+'</div>'
     +'<div class="no-print" style="text-align:center;margin-top:16px">'
