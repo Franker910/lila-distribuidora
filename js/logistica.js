@@ -150,6 +150,7 @@ function renderCargas(){
         <button class="btn sm" onclick="editarCarga(${cg.id})">✏️</button>
         <button class="btn sm" onclick="resumenCarga(${cg.id})">📋 Resumen</button>
         ${tieneRemitos?`<button class="btn A sm" onclick="imprimirRemitosCarga(${cg.id})">🖨️ Remitos (${remsDisp.length})</button>`:''}
+        ${cg.estado==='emitida'?`<button class="btn sm" onclick="_generarHojaRutaParaCarga(${cg.id}).then(()=>toast('✅ Hoja de ruta regenerada para esta carga.'))" title="Crea/completa la hoja de ruta con todos los pedidos de esta carga (útil si algunos no aparecían en Rendición)">🔗 Hoja de ruta</button>`:''}
         ${cg.estado==='armando'?`<button class="btn D sm" onclick="eliminarCarga(${cg.id})" title="Eliminar carga y devolver pedidos">🗑</button>`:''}
       </div>
     </div>`;
@@ -339,7 +340,9 @@ async function emitirRemitos(cargaId){
   }
   // Marcar carga como emitida
   await sb.from('cargas').update({estado:'emitida'}).eq('id',cargaId);
-  await cargarTodo();renderCargas();renderRemitos();renderDash();
+  await cargarTodo();
+  await _generarHojaRutaParaCarga(cargaId);
+  renderCargas();renderRemitos();renderDash();
   toast(`${peds.length} remito(s) emitido(s).`);go('remitos');
 }
 
@@ -376,8 +379,10 @@ function _facturarSiguientePedidoCarga(){
     // Marcar la carga como emitida — igual que hace emitirRemitos() en el
     // flujo en lote. Sin esto, el celu del repartidor (que solo busca
     // cargas con estado 'emitida') nunca la encontraba.
-    sb.from('cargas').update({estado:'emitida'}).eq('id',cg.id).then(()=>{
-      cargarCargas().then(renderCargas);
+    sb.from('cargas').update({estado:'emitida'}).eq('id',cg.id).then(async()=>{
+      await cargarCargas();
+      await _generarHojaRutaParaCarga(cg.id);
+      renderCargas();
     });
     go('carga');
     return;
@@ -1333,7 +1338,7 @@ async function hrMarcarVisitadoPorCliente(clienteId){
 // Un cobro hecho desde el flujo de carga (sin hoja de ruta armada a mano)
 // generaba un huérfano en Rendición → "Cobros sin hoja de ruta". Esto crea
 // la fila de hoja_ruta que falta, para que quede integrado normalmente.
-async function _asegurarHojaRutaParaCobro(clienteId,fecha,vendedor){
+async function _asegurarHojaRutaParaCobro(clienteId,fecha,vendedor,visitado=true){
   const {data:existe}=await sb.from('hoja_ruta').select('id').eq('fecha',fecha).eq('cliente_id',clienteId).eq('vendedor',vendedor);
   if(existe&&existe.length)return;
   const c=_clientes.find(x=>x.id===clienteId);if(!c)return;
@@ -1341,8 +1346,23 @@ async function _asegurarHojaRutaParaCobro(clienteId,fecha,vendedor){
   const maxOrden=(actuales||[]).reduce((m,r)=>Math.max(m,r.orden||0),0);
   await sb.from('hoja_ruta').insert({
     cliente_id:c.id,nombre:c.nombre,direccion:c.direccion||'',localidad:c.localidad||'',
-    zona:c.zona||'',telefono:c.telefono||'',vendedor,orden:maxOrden+1,visitado:true,fecha
+    zona:c.zona||'',telefono:c.telefono||'',vendedor,orden:maxOrden+1,visitado,fecha
   });
+}
+
+// Al emitir una carga (en lote o con pesaje), generar la hoja de ruta para
+// TODOS sus pedidos de una — así en Rendición/Mi ruta se ve la lista
+// completa (cobrado o no), no solo los que ya tienen un cobro cargado.
+async function _generarHojaRutaParaCarga(cargaId){
+  const cg=_cargas.find(x=>x.id===cargaId);if(!cg)return;
+  const fecha=cg.fecha||hoyLocal();
+  const peds=_pedidosDeCarga(cargaId);
+  for(const p of peds){
+    const vend=(p.vendedor||cg.vendedor||'').trim();
+    if(!vend)continue;
+    await _asegurarHojaRutaParaCobro(p.cliente_id,fecha,vend,false);
+  }
+  await cargarHojaRutaTodas();
 }
 
 // ─── Agregar cliente sobre la marcha (vista móvil del repartidor/vendedor) ──
