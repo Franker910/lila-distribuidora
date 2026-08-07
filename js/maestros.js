@@ -147,6 +147,17 @@ async function guardarCliente(){
   setTimeout(()=>{const q=document.getElementById('cli-q');if(q&&document.getElementById('p-clientes')?.classList.contains('on'))q.focus();},50);
 }
 
+function limpiarFiltrosClientes() {
+  document.getElementById('cli-f-nombre').value = '';
+  document.getElementById('cli-f-loc').value = '';
+  document.getElementById('cli-f-tel').value = '';
+  document.getElementById('cli-f-zona').value = '';
+  document.getElementById('cli-f-ven').value = '';
+  document.getElementById('cli-f-dto').value = '';
+  document.getElementById('cli-f-saldo').value = '';
+  renderClientes();
+}
+
 function pedRapido(id){go('pedidos');abrirPedido();setTimeout(()=>selCli(id),100);}
 
 // ─── PRODUCTOS ───
@@ -850,6 +861,15 @@ async function eliminarProveedor(id){
   if(!confirm('¿Eliminar este proveedor?')) return;
   await sb.from('proveedores').delete().eq('id', id);
   await cargarProveedores();
+  renderProveedores();
+}
+
+function limpiarFiltrosProveedores() {
+  document.getElementById('prov-f-nom').value = '';
+  document.getElementById('prov-f-cuit').value = '';
+  document.getElementById('prov-f-cont').value = '';
+  document.getElementById('prov-f-plazo').value = '';
+  document.getElementById('prov-f-saldo').value = '';
   renderProveedores();
 }
 
