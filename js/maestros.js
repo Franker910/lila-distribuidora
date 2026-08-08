@@ -178,6 +178,15 @@ function _productoPasaAutofiltro(p){
     matchFiltroCol(p.margen_objetivo||0,fMobj)&&matchFiltroCol(p.stock||0,fStock);
 }
 
+function limpiarFiltrosProductos() {
+  document.getElementById('pro-q').value = '';
+  document.getElementById('pro-cat').value = '';
+  document.getElementById('pro-prov').value = '';
+  document.getElementById('pro-activo').value = 'activos';
+  document.getElementById('pro-f-stock').value = '';
+  renderProductos();
+}
+
 function renderProductos(){
   const q=(document.getElementById('pro-q').value||'').toLowerCase();
   const cat=document.getElementById('pro-cat')?.value||'';

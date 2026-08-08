@@ -249,6 +249,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   @page{size:A4 portrait;margin:10mm}
 }
 @keyframes slideUpBanner{from{transform:translateY(100%)}to{transform:translateY(0)}}
+
+.hidden { display: none !important; }
 </style>
 </head>
 <body>
@@ -1567,56 +1569,72 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <!-- PRODUCTOS -->
-<div class="panel" id="p-productos">
-  <div class="sech">
+<div class="panel" id="p-productos" style="display:flex; flex-direction:column; height:100%;">
+  <div class="sech" style="flex-shrink:0;">
     <h2>Productos / Stock</h2>
-    <button class="btn P" onclick="abrirProducto()">+ Nuevo</button>
-  </div>
-  <div class="tb" style="position:relative">
-    <input id="pro-q" placeholder="Nombre, código..." oninput="renderProductos();resetNav('pro-tbody')" onkeydown="navProductos(event)" title="↑↓ navegar · Enter abrir · Esc volver">
-      <select id="pro-cat" onchange="poblarSubcats('pro-cat','pro-subcat');renderProductos()">
-      <option value="">Todas las categorías</option>
-  <option value="Fiambres">Fiambres</option><option value="Quesos">Quesos</option><option value="Lácteos">Lácteos</option><option value="Condimentos">Condimentos</option><option value="Conservas">Conservas</option><option value="Snacks">Snacks</option><option value="Congelados">Congelados</option><option value="Otros">Otros</option>
-    </select>
-    <select id="pro-subcat" onchange="renderProductos()" disabled>
-      <option value="">Todas las subcategorías</option>
-    </select>
-    <select id="pro-prov" onchange="renderProductos()"><option value="">Todos los proveedores</option></select>
-    <select id="pro-activo" onchange="renderProductos()" style="min-width:110px">
-      <option value="activos">Solo activos</option>
-      <option value="todos">Todos</option>
-      <option value="inactivos">Solo inactivos</option>
-    </select>
-    <div style="position:relative;margin-left:auto" id="pro-export-wrap">
-      <button class="btn" onclick="document.getElementById('pro-export-menu').classList.toggle('hidden');document.getElementById('pro-export-count').textContent=_getProductosFiltrados().length+' productos'">🖨️ Exportar ▾</button>
-      <div id="pro-export-menu" class="hidden" style="position:absolute;right:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--brd);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:300;min-width:180px;overflow:hidden">
-        <div id="pro-export-count" style="padding:6px 14px;font-size:11px;color:var(--txt2);background:var(--bg2);border-bottom:1px solid var(--brd)"></div>
+    <div style="display:flex; gap:6px;">
+      <button class="btn P" onclick="abrirProducto()">+ Nuevo</button>
+      <button class="btn" onclick="document.getElementById('pro-export-menu').classList.toggle('hidden')" style="position:relative;">🖨️ Exportar ▾</button>
+      <div id="pro-export-menu" class="hidden" style="position:absolute;right:0;top:100%;background:#fff;border:1px solid var(--brd);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:300;min-width:180px;overflow:hidden">
         <button onclick="imprimirProductos();document.getElementById('pro-export-menu').classList.add('hidden')" style="display:block;width:100%;padding:10px 14px;text-align:left;border:none;background:none;cursor:pointer;font-size:13px">🖨️ Imprimir</button>
         <button onclick="exportarProductosCSV();document.getElementById('pro-export-menu').classList.add('hidden')" style="display:block;width:100%;padding:10px 14px;text-align:left;border:none;background:none;cursor:pointer;font-size:13px;border-top:1px solid var(--brd)">📊 Exportar a Excel</button>
       </div>
     </div>
   </div>
-  <div style="flex:1;overflow-y:auto;min-height:0">
-    <div class="tbl-wrap"><table class="tbl">
-      <thead>
-        <tr><th>Código</th><th>Nombre</th><th>Proveedor</th><th>Unidad</th><th>Costo</th><th>Precio vta</th><th>Margen real</th><th>Margen obj</th><th>Estado</th><th>Stock</th><th></th></tr>
-        <tr class="tbl-autofiltro">
-          <th><input id="pro-f-cod" oninput="renderProductos()" placeholder="Filtrar..."></th>
-          <th><input id="pro-f-nom" oninput="renderProductos()" placeholder="Filtrar..."></th>
-          <th></th>
-          <th><input id="pro-f-unidad" oninput="renderProductos()" placeholder="Filtrar..."></th>
-          <th><input id="pro-f-costo" oninput="renderProductos()" placeholder=">100"></th>
-          <th><input id="pro-f-precio" oninput="renderProductos()" placeholder=">100"></th>
-          <th><input id="pro-f-mreal" oninput="renderProductos()" placeholder="<10"></th>
-          <th><input id="pro-f-mobj" oninput="renderProductos()" placeholder="<10"></th>
-          <th></th>
-          <th><input id="pro-f-stock" oninput="renderProductos()" placeholder="<5"></th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="pro-tbody"></tbody>
-    </table></div>
-    <div class="pg" id="pro-pg"></div>
+
+  <!-- BARRA DE BÚSQUEDA Y FILTROS -->
+  <div class="tb" style="flex-shrink:0; flex-wrap:wrap; gap:6px;">
+    <input id="pro-q" placeholder="🔍 Buscar por nombre o código..." oninput="renderProductos();resetNav('pro-tbody')" onkeydown="navProductos(event)" title="↑↓ navegar · Enter abrir · Esc volver" style="flex:1; min-width:180px; max-width:300px;">
+    
+    <select id="pro-cat" onchange="poblarSubcats('pro-cat','pro-subcat');renderProductos()" style="flex:0 0 160px;">
+      <option value="">Categoría</option>
+      <option value="Fiambres">Fiambres</option>
+      <option value="Quesos">Quesos</option>
+      <option value="Lácteos">Lácteos</option>
+      <option value="Condimentos">Condimentos</option>
+      <option value="Conservas">Conservas</option>
+      <option value="Snacks">Snacks</option>
+      <option value="Congelados">Congelados</option>
+      <option value="Otros">Otros</option>
+    </select>
+    
+    <select id="pro-prov" onchange="renderProductos()" style="flex:0 0 170px;">
+      <option value="">Proveedor</option>
+    </select>
+    
+    <select id="pro-activo" onchange="renderProductos()" style="flex:0 0 130px;">
+      <option value="activos">Activos</option>
+      <option value="todos">Todos</option>
+      <option value="inactivos">Inactivos</option>
+    </select>
+
+    <input id="pro-f-stock" oninput="renderProductos()" placeholder="Stock" style="flex:0 0 150px;">
+    <button class="btn sm" onclick="limpiarFiltrosProductos()" style="flex:0 0 80px;">✕ Limpiar</button>
+  </div>
+
+  <!-- TABLA -->
+  <div style="flex:1; overflow-y:auto; min-height:0; border:1px solid var(--brd); border-radius:8px;">
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Proveedor</th>
+            <th>Unidad</th>
+            <th style="text-align:right">Costo</th>
+            <th style="text-align:right">Precio</th>
+            <th style="text-align:right">Margen real</th>
+            <th style="text-align:right">Margen obj</th>
+            <th>Estado</th>
+            <th style="text-align:center">Stock</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="pro-tbody"></tbody>
+      </table>
+    </div>
+    <div class="pg" id="pro-pg" style="padding:6px;"></div>
   </div>
 </div>
 
