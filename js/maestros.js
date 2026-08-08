@@ -368,6 +368,77 @@ function editarProducto(id){
   document.getElementById('m-producto').classList.add('on');
 }
 
+// ─── MOSTRAR/OCULTAR HISTORIAL ───
+function toggleHistorialStock() {
+  const historial = document.getElementById('stock-historial');
+  const btn = document.getElementById('stock-btn-historial');
+  if (!historial) return;
+  
+  if (historial.style.display === 'none' || historial.style.display === '') {
+    historial.style.display = 'block';
+    if (btn) btn.textContent = '📋 Ocultar historial';
+    cargarHistorialStock(); // Cargar los datos al mostrar
+  } else {
+    historial.style.display = 'none';
+    if (btn) btn.textContent = '📋 Ver historial';
+  }
+}
+
+// ─── CARGAR HISTORIAL DE STOCK ───
+async function cargarHistorialStock() {
+  const contenedor = document.getElementById('stock-historial-contenido');
+  if (!contenedor) return;
+  
+  // Cargar conteos desde la base de datos
+  // Asumimos que hay una tabla "conteos_stock" o similar
+  const { data, error } = await sb.from('conteos_stock')
+    .select('*')
+    .order('fecha', { ascending: false })
+    .limit(50);
+  
+  if (error || !data || data.length === 0) {
+    contenedor.innerHTML = '<div class="empty"><i>📦</i><br>No hay conteos registrados aún. Hacé clic en "+ Nuevo conteo" para comenzar.</div>';
+    return;
+  }
+  
+  // Mostrar los conteos en una tabla
+  contenedor.innerHTML = `
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Usuario</th>
+            <th>Productos ajustados</th>
+            <th>Diferencia total</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(c => `
+            <tr>
+              <td>${c.fecha || '—'}</td>
+              <td>${c.usuario || '—'}</td>
+              <td>${c.productos_ajustados || 0}</td>
+              <td style="color:${(c.diferencia_total || 0) < 0 ? 'var(--D)' : 'var(--P)'}">${fmt(c.diferencia_total || 0)}</td>
+              <td><button class="btn sm" onclick="verDetalleConteo(${c.id})">👁 Ver</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ─── LIMPIAR FILTROS DE STOCK ───
+function limpiarFiltrosStock() {
+  document.getElementById('stock-q').value = '';
+  document.getElementById('stock-cat').value = '';
+  document.getElementById('stock-prov').value = '';
+  document.getElementById('stock-rubro').value = '';
+  filtrarConteo();
+}
+
 // Popup de búsqueda dentro del propio formulario (como "Consulta de
 // Artículos" de FoxPro): mientras tipeás el nombre, muestra productos ya
 // cargados que coincidan, para saltar a editarlos sin cerrar el modal.

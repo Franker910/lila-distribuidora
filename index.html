@@ -1571,13 +1571,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <!-- PRODUCTOS -->
 <div class="panel" id="p-productos" style="display:flex; flex-direction:column; height:100%;">
   <div class="sech" style="flex-shrink:0;">
-    <h2>Productos / Stock</h2>
-    <div style="display:flex; gap:6px;">
+    <h2>Productos</h2>
+    <div style="display:flex; gap:6px; align-items:center;">
       <button class="btn P" onclick="abrirProducto()">+ Nuevo</button>
-      <button class="btn" onclick="document.getElementById('pro-export-menu').classList.toggle('hidden')" style="position:relative;">🖨️ Exportar ▾</button>
-      <div id="pro-export-menu" class="hidden" style="position:absolute;right:0;top:100%;background:#fff;border:1px solid var(--brd);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:300;min-width:180px;overflow:hidden">
-        <button onclick="imprimirProductos();document.getElementById('pro-export-menu').classList.add('hidden')" style="display:block;width:100%;padding:10px 14px;text-align:left;border:none;background:none;cursor:pointer;font-size:13px">🖨️ Imprimir</button>
-        <button onclick="exportarProductosCSV();document.getElementById('pro-export-menu').classList.add('hidden')" style="display:block;width:100%;padding:10px 14px;text-align:left;border:none;background:none;cursor:pointer;font-size:13px;border-top:1px solid var(--brd)">📊 Exportar a Excel</button>
+      <div style="position:relative;">
+        <button class="btn A" onclick="document.getElementById('pro-export-menu').classList.toggle('hidden')">🖨️ Exportar ▾</button>
+        <div id="pro-export-menu" class="hidden" style="position:absolute;right:0;top:calc(100% + 4px);background:var(--bg);border:1px solid var(--brd);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:160;min-width:180px;">
+          <button onclick="imprimirProductos();document.getElementById('pro-export-menu').classList.add('hidden')" style="display:block;width:100%;padding:10px 14px;text-align:left;border:none;background:transparent;cursor:pointer;font-size:13px;color:var(--txt);transition:background .1s;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='transparent'">🖨️ Imprimir</button>
+          <button onclick="exportarProductosCSV();document.getElementById('pro-export-menu').classList.add('hidden')" style="display:block;width:100%;padding:10px 14px;text-align:left;border:none;background:transparent;cursor:pointer;font-size:13px;color:var(--txt);border-top:1px solid var(--brd);transition:background .1s;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='transparent'">📊 Exportar a Excel</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1810,48 +1812,76 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <!-- STOCK / CONTEO -->
-<div class="panel" id="p-stock">
-  <div class="sech">
+<div class="panel" id="p-stock" style="display:flex; flex-direction:column; height:100%;">
+  
+  <!-- Título y botones principales -->
+  <div class="sech" style="flex-shrink:0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; width: 100px;">
     <h2>📊 Control de stock y merma</h2>
-    <button class="btn P" onclick="iniciarConteo()">+ Nuevo conteo</button>
+    <div style="display:flex; gap:6px;">
+      <button id="stock-btn-nuevo" class="btn P" onclick="iniciarConteo()">+ Nuevo conteo</button>
+      <button id="stock-btn-historial" class="btn A" onclick="toggleHistorialStock()">📋 Ver historial</button>
+    </div>
   </div>
-  <div id="stock-conteo-section" style="display:none">
-    <div style="font-weight:600;font-size:13px;margin-bottom:10px;color:var(--PD)">Conteo físico — ingresá lo que hay en la heladera/depósito</div>
-    <div class="tb">
-      <input id="stock-q" placeholder="Buscar producto..." oninput="filtrarConteo()" onkeydown="navStockBusq(event)">
-      <select id="stock-cat" onchange="filtrarConteo()">
+
+  <!-- SECCIÓN DE CONTEO -->
+  <div id="stock-conteo-section" style="display:none; flex-direction:column; flex:1; min-height:0; margin-top:8px;">
+    
+    <!-- Barra de filtros -->
+    <div class="tb" style="flex-shrink:0; flex-wrap:wrap; gap:6px;">
+      <input id="stock-q" placeholder="🔍 Buscar producto..." oninput="filtrarConteo()" onkeydown="navStockBusq(event)" style="flex:1; min-width:160px; max-width:280px;">
+      <select id="stock-cat" onchange="filtrarConteo()" style="flex:0 0 150px;">
         <option value="">Todas las categorías</option>
         <option value="FIAMBRES">Fiambres</option>
         <option value="LACTEOS">Lácteos</option>
         <option value="OTROS">Otros</option>
       </select>
-      <select id="stock-prov" onchange="filtrarConteo()"><option value="">Todos los proveedores</option></select>
-      <select id="stock-rubro" onchange="filtrarConteo()"><option value="">Todos los rubros</option></select>
+      <select id="stock-prov" onchange="filtrarConteo()" style="flex:0 0 160px;">
+        <option value="">Todos los proveedores</option>
+      </select>
+      <select id="stock-rubro" onchange="filtrarConteo()" style="flex:0 0 150px;">
+        <option value="">Todos los rubros</option>
+      </select>
+      <button class="btn sm" onclick="limpiarFiltrosStock()" style="flex:0 0 80px;">✕ Limpiar</button>
     </div>
-    <div class="tbl-wrap">
-    <table class="tbl">
-      <thead><tr>
-        <th>Producto</th>
-        <th>Proveedor</th>
-        <th>Unidad</th>
-        <th style="text-align:right">Stock sistema</th>
-        <th style="text-align:center">Stock físico real</th>
-        <th style="text-align:right">Diferencia</th>
-        <th style="text-align:right">% Merma</th>
-      </tr></thead>
-      <tbody id="stock-tbody"></tbody>
-    </table>
+
+    <!-- Tabla de conteo-->
+    <div style="flex:1; overflow-y:auto; min-height:300px; border:1px solid var(--brd); border-radius:8px; margin-top:4px;">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Proveedor</th>
+              <th>Unidad</th>
+              <th style="text-align:right">Stock sistema</th>
+              <th style="text-align:center">Stock físico real</th>
+              <th style="text-align:right">Diferencia</th>
+              <th style="text-align:right">% Merma</th>
+            </tr>
+          </thead>
+          <tbody id="stock-tbody"></tbody>
+        </table>
+      </div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+
+    <!-- Botones de acción del conteo -->
+    <div style="display:flex; gap:8px; margin-top:12px; justify-content:flex-end; flex-shrink:0;">
       <button class="btn" onclick="cancelarConteo()">Cancelar</button>
       <button class="btn A" onclick="verInformeStockAntes()">👁 Ver diferencias</button>
       <button class="btn P" onclick="guardarConteo()">✓ Guardar conteo</button>
     </div>
   </div>
-  <div id="stock-historial">
-    <div class="empty"><i>📦</i><br>Cliqueá "+ Nuevo conteo" para registrar el stock físico y ver la merma</div>
+
+  <!-- HISTORIAL DE CONTEO -->
+  <div id="stock-historial" style="flex:1; overflow-y:auto; min-height:200px; margin-top:8px; border:1px solid var(--brd); border-radius:8px; padding:12px;">
+    <div id="stock-historial-contenido">
+      <div class="empty"><i>📦</i><br>No hay conteos registrados aún. Hacé clic en "+ Nuevo conteo" para comenzar.</div>
+    </div>
   </div>
-  <div id="stock-informe" style="display:none"></div>
+
+  <!-- Informe de diferencias -->
+  <div id="stock-informe" style="display:none; flex:1; overflow-y:auto; min-height:200px; margin-top:8px;"></div>
+
 </div>
 
 <!-- CONTABILIDAD -->

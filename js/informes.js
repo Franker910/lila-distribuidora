@@ -771,21 +771,36 @@ function verInformeStockAntes(){
   </div>`;
 }
 
-async function guardarConteo(){
-  if(!Object.keys(_conteoActual).length){alert('No ingresaste ningún stock físico.');return;}
+async function guardarConteo() {
+  if (!Object.keys(_conteoActual).length) { alert('No ingresaste ningún stock físico.'); return; }
   
-  // Actualizar stock en base de datos
-  let actualizados=0;
-  for(const [prodId, fisico] of Object.entries(_conteoActual)){
-    await sb.from('productos').update({stock:fisico}).eq('id',parseInt(prodId));
+  let actualizados = 0;
+  let diferenciaTotal = 0;
+  
+  for (const [prodId, fisico] of Object.entries(_conteoActual)) {
+    const prod = _productos.find(p => p.id === parseInt(prodId));
+    const sistema = prod?.stock || 0;
+    const diff = fisico - sistema;
+    diferenciaTotal += diff;
+    
+    await sb.from('productos').update({ stock: fisico }).eq('id', parseInt(prodId));
     actualizados++;
   }
   
+  // Guardar el registro del conteo en el historial
+  await sb.from('conteos_stock').insert({
+    fecha: hoyLocal(),
+    usuario: usuarioActual?.nombre || 'Sistema',
+    productos_ajustados: actualizados,
+    diferencia_total: diferenciaTotal
+  });
+  
   await cargarProductos();
   verInformeStockAntes();
-  document.getElementById('stock-conteo-section').style.display='none';
-  alert(`✅ Stock actualizado para ${actualizados} productos. El sistema ahora refleja el stock físico real.`);
+  document.getElementById('stock-conteo-section').style.display = 'none';
+  alert(`✅ Stock actualizado para ${actualizados} productos.`);
   renderProductos();
+  cargarHistorialStock(); // Recargar historial
 }
 
 function imprimirStock(){
