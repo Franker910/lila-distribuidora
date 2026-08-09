@@ -722,6 +722,7 @@ function cancelarConteo(){
   _conteoActual={};
   document.getElementById('stock-conteo-section').style.display='none';
   document.getElementById('stock-historial').style.display='block';
+  document.getElementById('stock-informe').style.display='none'; 
 }
 
 function verInformeStockAntes(){

@@ -1544,13 +1544,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <input id="cli-q" placeholder="Nombre, teléfono, localidad..." oninput="renderClientes();resetNav('cli-tbody')" onkeydown="navCliTabla(event)" title="↑↓ navegar · Enter abrir · Esc volver">
   </div>
     <div class="tb" id="filtros-clientes" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-    <input id="cli-f-nombre" oninput="renderClientes()" placeholder="Filtrar nombre..." style="flex:1; min-width:120px;">
-    <input id="cli-f-loc" oninput="renderClientes()" placeholder="Filtrar localidad..." style="flex:1; min-width:120px;">
+    <input id="cli-f-nombre" oninput="renderClientes()" placeholder="Filtrar nombre..." style="flex:0; min-width:140px;">
+    <input id="cli-f-loc" oninput="renderClientes()" placeholder="Filtrar localidad..." style="flex:0; min-width:140px;">
     <input id="cli-f-tel" oninput="renderClientes()" placeholder="Filtrar teléfono..." style="flex:0 0 150px;">
     <select id="cli-f-zona" onchange="renderClientes()" style="flex:0 0 150px;">
       <option value="">Todas las zonas</option>
     </select>
-    <select id="cli-f-ven" onchange="renderClientes()" style="flex:0 0 150px;">
+    <select id="cli-f-ven" onchange="renderClientes()" style="flex:0 0 180px;">
       <option value="">Todos los vendedores</option>
     </select>
     <input id="cli-f-dto" oninput="renderClientes()" placeholder="Dto >0" style="flex:0 0 100px;">
@@ -1812,14 +1812,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <!-- STOCK / CONTEO -->
-<div class="panel" id="p-stock" style="display:flex; flex-direction:column; height:100%;">
+<div class="panel" id="p-stock" style="display:flex; flex-direction:column; height:100%; overflow-y:auto;">
   
   <!-- Título y botones principales -->
-  <div class="sech" style="flex-shrink:0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; width: 100px;">
+  <div class="sech" style="flex-shrink:0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; width: 200px;">
     <h2>📊 Control de stock y merma</h2>
     <div style="display:flex; gap:6px;">
-      <button id="stock-btn-nuevo" class="btn P" onclick="iniciarConteo()">+ Nuevo conteo</button>
-      <button id="stock-btn-historial" class="btn A" onclick="toggleHistorialStock()">📋 Ver historial</button>
+      <button id="stock-btn-nuevo" class="btn P" onclick="iniciarConteo()">+ Nuevo conteo</button>  
     </div>
   </div>
 
@@ -1835,7 +1834,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <option value="LACTEOS">Lácteos</option>
         <option value="OTROS">Otros</option>
       </select>
-      <select id="stock-prov" onchange="filtrarConteo()" style="flex:0 0 160px;">
+      <select id="stock-prov" onchange="filtrarConteo()" style="flex:0 0 200px;">
         <option value="">Todos los proveedores</option>
       </select>
       <select id="stock-rubro" onchange="filtrarConteo()" style="flex:0 0 150px;">
@@ -1844,8 +1843,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="btn sm" onclick="limpiarFiltrosStock()" style="flex:0 0 80px;">✕ Limpiar</button>
     </div>
 
-    <!-- Tabla de conteo-->
-    <div style="flex:1; overflow-y:auto; min-height:300px; border:1px solid var(--brd); border-radius:8px; margin-top:4px;">
+    <!-- Tabla de conteo -->
+    <div style="height:300px; overflow-y:auto; border:1px solid var(--brd); border-radius:8px; margin-top:4px; margin-right:6px;">
       <div class="tbl-wrap">
         <table class="tbl">
           <thead>
@@ -3264,7 +3263,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div id="prov-totales" style="margin-bottom:10px"></div>
 
   <div class="tb" id="filtros-proveedores" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; align-items:center;">
-    <input id="prov-f-nom" oninput="renderProveedores()" placeholder="Filtrar nombre..." style="flex:1; min-width:140px;">
+    <input id="prov-f-nom" oninput="renderProveedores()" placeholder="Filtrar nombre..." style="flex:0; min-width:250px;">
     <input id="prov-f-cuit" oninput="renderProveedores()" placeholder="Filtrar CUIT..." style="flex:0 0 150px;">
     <input id="prov-f-cont" oninput="renderProveedores()" placeholder="Filtrar contacto..." style="flex:0 0 150px;">
     <input id="prov-f-plazo" oninput="renderProveedores()" placeholder="Plazo >30" style="flex:0 0 100px;">

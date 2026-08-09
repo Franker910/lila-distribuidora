@@ -368,21 +368,6 @@ function editarProducto(id){
   document.getElementById('m-producto').classList.add('on');
 }
 
-// ─── MOSTRAR/OCULTAR HISTORIAL ───
-function toggleHistorialStock() {
-  const historial = document.getElementById('stock-historial');
-  const btn = document.getElementById('stock-btn-historial');
-  if (!historial) return;
-  
-  if (historial.style.display === 'none' || historial.style.display === '') {
-    historial.style.display = 'block';
-    if (btn) btn.textContent = '📋 Ocultar historial';
-    cargarHistorialStock(); // Cargar los datos al mostrar
-  } else {
-    historial.style.display = 'none';
-    if (btn) btn.textContent = '📋 Ver historial';
-  }
-}
 
 // ─── CARGAR HISTORIAL DE STOCK ───
 async function cargarHistorialStock() {
