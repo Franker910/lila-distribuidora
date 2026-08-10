@@ -144,14 +144,21 @@ function renderCargas(){
         <div style="text-align:right"><div class="ccard-tot">${fmt(cg.total)}</div><span class="b ${cg.estado==='armando'?'bW':cg.estado==='lista'?'bA':cg.estado==='emitida'?'bP':'bP'}">${cg.estado}</span></div>
       </div>
       <div class="ccard-acts">
-        ${cg.estado==='armando'?`<button class="btn P sm" onclick="marcarLista(${cg.id})">✓ Marcar lista</button>`:''}
-        ${cg.estado==='lista'?`<button class="btn A sm" onclick="emitirRemitos(${cg.id})">📄 Emitir remitos</button>`:''}
-        ${cg.estado==='lista'?`<button class="btn P sm" onclick="facturarCargaConPesaje(${cg.id})" title="Cargar el peso real de cada cajón y emitir el remito uno por uno">⚖️ Facturar con pesaje real</button>`:''}
-        <button class="btn sm" onclick="editarCarga(${cg.id})">✏️</button>
+        ${(cg.estado==='armando' || cg.estado==='lista') ? `<button class="btn P sm" onclick="editarCarga(${cg.id})">✏️ Editar</button>` : `<button class="btn sm" style="opacity:0.5;cursor:default;" disabled>✏️ Editar</button>`}
+        
+        ${cg.estado==='armando' ? `<button class="btn P sm" onclick="marcarLista(${cg.id})">✓ Marcar lista</button>` : `<button class="btn sm" style="opacity:0.5;cursor:default;" disabled>✓ Marcar lista</button>`}
+        
+        ${cg.estado==='lista' ? `<button class="btn A sm" onclick="emitirRemitos(${cg.id})">📄 Emitir remitos</button>` : `<button class="btn sm" style="opacity:0.5;cursor:default;" disabled>📄 Emitir remitos</button>`}
+        
+        ${cg.estado==='lista' ? `<button class="btn P sm" onclick="facturarCargaConPesaje(${cg.id})" title="Cargar el peso real de cada cajón y emitir el remito uno por uno">⚖️ Facturar con pesaje</button>` : `<button class="btn sm" style="opacity:0.5;cursor:default;" disabled>⚖️ Facturar con pesaje</button>`}
+        
         <button class="btn sm" onclick="resumenCarga(${cg.id})">📋 Resumen</button>
-        ${tieneRemitos?`<button class="btn A sm" onclick="imprimirRemitosCarga(${cg.id})">🖨️ Remitos (${remsDisp.length})</button>`:''}
-        ${cg.estado==='emitida'?`<button class="btn sm" onclick="_generarHojaRutaParaCarga(${cg.id}).then(()=>toast('✅ Hoja de ruta regenerada para esta carga.'))" title="Crea/completa la hoja de ruta con todos los pedidos de esta carga (útil si algunos no aparecían en Rendición)">🔗 Hoja de ruta</button>`:''}
-        ${cg.estado==='armando'?`<button class="btn D sm" onclick="eliminarCarga(${cg.id})" title="Eliminar carga y devolver pedidos">🗑</button>`:''}
+        
+        ${tieneRemitos ? `<button class="btn A sm" onclick="imprimirRemitosCarga(${cg.id})">🖨️ Remitos (${remsDisp.length})</button>` : `<button class="btn sm" style="opacity:0.5;cursor:default;" disabled>🖨️ Remitos (0)</button>`}
+        
+        ${cg.estado==='emitida' ? `<button class="btn sm" onclick="_generarHojaRutaParaCarga(${cg.id}).then(()=>toast('✅ Hoja de ruta regenerada para esta carga.'))" title="Crea/completa la hoja de ruta con todos los pedidos de esta carga (útil si algunos no aparecían en Rendición)">🔗 Hoja de ruta</button>` : `<button class="btn sm" style="opacity:0.5;cursor:default;" disabled>🔗 Hoja de ruta</button>`}
+        
+        ${cg.estado==='armando' ? `<button class="btn D sm" onclick="eliminarCarga(${cg.id})" title="Eliminar carga y devolver pedidos">🗑 Eliminar</button>` : `<button class="btn sm" style="opacity:0.5;cursor:default;" disabled>🗑 Eliminar</button>`}
       </div>
     </div>`;
   }).join('');

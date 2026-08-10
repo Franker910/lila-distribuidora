@@ -845,9 +845,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="btn P" onclick="mostrarNuevaCarga()">+ Nueva carga</button>
     </div>
     <div class="tb">
-      <input id="car-q" placeholder="Buscar cliente o Nº..." oninput="renderCargas()" style="flex:1;min-width:120px">
-      <input type="date" id="car-fd" title="Desde" oninput="renderCargas()" style="width:130px">
-      <input type="date" id="car-fh" title="Hasta" oninput="renderCargas()" style="width:130px">
+      <input id="car-q" placeholder="Buscar cliente o Nº..." oninput="renderCargas()" style="flex:1;min-width:450px">
+      <div style="display:flex; align-items:center; gap:4px;">
+        <label style="font-size:11px;color:var(--txt2);font-weight:600">Desde</label>
+        <input type="date" id="car-fd" oninput="renderCargas()" style="width:100px">
+      </div>
+      <div style="display:flex; align-items:center; gap:4px;">
+        <label style="font-size:11px;color:var(--txt2);font-weight:600">Hasta</label>
+        <input type="date" id="car-fh" oninput="renderCargas()" style="width:100px">
+      </div>
       <select id="car-ven" onchange="renderCargas()" style="min-width:130px">
         <option value="">Todos los vendedores</option>
       </select>
