@@ -2110,3 +2110,13 @@ function cancelarEditPedidoMovil(){
   _editPedMovil=null;
   cerrarBottomSheetEditar();
 }
+
+// ─── LIMPIAR FILTROS DE REMITOS ───
+function limpiarFiltrosRemitos() {
+  document.getElementById('rem-q').value = '';
+  document.getElementById('rem-est').value = '';
+  document.getElementById('rem-fd').value = '';
+  document.getElementById('rem-fh').value = '';
+  document.getElementById('rem-f-total').value = '';
+  renderRemitos();
+}

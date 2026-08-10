@@ -919,10 +919,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <!-- REMITOS -->
-<div class="panel" id="p-remitos">
-  <div class="sech">
-    <h2>Remitos emitidos</h2>
-    <div style="position:relative">
+<div class="panel" id="p-remitos" style="display:flex; flex-direction:column; height:100%;">
+  
+  <!-- Título y botón "Nuevo comprobante" -->
+  <div class="sech" style="flex-shrink:0;">
+    <h2>📄 Remitos emitidos</h2>
+    <div style="position:relative;">
       <button class="btn P" onclick="toggleNuevoCompVentas(event)">+ Nuevo comprobante ▾</button>
       <div id="nuevo-comp-ventas-menu" style="display:none;position:absolute;right:0;top:110%;background:var(--bg);border:1px solid var(--brd);border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.14);z-index:500;min-width:210px;padding:6px 0">
         <div onclick="cerrarMenuNuevoComp();go('remito-rapido')" style="padding:10px 16px;cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px"><span>🧾</span> Factura / Remito</div>
@@ -932,45 +934,63 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
   </div>
-  <div class="tb">
-    <input id="rem-q" placeholder="Buscar cliente..." oninput="renderRemitos();resetNav('rem-tbody')" onkeydown="navRemitos(event)" title="↑↓ navegar · Enter abrir · Esc volver">
-    <select id="rem-est" onchange="renderRemitos()">
-      <option value="">Todos</option>
+
+  <!-- BARRA DE FILTROS -->
+  <div class="tb" style="flex-shrink:0; flex-wrap:wrap; gap:6px;">
+    <input id="rem-q" placeholder="🔍 Buscar por cliente, número o localidad..." oninput="renderRemitos();resetNav('rem-tbody')" onkeydown="navRemitos(event)" title="↑↓ navegar · Enter abrir · Esc volver" style="flex:1; min-width:180px; max-width:320px;">
+    
+    <select id="rem-est" onchange="renderRemitos()" style="flex:0 0 150px;">
+      <option value="">Todos los estados</option>
       <option value="false">Pendientes de cobro</option>
       <option value="parcial">Pago parcial</option>
       <option value="true">Cobrados</option>
     </select>
-    <input type="date" id="rem-fd" title="Desde" oninput="renderRemitos()" style="width:130px">
-    <input type="date" id="rem-fh" title="Hasta" oninput="renderRemitos()" style="width:130px">
-    <button class="btn sm" onclick="document.getElementById('rem-fd').value='';document.getElementById('rem-fh').value='';renderRemitos();" title="Limpiar fechas">✕ fecha</button>
+
+    <div style="display:flex; align-items:center; gap:4px;">
+      <label style="font-size:11px; color:var(--txt2); font-weight:600;">Desde</label>
+      <input type="date" id="rem-fd" oninput="renderRemitos()" style="width:120px;">
+    </div>
+    <div style="display:flex; align-items:center; gap:4px;">
+      <label style="font-size:11px; color:var(--txt2); font-weight:600;">Hasta</label>
+      <input type="date" id="rem-fh" oninput="renderRemitos()" style="width:120px;">
+    </div>
+
+    <input id="rem-f-total" oninput="renderRemitos()" placeholder="Total >1000" style="flex:0 0 120px;">
+    
+    <button class="btn sm" onclick="limpiarFiltrosRemitos()" style="flex:0 0 80px;">✕ Limpiar</button>
   </div>
-  <!-- Impresión grupal -->
-  <div style="background:var(--bg2);border:1px solid var(--brd);border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-    <span style="font-size:12px;color:var(--txt2);font-weight:500">🖨️ Hoja de ruta grupal:</span>
-    <input type="date" id="rem-grupo-fecha" style="padding:5px 9px;border:1px solid var(--brd);border-radius:6px;font-size:13px;font-family:inherit">
-    <input id="rem-grupo-ven" placeholder="Vendedor (vacío=todos)" style="padding:5px 9px;border:1px solid var(--brd);border-radius:6px;font-size:13px;font-family:inherit;width:180px">
-    <button class="btn A" onclick="imprimirHojaRutaGrupal()">🗺️ Imprimir hoja de ruta</button>
+
+  <!-- HOJA DE RUTA GRUPAL -->
+  <div style="background:var(--bg2);border:1px solid var(--brd);border-radius:8px;padding:8px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0;">
+    <span style="font-size:12px;color:var(--txt2);font-weight:500;">🖨️ Hoja de ruta grupal:</span>
+    <input type="date" id="rem-grupo-fecha" style="padding:5px 9px;border:1px solid var(--brd);border-radius:6px;font-size:13px;font-family:inherit;">
+    <input id="rem-grupo-ven" placeholder="Vendedor (vacío=todos)" style="padding:5px 9px;border:1px solid var(--brd);border-radius:6px;font-size:13px;font-family:inherit;width:180px;">
+    <button class="btn A sm" onclick="imprimirHojaRutaGrupal()">🗺️ Imprimir hoja de ruta</button>
   </div>
-  <div style="flex:1;overflow-y:auto;min-height:0">
-    <div class="tbl-wrap"><table class="tbl">
-      <thead>
-        <tr><th>Nro</th><th>Fecha</th><th>Cliente</th><th>Localidad</th><th>Items</th><th>Total</th><th>Cobro</th><th>ARCA</th><th></th></tr>
-        <tr class="tbl-autofiltro">
-          <th><input id="rem-f-nro" oninput="renderRemitos()" placeholder="Filtrar..."></th>
-          <th><input id="rem-f-fecha" oninput="renderRemitos()" placeholder="Filtrar..."></th>
-          <th><input id="rem-f-cli" oninput="renderRemitos()" placeholder="Filtrar..."></th>
-          <th><input id="rem-f-loc" oninput="renderRemitos()" placeholder="Filtrar..."></th>
-          <th><input id="rem-f-items" oninput="renderRemitos()" placeholder=">5"></th>
-          <th><input id="rem-f-total" oninput="renderRemitos()" placeholder=">1000"></th>
-          <th></th>
-          <th></th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="rem-tbody"></tbody>
-    </table></div>
-    <div class="pg" id="rem-pg"></div>
+
+  <!-- TABLA DE REMITOS  -->
+  <div style="flex:1; overflow-y:auto; min-height:0; border:1px solid var(--brd); border-radius:8px; padding:4px;">
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Nro</th>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Localidad</th>
+            <th style="text-align:center">Items</th>
+            <th style="text-align:right">Total</th>
+            <th>Cobro</th>
+            <th>ARCA</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="rem-tbody"></tbody>
+      </table>
+    </div>
+    <div class="pg" id="rem-pg" style="padding:6px;"></div>
   </div>
+
 </div>
 
 <!-- COBRANZA -->
