@@ -88,6 +88,48 @@ function abrirPedido(){
   document.getElementById('m-pedido').classList.add('on');
 }
 
+// ─── LIMPIAR MODAL DE PEDIDO ───
+function limpiarPedidoModal() {
+  // Limpiar cliente
+  document.getElementById('np-cli-cod').value = '';
+  document.getElementById('np-cli-q').value = '';
+  document.getElementById('np-cli-id').value = '';
+  document.getElementById('np-cli-info').style.display = 'none';
+  
+  // Limpiar vendedor
+  document.getElementById('np-ven').value = '';
+  
+  // Limpiar producto
+  document.getElementById('np-cod').value = '';
+  document.getElementById('np-pro-q').value = '';
+  document.getElementById('np-precio').value = '0';
+  
+  const cantInput = document.getElementById('np-cant');
+  if (cantInput) {
+    cantInput.value = '0';
+    cantInput.setAttribute('value', '0');
+  }
+  
+  const dtoInput = document.getElementById('np-dto');
+  if (dtoInput) {
+    dtoInput.value = '0';
+    dtoInput.setAttribute('value', '0');
+  }
+  
+  // Limpiar observaciones
+  document.getElementById('np-obs').value = '';
+  
+  // Limpiar lista de items
+  _pedidoItems = [];
+  renderItems();
+  
+  // Ocultar total
+  document.getElementById('np-totbar').style.display = 'none';
+  document.getElementById('np-total-show').textContent = '$0';
+  
+  toast('🧹 Modal limpiado', 'ok');
+}
+
 function dropCli(){
   const q=(document.getElementById('np-cli-q').value||'').toLowerCase();
   const drop=document.getElementById('np-cli-drop');
