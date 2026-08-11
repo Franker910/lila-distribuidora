@@ -288,42 +288,26 @@ function initRR(){
   document.getElementById('rr-cli-id').value='';
   const info=document.getElementById('rr-cli-info');if(info)info.style.display='none';
   renderItemsRR();
-  // Foco al campo de código de cliente — salvo en modo facturar carga, donde
-  // el foco lo maneja _facturarSiguientePedidoCarga() para no pelear por él
-  // con varios timers a la vez (eso causaba saltos a un cliente equivocado).
+
+  // 🔽 Mostrar/ocultar botón de volver
+  const volverBtn = document.getElementById('rr-btn-volver');
+  if (volverBtn) {
+    const origen = sessionStorage.getItem('origenRemito');
+    if (origen === 'remitos') {
+      volverBtn.style.display = 'inline-flex';
+      sessionStorage.removeItem('origenRemito');
+    } else {
+      volverBtn.style.display = 'none';
+    }
+  }
+
+  // Foco al campo de código de cliente
   if(!_facturandoCargaId){
     setTimeout(()=>{
       const codCli=document.getElementById('rr-cli-cod');
       if(codCli) codCli.focus();
     }, 100);
   }
-}
-
-// Opciones <option> de lista de precios para la columna "Lista" de la grilla.
-function _rrListaOptions(selectedListaId){
-  const sel=String(selectedListaId||'');
-  return '<option value="">Base</option>'+_listasPrecios.map(l=>`<option value="${l.id}"${String(l.id)===sel?' selected':''}>${l.nombre}</option>`).join('');
-}
-
-// Cambio de lista de precios de un ítem YA cargado en el remito: reprecia
-// solo esa fila, no todo el remito.
-function actualizarListaItemRR(i,val){
-  const it=_rrItems[i];if(!it)return;
-  it.listaId=val?parseInt(val):null;
-  const nuevoPrecio=it.listaId?getPrecioLista(it.id,it.listaId):null;
-  if(nuevoPrecio!=null)it.precio=nuevoPrecio;
-  renderItemsRR();
-}
-
-// Cambio de lista de precios de la fila de carga (todavía sin confirmar).
-function actualizarListaStagingRR(val){
-  _rrStagingVals.lista=val;
-  if(_rrProTemp){
-    const listaId=val?parseInt(val):null;
-    const nuevoPrecio=listaId?getPrecioLista(_rrProTemp.id,listaId):null;
-    _rrStagingVals.precio=String(nuevoPrecio!=null?nuevoPrecio:(_rrProTemp.precio||0));
-  }
-  renderItemsRR();
 }
 
 // ─── BUSCADOR POR NOMBRE (F1) ───
@@ -791,6 +775,17 @@ function _rrStagingRowHTML(){
     <span class="ptot">${neto>0?fmt(neto):'—'}</span>
     <span style="width:32px"></span>
   </div>`;
+}
+
+// Opciones <option> de lista de precios para la columna "Lista" de la grilla.
+function _rrListaOptions(selectedListaId) {
+  const sel = String(selectedListaId || '');
+  if (typeof _listasPrecios === 'undefined' || !_listasPrecios.length) {
+    return '<option value="">Base</option>';
+  }
+  return '<option value="">Base</option>' + _listasPrecios.map(l => 
+    `<option value="${l.id}"${String(l.id) === sel ? ' selected' : ''}>${l.nombre}</option>`
+  ).join('');
 }
 
 // F7/Delete elimina la fila actual; ↑/↓ mueve el foco a la misma columna de

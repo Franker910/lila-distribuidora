@@ -927,7 +927,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div style="position:relative;">
       <button class="btn P" onclick="toggleNuevoCompVentas(event)">+ Nuevo comprobante ▾</button>
       <div id="nuevo-comp-ventas-menu" style="display:none;position:absolute;right:0;top:110%;background:var(--bg);border:1px solid var(--brd);border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.14);z-index:500;min-width:210px;padding:6px 0">
-        <div onclick="cerrarMenuNuevoComp();go('remito-rapido')" style="padding:10px 16px;cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px"><span>🧾</span> Factura / Remito</div>
+        <div onclick="cerrarMenuNuevoComp();sessionStorage.setItem('origenRemito','remitos');go('remito-rapido')" style="padding:10px 16px;cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px"><span>🧾</span> Factura / Remito</div>
         <div onclick="cerrarMenuNuevoComp();abrirNC()" style="padding:10px 16px;cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px"><span style="color:var(--P)">📋</span> Nota de Crédito</div>
         <div onclick="cerrarMenuNuevoComp();abrirND()" style="padding:10px 16px;cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px"><span style="color:var(--W)">⚠️</span> Nota de Débito</div>
         <div onclick="cerrarMenuNuevoComp()" style="padding:10px 16px;cursor:pointer;font-size:13px;color:var(--txt2);display:flex;align-items:center;gap:8px"><span>🗂</span> Otros (próximamente)</div>
@@ -1758,6 +1758,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <h2>⚡ Remito rápido</h2>
     <span style="font-size:12px;color:var(--txt2)">📅 <span id="rr-fecha-show"></span> &nbsp;👤 <span id="rr-ven-show"></span></span>
   </div>
+
   <input type="hidden" id="rr-fecha">
   <input type="hidden" id="rr-ven">
 
@@ -1810,7 +1811,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div style="font-size:12px;color:var(--PD)" id="rr-desglose"></div>
           <div class="tv" id="rr-total">$0</div>
         </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end">
+        <div style="display:flex; gap:8px; justify-content:flex-end">
+          <button id="rr-btn-volver" class="btn" onclick="volverDeRemito()" style="display:none; background:var(--bg2); border:1px solid var(--brd);">
+            ← Volver
+          </button>
           <button class="btn" id="rr-btn-limpiar" onclick="limpiarRR()">Limpiar</button>
           <button class="btn P" onclick="emitirRemitoRapido()" style="min-width:140px" tabindex="9">🧾 Emitir remito</button>
         </div>

@@ -707,6 +707,20 @@ document.addEventListener('click',e=>{
 });
 
 function go(p){
+  // 🔽 Limpiar parámetros de la URL para que no interfieran
+  const params = new URLSearchParams(window.location.search);
+  const origen = params.get('origen');
+  if (p === 'remito-rapido' && origen === 'remitos') {
+    window._origenRemito = 'remitos';
+  } else {
+    window._origenRemito = null;
+  }
+  
+  // Limpiar la URL de parámetros para que no se queden pegados
+  if (window.location.search) {
+    const newUrl = window.location.pathname;
+    window.history.replaceState({}, '', newUrl);
+  }
   document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.nav-group').forEach(g=>g.classList.remove('active'));
   const panel=document.getElementById('p-'+p);
@@ -1233,3 +1247,8 @@ document.addEventListener('keydown',function(e){
   if(e.key==='ArrowLeft'&&!e.ctrlKey&&!e.altKey&&!e.shiftKey){e.preventDefault();_navPrev(el);return;}
   if(e.key==='Home'){_verDetalleDesdeInput(el);}
 });
+
+function volverDeRemito() {
+  sessionStorage.removeItem('origenRemito');
+  go('remitos');
+}
