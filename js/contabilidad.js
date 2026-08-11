@@ -2195,3 +2195,15 @@ async function leerFacturaConIA(input){
   }
   input.value='';
 }
+
+// ─── LIMPIAR FILTROS DE COMPROBANTES ───
+function limpiarFiltrosComprobantes() {
+  document.getElementById('comp-q').value = '';
+  document.getElementById('comp-est').value = '';
+  document.getElementById('comp-mes').value = '';
+  document.getElementById('comp-f-nro').value = '';
+  document.getElementById('comp-f-desc').value = '';
+  document.getElementById('comp-f-venc').value = '';
+  document.getElementById('comp-f-imp').value = '';
+  renderComprobantes();
+}

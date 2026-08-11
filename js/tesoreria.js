@@ -2665,3 +2665,14 @@ async function desconciliar(id){
   await cargarMovBanc();renderTesConcil();
   toast('Movimiento desconciliado');
 }
+
+// ─── LIMPIAR FILTROS DE CUENTAS CORRIENTES ───
+function limpiarFiltrosCC() {
+  document.getElementById('cc-q').value = '';
+  document.getElementById('cc-f').value = '';
+  document.getElementById('cc-f-zona').value = '';
+  document.getElementById('cc-f-saldo').value = '';
+  document.getElementById('cc-f-dias').value = '';
+  _ccPg = 1;
+  renderCC();
+}
