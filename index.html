@@ -2014,23 +2014,46 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <!-- SECCIÓN GASTOS -->
   <div id="cont-gastos">
-    <div class="sech" style="margin-bottom:10px">
-      <h2>📝 Gastos</h2>
+    
+    <!-- Título y botón "Nuevo gasto" -->
+    <div style="margin-bottom:10px;">
+      <h2 style="margin:0 0 6px 0; font-size:15px;">📝 Gastos</h2>
       <button class="btn P" onclick="abrirGasto()">+ Nuevo gasto</button>
     </div>
-    <div class="tb">
-      <input id="gas-q" placeholder="Buscar..." oninput="renderGastos();resetNav('gas-tbody')" onkeydown="navGastos(event)">
-      <select id="gas-mes" onchange="renderGastos()">
+
+    <!-- Barra de filtros (buscador y mes) -->
+    <div class="tb" style="flex-shrink:0; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+      <input id="gas-q" placeholder="🔍 Buscar por descripción o tipo..." oninput="renderGastos();resetNav('gas-tbody')" onkeydown="navGastos(event)" style="flex:1; min-width:160px; max-width:280px;">
+      <select id="gas-mes" onchange="renderGastos()" style="flex:0 0 150px;">
         <option value="">Todos los meses</option>
       </select>
     </div>
-    <div id="gas-totales" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px"></div>
-    <div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Contrapartida</th><th>Comprobante</th><th>Importe</th><th></th></tr></thead>
-      <tbody id="gas-tbody"></tbody>
-    </table></div>
-    <div class="pg" id="gas-pg"></div>
-  </div>
+
+    <!-- Tabla de gastos -->
+    <div style="flex:1; overflow-y:auto; min-height:0; border:1px solid var(--brd); border-radius:8px; padding:4px; margin-bottom:8px;">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Tipo</th>
+              <th>Descripción</th>
+              <th>Contrapartida</th>
+              <th style="text-align:center;">Comprobante</th>
+              <th style="text-align:right;">Importe</th>
+              <th style="text-align:center;"></th>
+            </tr>
+          </thead>
+          <tbody id="gas-tbody"></tbody>
+        </table>
+      </div>
+      <div class="pg" id="gas-pg" style="padding:6px;"></div>
+    </div>
+
+    <!-- Totales -->
+    <div id="gas-totales" style="display:flex; gap:16px; flex-wrap:wrap; padding:8px 12px; background:var(--bg2); margin-top:4px;"></div>
+
+</div>
 
   <!-- SECCIÓN ASIENTOS (próximamente) -->
   <div id="cont-asientos" style="display:none">
@@ -2039,12 +2062,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <!-- SECCIÓN MAYOR -->
-  <div id="cont-mayor" style="display:none">
-    <div class="sech" style="margin-bottom:10px"><h2>📊 Mayor de cuentas</h2></div>
-    <div class="fr" style="margin-bottom:10px">
-      <div class="fg">
-        <label>Cuenta</label>
-        <select id="may-cuenta" onchange="renderMayor()">
+  <div id="cont-mayor" style="display:none; display:flex; flex-direction:column; height:100%;">
+    <div class="sech" style="margin-bottom:10px; flex-shrink:0;">
+      <h2 style="margin:0; font-size:15px;">📊 Mayor de cuentas</h2>
+    </div>
+
+    <!-- Filtros en una sola fila -->
+    <div class="tb" style="flex-shrink:0; flex-wrap:wrap; gap:8px; margin-bottom:12px; align-items:flex-end;">
+      <div class="fg" style="flex:2; min-width:200px;">
+        <label style="font-size:11px; font-weight:600; color:var(--txt2);">Cuenta</label>
+        <select id="may-cuenta" onchange="renderMayor()" style="width:100%;">
           <option value="">— Elegir cuenta —</option>
           <option value="11101|Caja">11101 — Caja</option>
           <option value="11102|Banco Macro">11102 — Banco Macro</option>
@@ -2058,10 +2085,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <option value="50208|Gastos Varios">50208 — Gastos Varios</option>
         </select>
       </div>
-      <div class="fg"><label>Desde</label><input type="date" id="may-desde" onchange="renderMayor()"></div>
-      <div class="fg"><label>Hasta</label><input type="date" id="may-hasta" onchange="renderMayor()"></div>
+
+      <div class="fg" style="flex:0 0 130px;">
+        <label style="font-size:11px; font-weight:600; color:var(--txt2);">Desde</label>
+        <input type="date" id="may-desde" onchange="renderMayor()" style="width:100%;">
+      </div>
+
+      <div class="fg" style="flex:0 0 130px;">
+        <label style="font-size:11px; font-weight:600; color:var(--txt2);">Hasta</label>
+        <input type="date" id="may-hasta" onchange="renderMayor()" style="width:100%;">
+      </div>
+
+      <button class="btn P" onclick="renderMayor()" style="flex-shrink:0; padding:7px 18px;">▶ Calcular</button>
     </div>
-    <div id="may-resultado"></div>
+
+    <div id="may-resultado" style="height:400px; overflow-y:auto; border:1px solid var(--brd); border-radius:8px; padding:8px; background:var(--bg);">
+      <div class="empty">Seleccioná una cuenta y fechas, luego hacé clic en "Calcular".</div>
+    </div>
   </div>
 
   <!-- SECCIÓN ESTADO DE RESULTADO -->
