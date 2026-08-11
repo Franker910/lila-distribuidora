@@ -2676,3 +2676,12 @@ function limpiarFiltrosCC() {
   _ccPg = 1;
   renderCC();
 }
+
+// ─── LIMPIAR FILTROS DE RENDICIÓN ───
+function limpiarFiltrosRendicion() {
+  document.getElementById('rend-hr-q').value = '';
+  document.getElementById('rend-hr-num').value = '';
+  document.getElementById('rend-hr-desde').value = '';
+  document.getElementById('rend-hr-hasta').value = '';
+  renderListaHojasRuta();
+}
