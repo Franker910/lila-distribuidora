@@ -251,6 +251,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 @keyframes slideUpBanner{from{transform:translateY(100%)}to{transform:translateY(0)}}
 
 .hidden { display: none !important; }
+
+.cont-tab-active {
+  background: var(--P) !important;
+  color: #fff !important;
+}
 </style>
 </head>
 <body>
@@ -327,7 +332,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="sidebar-items">
       <button class="sidebar-item" onclick="go('cobranza')" data-p="cobranza">💰 Cobranza</button>
       <button class="sidebar-item" onclick="go('rendicion')" data-p="rendicion">💼 Rendición</button>
-      <button class="sidebar-item" onclick="go('tesoreria')" data-p="tesoreria">🏦 Tesorería</button>
+      <button class="sidebar-item" onclick="go('tesoreria')" data-p="tesoreria">🏦 Caja y bancos</button>
       <button class="sidebar-item" onclick="go('cheques')" data-p="cheques">📋 Cheques en cartera</button>
     </div>
   </div>
@@ -1396,13 +1401,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div><!-- fin p-cobranza -->
 
 <!-- TESORERÍA -->
-<div class="panel" id="p-tesoreria">
- <div class="doc-window">
-  <div class="sech"><h2>🏦 Tesorería</h2></div>
+<div class="panel" id="p-tesoreria" style="display:flex; justify-content:center;">
+ <div class="doc-window" style="max-width:1100px; width:100%; min-width:0;">
+  
+  <div class="sech"><h2>🏦 Caja y bancos</h2></div>
+  
   <!-- Tabs -->
-  <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;border-bottom:2px solid var(--brd);padding-bottom:10px">
+  <div style="display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; border-bottom:2px solid var(--brd); padding-bottom:10px;">
     <button id="tt-cobros" class="btn sm" onclick="tesoTab('cobros')">📋 Cobros</button>
-    <button id="tt-pagos" class="btn sm" onclick="tesoTab('pagos')">💸 Pagos prov.</button>
+    <button id="tt-pagos" class="btn sm" onclick="tesoTab('pagos')">💸 Pagos a proveedores</button> <!-- ✅ CAMBIADO -->
     <button id="tt-caja" class="btn sm" onclick="tesoTab('caja')">🏧 Saldo de caja</button>
     <button id="tt-concil" class="btn sm" onclick="tesoTab('concil')">🔍 Conciliación</button>
   </div>
@@ -1472,14 +1479,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <!-- ── TAB SALDO DE CAJA ── -->
   <div id="tp-caja" style="display:none">
-    <div class="tb" style="margin-bottom:10px">
+    <div class="tb" style="margin-bottom:10px; flex-wrap:wrap; gap:6px;">
       <button class="btn sm" onclick="cajaPeriodo('hoy')">Hoy</button>
       <button class="btn sm" onclick="cajaPeriodo('semana')">Esta semana</button>
       <button class="btn sm" onclick="cajaPeriodo('mes')">Este mes</button>
       <button class="btn sm" onclick="cajaPeriodo('custom')">Personalizado</button>
-      <span id="caja-custom-rng" style="display:none;gap:6px;align-items:center">
-        <input type="date" id="caja-fd" style="padding:5px 8px;border:1px solid var(--brd);border-radius:6px;font-size:12px">
-        <input type="date" id="caja-fh" style="padding:5px 8px;border:1px solid var(--brd);border-radius:6px;font-size:12px">
+      <span id="caja-custom-rng" style="display:none; gap:6px; align-items:center;">
+        <!-- ✅ AGREGADOS LABELS "Desde" y "Hasta" -->
+        <label style="font-size:11px; color:var(--txt2); font-weight:600;">Desde</label>
+        <input type="date" id="caja-fd" style="padding:5px 8px; border:1px solid var(--brd); border-radius:6px; font-size:12px;">
+        <label style="font-size:11px; color:var(--txt2); font-weight:600;">Hasta</label>
+        <input type="date" id="caja-fh" style="padding:5px 8px; border:1px solid var(--brd); border-radius:6px; font-size:12px;">
         <button class="btn sm P" onclick="renderTesCaja()">Aplicar</button>
       </span>
     </div>
@@ -1527,8 +1537,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="conc-conciliados"></div>
     </div>
   </div>
+
  </div>
-</div><!-- fin p-tesoreria -->
+</div>
 
 <!-- CHEQUES EN CARTERA (panel independiente dentro de Tesorería) -->
 <div class="panel" id="p-cheques">
@@ -1994,7 +2005,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="panel" id="p-contabilidad">
   <!-- Submenú interno -->
   <div style="background:var(--bg2);border-radius:8px;padding:8px;margin-bottom:14px;display:flex;gap:6px;flex-wrap:wrap">
-    <button id="cont-tab-gastos" class="btn P sm" onclick="contTab('gastos')" style="font-size:13px">📝 Gastos</button>
+    <button id="cont-tab-gastos" class="btn sm" onclick="contTab('gastos')" style="font-size:13px">📝 Gastos</button>
     <button id="cont-tab-asientos" class="btn sm" onclick="contTab('asientos')" style="font-size:13px">📖 Asientos</button>
     <button id="cont-tab-mayor" class="btn sm" onclick="contTab('mayor')" style="font-size:13px">📊 Mayor</button>
     <button id="cont-tab-resultado" class="btn sm" onclick="contTab('resultado')" style="font-size:13px">💹 Resultado</button>

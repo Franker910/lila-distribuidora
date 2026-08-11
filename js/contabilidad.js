@@ -254,9 +254,16 @@ function actualizarNavActivo(p){
 function contTab(tab){
   ['gastos','asientos','mayor','resultado','mensual'].forEach(t=>{
     const el=document.getElementById('cont-'+t);
-    if(el)el.style.display=t===tab?'block':'none';
+    if(el) el.style.display = t===tab ? 'block' : 'none';
+    
     const btn=document.getElementById('cont-tab-'+t);
-    if(btn){btn.style.background=t===tab?'var(--P)':'';btn.style.color=t===tab?'#fff':'';}
+    if(btn){
+      if (t===tab) {
+        btn.classList.add('cont-tab-active');
+      } else {
+        btn.classList.remove('cont-tab-active');
+      }
+    }
   });
   if(tab==='mensual')rmInit();
   if(tab==='gastos')renderGastos();
