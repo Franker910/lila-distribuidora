@@ -1756,7 +1756,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="panel" id="p-remito-rapido">
   <div class="sech" style="flex-shrink:0">
     <h2>⚡ Remito rápido</h2>
-    <span style="font-size:12px;color:var(--txt2)">📅 <span id="rr-fecha-show"></span> &nbsp;👤 <span id="rr-ven-show"></span></span>
   </div>
 
   <input type="hidden" id="rr-fecha">
@@ -1772,7 +1771,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
           <!-- Sección cliente -->
           <div class="card" style="margin-bottom:10px">
-            <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px">Cliente</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
+              <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px">Cliente</div>
+              <div style="font-size:14px;font-weight:600;color:var(--txt);display:flex;gap:16px;">
+                <span>📅 <span id="rr-fecha-show"></span></span>
+                <span>👤 <span id="rr-ven-show"></span></span>
+              </div>
+            </div>
             <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:nowrap">
               <div class="fg" style="width:100px;flex-shrink:0">
                 <label style="font-size:11px">Código &nbsp;<span style="font-size:10px;color:var(--txt2)">[F2]</span></label>
@@ -1791,11 +1796,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <div id="rr-cli-info" style="display:none;background:var(--bg2);border-radius:8px;padding:8px 11px;font-size:12px;color:var(--txt2);margin-top:8px"></div>
             <div id="rr-pedido-chip" style="display:none;margin-top:8px"></div>
             <div id="rr-carga-num-wrap" style="margin-top:8px">
-              <input id="rr-carga-num" placeholder="🚚 Carga Nº (opcional, vincula este remito a una carga)" style="flex:1;font-size:12px;width:100%">
+              <textarea id="rr-carga-num" placeholder="🚚 Carga Nº (opcional, vincula este remito a una carga)" style="flex:1;font-size:13px;width:100%;height:38px;padding:6px 10px;border:1px solid var(--brd);border-radius:8px;font-family:inherit;resize:vertical;"></textarea>
             </div>
             <div style="display:flex;gap:8px;margin-top:8px">
-              <input id="rr-lugar" placeholder="📍 Lugar de entrega (si difiere)" style="flex:1;font-size:12px">
-              <input id="rr-obs" placeholder="Observaciones" style="flex:1;font-size:12px">
+              <div style="flex:1">
+                <label style="font-size:10px;color:var(--txt2);font-weight:600;display:block;margin-bottom:2px">📍 Lugar de entrega (si difiere)</label>
+                <textarea id="rr-lugar" placeholder="Ej: Puerta trasera, llamar antes de llegar..." style="width:100%;height:50px;padding:6px 10px;border:1px solid var(--brd);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
+              </div>
+              <div style="flex:1">
+                <label style="font-size:10px;color:var(--txt2);font-weight:600;display:block;margin-bottom:2px">📝 Observaciones</label>
+                <textarea id="rr-obs" placeholder="Ej: Facturar a nombre de X, dejar factura..." style="width:100%;height:50px;padding:6px 10px;border:1px solid var(--brd);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
+              </div>
             </div>
           </div>
 

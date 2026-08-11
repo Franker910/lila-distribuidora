@@ -280,7 +280,8 @@ let _rrItems=[], _rrProTemp=null, _rrPedidoId=null;
 let _rrStagingVals={cod:'',cant:'1',peso:'',precio:'0',dto:'0',lista:''};
 
 function initRR(){
-  document.getElementById('rr-fecha').value=hoyLocal();
+  const hoy = hoyLocal();
+  document.getElementById('rr-fecha').value = hoy;
   _rrItems=[];_rrProTemp=null;
   _rrStagingVals={cod:'',cant:'1',peso:'',precio:'0',dto:'0',lista:''};
   ['rr-cli-q','rr-obs','rr-lugar','rr-carga-num'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -289,7 +290,7 @@ function initRR(){
   const info=document.getElementById('rr-cli-info');if(info)info.style.display='none';
   renderItemsRR();
 
-  // 🔽 Mostrar/ocultar botón de volver
+  // Mostrar/ocultar botón de volver
   const volverBtn = document.getElementById('rr-btn-volver');
   if (volverBtn) {
     const origen = sessionStorage.getItem('origenRemito');
@@ -300,6 +301,17 @@ function initRR(){
       volverBtn.style.display = 'none';
     }
   }
+
+  // Forzar actualización de fecha y vendedor en el card
+  const fechaShow = document.getElementById('rr-fecha-show');
+  if (fechaShow) {
+    // Mostrar fecha formateada: ej "10/08/2026"
+    const fechaObj = new Date(hoy + 'T00:00:00');
+    fechaShow.textContent = fechaObj.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'});
+  }
+
+  const venShow = document.getElementById('rr-ven-show');
+  if (venShow) venShow.textContent = usuarioActual?.nombre || 'Sin vendedor';
 
   // Foco al campo de código de cliente
   if(!_facturandoCargaId){
@@ -898,6 +910,15 @@ function limpiarRR(){
   const rcn=document.getElementById('rr-carga-num');if(rcn)rcn.value='';
   const chip=document.getElementById('rr-pedido-chip');
   if(chip){chip.style.display='none';chip.innerHTML='';}
+
+  // RESETEAR VENDEDOR AL USUARIO LOGUEADO
+  const venShow = document.getElementById('rr-ven-show');
+  if (venShow) venShow.textContent = usuarioActual?.nombre || 'Sin vendedor';
+  
+  // Reseteamos también el campo oculto rr-ven por si se usa en el remito
+  const venEl = document.getElementById('rr-ven');
+  if (venEl) venEl.value = usuarioActual?.nombre || '';
+
   renderItemsRR();
 }
 
