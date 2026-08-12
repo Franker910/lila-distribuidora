@@ -256,6 +256,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   background: var(--P) !important;
   color: #fff !important;
 }
+
+/* Los gráficos no bloquean el scroll, pero siguen siendo interactivos */
+#inf-content canvas {
+  touch-action: none;
+}
+
 </style>
 </head>
 <body>
@@ -351,7 +357,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="sidebar-group" id="sg-informes">
     <button class="sidebar-group-btn" onclick="toggleSidebar('informes')">📈 Informes <span id="sc-informes">▶</span></button>
     <div class="sidebar-items">
-      <button class="sidebar-item" onclick="go('informes')" data-p="informes">📈 Informes</button>
+      <button class="sidebar-item" onclick="go('informes')" data-p="informes">📈 Centro de informes </button>
       <button class="sidebar-item" onclick="go('comisiones')" data-p="comisiones">💰 Comisiones</button>
       <button class="sidebar-item" onclick="go('contrib-zona')" data-p="contrib-zona">📊 Contrib. Marginal</button>
       <button class="sidebar-item" onclick="go('saldos-zona')" data-p="saldos-zona">🗺️ Saldos por Zona</button>
@@ -2279,13 +2285,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <!-- Tabs internos -->
   <div id="inf-tabs-bar" style="background:var(--bg2);border-radius:8px;padding:8px;margin-bottom:14px;display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0" onkeydown="navInfTabs(event)">
-    <button id="inf-tab-ventas" class="btn P sm" onclick="infTab('ventas')" tabindex="0">📅 Ventas</button>
+    <button id="inf-tab-ventas" class="btn sm" onclick="infTab('ventas')" tabindex="0">📅 Ventas</button>
     <button id="inf-tab-descuentos" class="btn sm" onclick="infTab('descuentos')" tabindex="-1">🏷️ Descuentos</button>
     <button id="inf-tab-clientes" class="btn sm" onclick="infTab('clientes')" tabindex="-1">👥 Clientes</button>
     <button id="inf-tab-productos" class="btn sm" onclick="infTab('productos')" tabindex="-1">📦 Productos</button>
     <button id="inf-tab-comisiones" class="btn sm" onclick="infTab('comisiones')" tabindex="-1">💰 Comisiones</button>
+    <button id="inf-tab-comisiones2" class="btn sm" onclick="infTab('comisiones2')" tabindex="-1">⚙️ Configuración de comisiones</button>
     <button id="inf-tab-gerencial" class="btn sm" onclick="infTab('gerencial')" tabindex="-1">📊 Gerencial</button>
-    <button id="inf-tab-comisiones2" class="btn sm" onclick="infTab('comisiones2')" tabindex="-1">💰 Comisiones</button>
     <button id="inf-tab-cmg-prod" class="btn sm" onclick="infTab('cmg-prod')" tabindex="-1">📦 CMG Productos</button>
     <button id="inf-tab-cmg-cli" class="btn sm" onclick="infTab('cmg-cli')" tabindex="-1">👥 CMG Clientes</button>
     <button id="inf-tab-financiamiento" class="btn sm" onclick="infTab('financiamiento')" tabindex="-1">🏭 Financiamiento</button>
@@ -2619,7 +2625,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <!-- GERENCIAL -->
-  <!-- GERENCIAL -->
   <div id="inf-sec-gerencial" style="display:none">
     <div class="card" style="margin-bottom:12px">
       <div style="font-weight:600;margin-bottom:6px">📊 Dashboard gerencial — datos del FoxPro</div>
@@ -2649,7 +2654,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <div id="ger-dashboard" style="display:none">
     <div style="position:sticky;top:0;z-index:100;text-align:right;margin-bottom:8px">
-      <button class="btn sm" onclick="document.getElementById('inf-content').scrollTo({top:0,behavior:'smooth'})" style="background:var(--P);color:#fff">⬆ Ir arriba</button>
+      <!-- Botón flotante "Ir arriba" -->
+      <button id="btn-ir-arriba" onclick="document.getElementById('inf-content').scrollTo({top:0,behavior:'smooth'})" style="display:none;position:fixed;bottom:20px;right:20px;z-index:999;background:var(--P);color:#fff;border:none;border-radius:50%;width:50px;height:50px;font-size:22px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+        ⬆
+      </button>
+
+      <script>
+        // Mostrar/ocultar el botón "Ir arriba" al hacer scroll
+        document.addEventListener('DOMContentLoaded', function() {
+          const btn = document.getElementById('btn-ir-arriba');
+          const content = document.getElementById('inf-content');
+          if (btn && content) {
+            content.addEventListener('scroll', function() {
+              if (content.scrollTop > 300) {
+                btn.style.display = 'block';
+              } else {
+                btn.style.display = 'none';
+              }
+            });
+          }
+        });
+      </script>
     </div>
       <!-- KPIs -->
       <div id="ger-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px"></div>
@@ -2658,18 +2683,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
         <div class="card">
           <div style="font-weight:600;font-size:13px;margin-bottom:8px">Venta y margen por mes</div>
-          <div style="position:relative;height:200px"><canvas id="ger-chart-meses" role="img" aria-label="Ventas y márgenes por mes"></canvas></div>
+          <div style="position:relative;height:200px"><canvas id="ger-chart-meses" role="img" aria-label="Ventas y márgenes por mes" style="touch-action: none;"></canvas></div>
         </div>
         <div class="card">
           <div style="font-weight:600;font-size:13px;margin-bottom:8px">Margen % por mes</div>
-          <div style="position:relative;height:200px"><canvas id="ger-chart-pct" role="img" aria-label="Porcentaje de margen por mes"></canvas></div>
+          <div style="position:relative;height:200px"><canvas id="ger-chart-pct" role="img" aria-label="Porcentaje de margen por mes" style="touch-action: none;"></canvas></div>
         </div>
       </div>
 
       <!-- Top clientes -->
       <div class="card" style="margin-bottom:12px">
         <div style="font-weight:600;font-size:13px;margin-bottom:8px">Top 15 clientes por venta acumulada</div>
-        <div style="position:relative;height:320px"><canvas id="ger-chart-clientes" role="img" aria-label="Top 15 clientes"></canvas></div>
+        <div style="position:relative;height:320px"><canvas id="ger-chart-clientes" role="img" aria-label="Top 15 clientes" style="touch-action: none;"></canvas></div>
       </div>
 
       <!-- Alertas saldos -->
@@ -2693,14 +2718,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <button class="btn sm" id="ger-tab-venta" onclick="gerVista('venta',this)">Venta</button>
           <button class="btn sm" id="ger-tab-ambos" onclick="gerVista('ambos',this)">Ambos</button>
         </div>
-        <div style="position:relative;height:180px"><canvas id="ger-chart-detalle" role="img" aria-label="Detalle cliente"></canvas></div>
+        <div style="position:relative;height:180px"><canvas id="ger-chart-detalle" role="img" aria-label="Detalle cliente" style="touch-action: none;"></canvas></div>
         <div id="ger-detalle-info" style="font-size:12px;color:var(--txt2);margin-top:6px"></div>
       </div>
 
       <!-- Top productos -->
       <div class="card">
         <div style="font-weight:600;font-size:13px;margin-bottom:8px">Top 10 productos por venta acumulada</div>
-        <div style="position:relative;height:260px"><canvas id="ger-chart-prod" role="img" aria-label="Top productos"></canvas></div>
+        <div style="position:relative;height:260px"><canvas id="ger-chart-prod" role="img" aria-label="Top productos" style="touch-action: none;"></canvas></div>
       </div>
     </div>
   </div>
@@ -3869,5 +3894,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
 </div>
+
+<script>
+  // Permitir scroll en los gráficos sin perder la interactividad (tooltips)
+  document.addEventListener('DOMContentLoaded', function() {
+    const canvases = document.querySelectorAll('#inf-content canvas');
+    canvases.forEach(canvas => {
+      // Evitar que la rueda del mouse se "trague" el scroll de la página
+      canvas.addEventListener('wheel', function(e) {
+        // No prevenir el comportamiento por defecto (para que el scroll de la página funcione)
+        // pero permitir que el evento se propague al contenedor padre
+        e.stopPropagation();
+      }, { passive: true });
+    });
+  });
+</script>
+
 </body>
 </html>
