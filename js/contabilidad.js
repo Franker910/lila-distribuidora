@@ -283,47 +283,95 @@ function contTab(tab){
   }
 }
 
-function renderMayor(){
-  const cuentaVal=document.getElementById('may-cuenta')?.value;
-  const desde=document.getElementById('may-desde')?.value;
-  const hasta=document.getElementById('may-hasta')?.value;
-  const res=document.getElementById('may-resultado');
-  if(!cuentaVal||!res){return;}
-  const [cod,nom]=cuentaVal.split('|');
-  // Buscar movimientos de esta cuenta en asientos_detalle (async)
+function renderMayor() {
+  const cuentaVal = document.getElementById('may-cuenta')?.value;
+  const desde = document.getElementById('may-desde')?.value;
+  const hasta = document.getElementById('may-hasta')?.value;
+  const res = document.getElementById('may-resultado');
+
+  if (!cuentaVal || !res) {
+    if (res) res.innerHTML = '<div class="empty">Seleccioná una cuenta.</div>';
+    return;
+  }
+
+  const [cod, nom] = cuentaVal.split('|');
+
+  // Mostrar mensaje de carga
+  res.innerHTML = '<div class="loading">⏳ Cargando movimientos...</div>';
+
+  // Consultar la base de datos
   sb.from('asientos_detalle')
-    .select('*, asientos(fecha,descripcion,tipo)')
-    .eq('cuenta_cod',cod)
-    .then(({data})=>{
-      let movs=(data||[]).filter(d=>{
-        const f=d.asientos?.fecha;
-        return (!desde||f>=desde)&&(!hasta||f<=hasta);
-      }).sort((a,b)=>a.asientos?.fecha.localeCompare(b.asientos?.fecha));
-      let saldo=0;
-      const rows=movs.map(m=>{
-        saldo+=m.debe-m.haber;
+    .select('*, asientos(fecha, descripcion, tipo)')
+    .eq('cuenta_cod', cod)
+    .then(({ data, error }) => {
+      if (error) {
+        res.innerHTML = `<div class="empty">❌ Error al cargar: ${error.message}</div>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        res.innerHTML = `<div class="empty">📭 No hay movimientos para la cuenta ${cod} — ${nom}.</div>`;
+        return;
+      }
+
+      // Filtrar por fechas
+      let movs = data.filter(d => {
+        const f = d.asientos?.fecha;
+        return (!desde || f >= desde) && (!hasta || f <= hasta);
+      }).sort((a, b) => a.asientos?.fecha.localeCompare(b.asientos?.fecha));
+
+      if (movs.length === 0) {
+        res.innerHTML = `<div class="empty">📭 Sin movimientos en el período seleccionado.</div>`;
+        return;
+      }
+
+      // Armar filas
+      let saldo = 0;
+      const rows = movs.map(m => {
+        saldo += m.debe - m.haber;
         return `<tr>
-          <td>${m.asientos?.fecha||''}</td>
-          <td style="font-size:12px;color:var(--txt2)">${m.asientos?.descripcion||''}</td>
-          <td style="color:var(--D);text-align:right">${m.debe>0?fmt(m.debe):'—'}</td>
-          <td style="color:var(--P);text-align:right">${m.haber>0?fmt(m.haber):'—'}</td>
-          <td style="font-weight:600;text-align:right;color:${saldo>=0?'var(--D)':'var(--P)'}">${fmt(saldo)}</td>
+          <td>${m.asientos?.fecha || ''}</td>
+          <td style="font-size:12px;color:var(--txt2)">${m.asientos?.descripcion || ''}</td>
+          <td style="color:var(--D);text-align:right">${m.debe > 0 ? fmt(m.debe) : '—'}</td>
+          <td style="color:var(--P);text-align:right">${m.haber > 0 ? fmt(m.haber) : '—'}</td>
+          <td style="font-weight:600;text-align:right;color:${saldo >= 0 ? 'var(--D)' : 'var(--P)'}">${fmt(saldo)}</td>
         </tr>`;
       }).join('');
-      const totDebe=movs.reduce((a,m)=>a+m.debe,0);
-      const totHaber=movs.reduce((a,m)=>a+m.haber,0);
-      res.innerHTML=`
+
+      // Totales
+      const totDebe = movs.reduce((a, m) => a + m.debe, 0);
+      const totHaber = movs.reduce((a, m) => a + m.haber, 0);
+
+      // Mostrar resultados
+      res.innerHTML = `
         <div style="font-size:14px;font-weight:700;color:var(--PD);margin-bottom:10px">${cod} — ${nom}</div>
         <div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Fecha</th><th>Descripción</th><th style="text-align:right;color:var(--D)">Debe</th><th style="text-align:right;color:var(--P)">Haber</th><th style="text-align:right">Saldo</th></tr></thead>
-          <tbody>${rows||'<tr><td colspan="5" style="text-align:center;color:var(--txt2)">Sin movimientos</td></tr>'}</tbody>
-          <tfoot><tr style="background:var(--bg2);font-weight:700">
-            <td colspan="2">TOTALES</td>
-            <td style="text-align:right;color:var(--D)">${fmt(totDebe)}</td>
-            <td style="text-align:right;color:var(--P)">${fmt(totHaber)}</td>
-            <td style="text-align:right">${fmt(saldo)}</td>
-          </tr></tfoot>
-        </table></div>`;
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Descripción</th>
+              <th style="text-align:right;color:var(--D)">Debe</th>
+              <th style="text-align:right;color:var(--P)">Haber</th>
+              <th style="text-align:right">Saldo</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+          <tfoot>
+            <tr style="background:var(--bg2);font-weight:700">
+              <td colspan="2">TOTALES</td>
+              <td style="text-align:right;color:var(--D)">${fmt(totDebe)}</td>
+              <td style="text-align:right;color:var(--P)">${fmt(totHaber)}</td>
+              <td style="text-align:right">${fmt(saldo)}</td>
+            </tr>
+          </tfoot>
+        </table></div>
+      `;
+    })
+    .catch(err => {
+      res.innerHTML = `<div class="empty">❌ Error inesperado: ${err.message}</div>`;
+      console.error('Error en renderMayor:', err);
     });
 }
 
