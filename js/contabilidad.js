@@ -849,23 +849,53 @@ function cargarComPersonas(){try{_comPersonas=JSON.parse(localStorage.getItem('l
 function guardarComPersonas(){localStorage.setItem('lila_com_personas',JSON.stringify(_comPersonas));}
 
 function renderComPersonas(){
-  const tbody=document.getElementById('com-personas-tbody');
-  if(!tbody)return;
-  if(!_comPersonas.length){
-    tbody.innerHTML='<tr><td colspan="5" style="color:var(--txt2);text-align:center;padding:16px">Sin personas configuradas. Hacé clic en "+ Agregar persona".</td></tr>';
+  const tbody = document.getElementById('com-personas-tbody');
+  if (!tbody) return;
+  
+  // Obtener lista de vendedores/repartidores existentes
+  const vendedores = [...new Set(_clientes.map(c => c.vendedor).filter(Boolean))].sort();
+  const usuarios = USUARIOS.filter(u => u.rol === 'vendedor' || u.rol === 'repartidor').map(u => u.nombre);
+  const todosVendedores = [...new Set([...vendedores, ...usuarios])].sort();
+
+  if (!_comPersonas.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--txt2);text-align:center;padding:16px">Sin personas configuradas. Hacé clic en "+ Agregar persona".</td></tr>';
     return;
   }
-  tbody.innerHTML=_comPersonas.map((p,i)=>`<tr>
-    <td><input value="${p.nombre||''}" oninput="_comPersonas[${i}].nombre=this.value;guardarComPersonas()" style="width:100%;padding:5px 7px;border:1px solid var(--brd);border-radius:6px;font-size:13px"></td>
-    <td><select onchange="_comPersonas[${i}].rol=this.value;guardarComPersonas()" style="padding:5px 7px;border:1px solid var(--brd);border-radius:6px;font-size:13px">
-      <option value="vendedor" ${(p.rol||'vendedor')==='vendedor'?'selected':''}>Vendedor</option>
-      <option value="cobrador" ${p.rol==='cobrador'?'selected':''}>Cobrador</option>
-      <option value="repartidor" ${p.rol==='repartidor'?'selected':''}>Repartidor</option>
-    </select></td>
-    <td style="text-align:center"><input type="number" value="${p.pct_ventas??2}" min="0" max="100" step="0.1" oninput="_comPersonas[${i}].pct_ventas=parseFloat(this.value)||0;guardarComPersonas()" style="width:65px;padding:5px 7px;border:1px solid var(--brd);border-radius:6px;font-size:13px;text-align:right"> %</td>
-    <td style="text-align:center"><input type="number" value="${p.pct_cobranza??1}" min="0" max="100" step="0.1" oninput="_comPersonas[${i}].pct_cobranza=parseFloat(this.value)||0;guardarComPersonas()" style="width:65px;padding:5px 7px;border:1px solid var(--brd);border-radius:6px;font-size:13px;text-align:right"> %</td>
-    <td><button class="btn D sm" onclick="_comPersonas.splice(${i},1);guardarComPersonas();renderComPersonas()">🗑</button></td>
-  </tr>`).join('');
+
+  tbody.innerHTML = _comPersonas.map((p, i) => `
+    <tr>
+      <td>
+        <input type="text" value="${p.nombre || ''}" 
+          list="vendedores-lista-${i}"
+          oninput="_comPersonas[${i}].nombre=this.value;guardarComPersonas()"
+          placeholder="Escribí un nombre..."
+          style="width:100%; padding:6px 10px; border:1px solid var(--brd); border-radius:6px; font-size:13px; font-family:inherit;">
+        <datalist id="vendedores-lista-${i}">
+          ${todosVendedores.map(v => `<option value="${v}">`).join('')}
+        </datalist>
+      </td>
+      <td>
+        <select onchange="_comPersonas[${i}].rol=this.value;guardarComPersonas()" style="padding:6px 10px; border:1px solid var(--brd); border-radius:6px; font-size:13px; font-family:inherit; width:100%;">
+          <option value="vendedor" ${(p.rol||'vendedor')==='vendedor'?'selected':''}>Vendedor</option>
+          <option value="cobrador" ${p.rol==='cobrador'?'selected':''}>Cobrador</option>
+          <option value="repartidor" ${p.rol==='repartidor'?'selected':''}>Repartidor</option>
+        </select>
+      </td>
+      <td style="text-align:center;">
+        <input type="number" value="${p.pct_ventas ?? 2}" min="0" max="100" step="0.1" 
+          oninput="_comPersonas[${i}].pct_ventas=parseFloat(this.value)||0;guardarComPersonas()" 
+          style="width:70px; padding:6px 8px; border:1px solid var(--brd); border-radius:6px; font-size:13px; text-align:center; font-family:inherit;">
+      </td>
+      <td style="text-align:center;">
+        <input type="number" value="${p.pct_cobranza ?? 1}" min="0" max="100" step="0.1" 
+          oninput="_comPersonas[${i}].pct_cobranza=parseFloat(this.value)||0;guardarComPersonas()" 
+          style="width:70px; padding:6px 8px; border:1px solid var(--brd); border-radius:6px; font-size:13px; text-align:center; font-family:inherit;">
+      </td>
+      <td style="text-align:center;">
+        <button class="btn D sm" onclick="_comPersonas.splice(${i},1);guardarComPersonas();renderComPersonas()">🗑</button>
+      </td>
+    </tr>
+  `).join('');
 }
 
 function agregarPersonaCom(){

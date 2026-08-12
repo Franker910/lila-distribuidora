@@ -2099,11 +2099,8 @@ async function renderDashboardEvolucion(filtro){
 
 // ─── GRÁFICO HISTÓRICO FOXPRO ────────────────────────────────
 let _histData = null;
-
-    // cache importaciones_resultado
 let _histGastos = null;
 
-  // cache gastos de contabilidad
 async function informeHistoricoChart(anioFiltro) {
   if (typeof Chart === 'undefined') return;
   const statusEl = document.getElementById('inf-hist-status');
@@ -2281,36 +2278,43 @@ async function informeHistoricoChart(anioFiltro) {
     <div class="stat"><div class="n" style="font-size:15px;color:var(--W)">—</div><div class="l" style="color:var(--W)">Sin gastos en Contabilidad</div></div>
     `}`;
 
-  // Tabla detalle por período
+  // Tabla detalle por período (CON SCROLL)
   const tablaEl = document.getElementById('inf-hist-tabla');
-  if (tablaEl) tablaEl.innerHTML = `
-    <details>
-      <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--txt2);padding:6px 0">Ver tabla por período</summary>
-      <div class="tbl-wrap" style="margin-top:8px"><table class="tbl">
-        <thead><tr>
-          <th>Período</th>
-          <th style="text-align:right">Venta neta</th>
-          <th style="text-align:right">Costo merc.</th>
-          <th style="text-align:right">CMG $</th>
-          ${hayGastos ? '<th style="text-align:right">Gastos</th><th style="text-align:right">Resultado neto</th><th style="text-align:right">Margen neto %</th>' : '<th style="text-align:right">CMG %</th>'}
-        </tr></thead>
-        <tbody>
-          ${periodos.map((p,i)=>{
-            const pn = hayGastos ? pctNeto[i] : (ventas[i]>0?cmgs[i]/ventas[i]*100:0);
-            const color = pn>=10?'var(--P)':pn>=0?'var(--W)':'var(--D)';
-            return `<tr>
-              <td style="font-weight:600">${p}</td>
-              <td style="text-align:right">${fmt(ventas[i])}</td>
-              <td style="text-align:right;color:var(--txt2)">${fmt(costos[i])}</td>
-              <td style="text-align:right;color:var(--P)">${fmt(cmgs[i])}</td>
-              ${hayGastos
-                ? `<td style="text-align:right;color:#8e44ad">${gastos[i]?fmt(gastos[i]):'—'}</td>
-                   <td style="text-align:right;font-weight:700;color:${color}">${fmt(netos[i])}</td>
-                   <td style="text-align:right;font-weight:700;color:${color}">${pn.toFixed(1)}%</td>`
-                : `<td style="text-align:right;font-weight:700;color:${color}">${pn.toFixed(1)}%</td>`}
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table></div>
-    </details>`;
+  if (tablaEl) {
+    tablaEl.innerHTML = `
+      <details>
+        <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--txt2);padding:6px 0">📋 Ver tabla por período</summary>
+        <div style="max-height:400px; overflow-y:auto; overflow-x:auto; border:1px solid var(--brd); border-radius:8px; margin-top:8px; padding:4px;">
+          <table class="tbl" style="min-width:600px;">
+            <thead>
+              <tr>
+                <th>Período</th>
+                <th style="text-align:right">Venta neta</th>
+                <th style="text-align:right">Costo merc.</th>
+                <th style="text-align:right">CMG $</th>
+                ${hayGastos ? '<th style="text-align:right">Gastos</th><th style="text-align:right">Resultado neto</th><th style="text-align:right">Margen neto %</th>' : '<th style="text-align:right">CMG %</th>'}
+              </tr>
+            </thead>
+            <tbody>
+              ${periodos.map((p,i)=>{
+                const pn = hayGastos ? pctNeto[i] : (ventas[i]>0?cmgs[i]/ventas[i]*100:0);
+                const color = pn>=10?'var(--P)':pn>=0?'var(--W)':'var(--D)';
+                return `<tr>
+                  <td style="font-weight:600">${p}</td>
+                  <td style="text-align:right">${fmt(ventas[i])}</td>
+                  <td style="text-align:right;color:var(--txt2)">${fmt(costos[i])}</td>
+                  <td style="text-align:right;color:var(--P)">${fmt(cmgs[i])}</td>
+                  ${hayGastos
+                    ? `<td style="text-align:right;color:#8e44ad">${gastos[i]?fmt(gastos[i]):'—'}</td>
+                       <td style="text-align:right;font-weight:700;color:${color}">${fmt(netos[i])}</td>
+                       <td style="text-align:right;font-weight:700;color:${color}">${pn.toFixed(1)}%</td>`
+                    : `<td style="text-align:right;font-weight:700;color:${color}">${pn.toFixed(1)}%</td>`}
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    `;
+  }
 }

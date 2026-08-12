@@ -358,7 +358,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="sidebar-group-btn" onclick="toggleSidebar('informes')">📈 Informes <span id="sc-informes">▶</span></button>
     <div class="sidebar-items">
       <button class="sidebar-item" onclick="go('informes')" data-p="informes">📈 Centro de informes </button>
-      <button class="sidebar-item" onclick="go('comisiones')" data-p="comisiones">💰 Comisiones</button>
+      <button class="sidebar-item" onclick="go('comisiones')" data-p="comisiones">👤 Comisiones por persona</button>
       <button class="sidebar-item" onclick="go('contrib-zona')" data-p="contrib-zona">📊 Contrib. Marginal</button>
       <button class="sidebar-item" onclick="go('saldos-zona')" data-p="saldos-zona">🗺️ Saldos por Zona</button>
       <button class="sidebar-item" onclick="go('gastos-fijos')" data-p="gastos-fijos">📋 Gastos Fijos</button>
@@ -2620,7 +2620,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <!-- KPIs resumen -->
       <div id="inf-hist-kpis" class="g4" style="margin-top:14px"></div>
       <!-- Tabla por período -->
-      <div id="inf-hist-tabla" style="margin-top:14px"></div>
+      <div id="inf-hist-tabla" style="margin-top:14px">
+        <details>
+          <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--txt2);padding:6px 0">📋 Ver tabla por período</summary>
+          <div id="inf-hist-tabla-scroll" style="max-height:400px; overflow-y:auto; overflow-x:auto; border:1px solid var(--brd); border-radius:8px; margin-top:8px; padding:4px;">
+          </div>
+        </details>
+      </div>
     </div>
   </div>
 
@@ -2735,7 +2741,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <!-- COMISIONES POR PERSONA -->
 <div class="panel" id="p-comisiones">
-  <div class="sech"><h2>💰 Comisiones</h2></div>
+  <div class="sech"><h2>👤 Comisiones por persona</h2></div>
 
   <!-- Config personas -->
   <div class="card" style="margin-bottom:12px">
@@ -2744,7 +2750,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="btn P sm" onclick="agregarPersonaCom()">+ Agregar persona</button>
     </div>
     <div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>Nombre</th><th>Rol</th><th style="text-align:center">% Ventas</th><th style="text-align:center">% Cobranza</th><th></th></tr></thead>
+      <thead>
+        <tr>
+          <th style="width:30%;">Nombre</th>
+          <th style="width:20%;">Rol</th>
+          <th style="width:20%; text-align:center;">% Ventas</th>
+          <th style="width:20%; text-align:center;">% Cobranza</th>
+          <th style="width:10%;"></th>
+        </tr>
+      </thead>
       <tbody id="com-personas-tbody"></tbody>
     </table></div>
   </div>
