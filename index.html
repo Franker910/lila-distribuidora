@@ -116,8 +116,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .body{flex:1;padding:14px;overflow-y:auto;min-width:0;min-height:0;scroll-behavior:smooth}
 #p-rendicion.on{display:flex!important;flex-direction:column;height:100%;overflow:hidden}
 #p-hoja-ruta.on{display:flex!important;flex-direction:column;height:100%;overflow:hidden}
-#p-tesoreria.on{display:flex!important;justify-content:center}
-#p-tesoreria>.doc-window{max-width:1100px;width:100%;min-width:0}
+/* #p-tesoreria.on{display:flex!important;justify-content:flex-start !important;align-items: stretch !important}
+#p-tesoreria>.doc-window{max-width:1100px;width:100%;min-width:0} */
 #p-rendicion.on .rend-scroll{flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;align-items:center}
 #p-rendicion .rend-scroll>.doc-window{max-width:950px;width:100%;min-width:0}
 
@@ -596,7 +596,46 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   touch-action: pan-y !important;
 }
 
+/* FIX: Tesorería - mismo ancho que el resto de paneles */
+#p-tesoreria.on {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  align-items: stretch !important;
+  height: 100% !important;
+  width: 100% !important;
+  padding: 14px !important;
+}
 
+#p-tesoreria .doc-window {
+  max-width: 100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+#p-tesoreria .doc-window > div:last-child {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  min-height: 0 !important;
+  padding-right: 4px !important;
+}
+
+/* Gráfico de Evolución Histórica - permitir scroll y tooltips */
+#dash-evol-chart-wrap {
+  position: relative;
+  height: 280px;
+  width: 100%;
+  overflow: hidden;
+  touch-action: pan-y !important;
+}
+
+#dash-evol-chart-wrap canvas {
+  touch-action: pan-y !important;
+  pointer-events: auto !important;
+}
 
 </style>
 </head>
@@ -698,8 +737,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="sidebar-item" onclick="go('contrib-zona')" data-p="contrib-zona">📊 Contrib. Marginal</button>
       <button class="sidebar-item" onclick="go('saldos-zona')" data-p="saldos-zona">🗺️ Saldos por Zona</button>
       <button class="sidebar-item" onclick="go('gastos-fijos')" data-p="gastos-fijos">📋 Gastos Fijos</button>
-      <button class="sidebar-item" onclick="go('importar-historico')" data-p="importar-historico">📥 Importar histórico</button>
-      <button class="sidebar-item" onclick="exportarTodo()">💾 Exportar</button>
+      <button class="sidebar-item" onclick="go('importar-historico')" data-p="importar-historico">📊 Histórico FoxPro</button>
     </div>
   </div>
 
@@ -1256,14 +1294,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="btn sm" onclick="document.getElementById('car-q').value='';document.getElementById('car-fd').value='';document.getElementById('car-fh').value='';document.getElementById('car-ven').value='';document.getElementById('car-est').value='';renderCargas()">✕ Limpiar</button>
     </div>
 
-    <!-- LISTA SCROLLABLE -->
+    <!-- LISTA -->
     <div id="carga-lista" style="flex:1; overflow-y:auto; min-height:0; padding-right:4px;">
       <div class="loading">Cargando...</div>
     </div>
 
   </div>
 
-  <!-- Vista nueva carga (pantalla completa) -->
+  <!-- Vista nueva carga -->
   <div id="carga-vista-nueva" style="display:none; flex-direction:column; height:100%; overflow:hidden;">
     <div class="sech" style="flex-shrink:0;">
       <h2>Nueva carga</h2>
@@ -1306,7 +1344,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="btn sm" onclick="selAllPeds(false)">✗ Ninguno</button>
     </div>
 
-    <!-- Lista pedidos SCROLLABLE -->
+    <!-- Lista pedidos -->
     <div id="car-items-lista" style="flex:1; overflow-y:auto; min-height:0; padding-right:4px; margin-bottom:12px;"></div>
 
     <!-- Totales y guardar -->
@@ -1781,144 +1819,149 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div><!-- fin p-cobranza -->
 
 <!-- TESORERÍA -->
-<div class="panel" id="p-tesoreria" style="display:flex; justify-content:center;">
- <div class="doc-window" style="max-width:1100px; width:100%; min-width:0;">
-  
-  <div class="sech"><h2>🏦 Caja y bancos</h2></div>
-  
-  <!-- Tabs -->
-  <div style="display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; border-bottom:2px solid var(--brd); padding-bottom:10px;">
-    <button id="tt-cobros" class="btn sm" onclick="tesoTab('cobros')">📋 Cobros</button>
-    <button id="tt-pagos" class="btn sm" onclick="tesoTab('pagos')">💸 Pagos a proveedores</button> <!-- ✅ CAMBIADO -->
-    <button id="tt-caja" class="btn sm" onclick="tesoTab('caja')">🏧 Saldo de caja</button>
-    <button id="tt-concil" class="btn sm" onclick="tesoTab('concil')">🔍 Conciliación</button>
-  </div>
+<div class="panel" id="p-tesoreria">
+  <div class="doc-window" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden;">
+    
+    <div class="sech" style="flex-shrink:0;">
+      <h2>🏦 Caja y bancos</h2>
+    </div>
+    
+    <!-- Tabs -->
+    <div style="display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; border-bottom:2px solid var(--brd); padding-bottom:10px; flex-shrink:0;">
+      <button id="tt-cobros" class="btn sm" onclick="tesoTab('cobros')">📋 Cobros</button>
+      <button id="tt-pagos" class="btn sm" onclick="tesoTab('pagos')">💸 Pagos a proveedores</button>
+      <button id="tt-caja" class="btn sm" onclick="tesoTab('caja')">🏧 Saldo de caja</button>
+      <button id="tt-concil" class="btn sm" onclick="tesoTab('concil')">🔍 Conciliación</button>
+    </div>
 
-  <!-- ── TAB COBROS ── -->
-  <div id="tp-cobros" style="display:none">
-    <div class="tb">
-      <label style="font-size:11px;color:var(--txt2);align-self:center">Desde</label>
-      <input type="date" id="tco-fd" onchange="renderTesCobros()" style="min-width:0">
-      <label style="font-size:11px;color:var(--txt2);align-self:center">Hasta</label>
-      <input type="date" id="tco-fh" onchange="renderTesCobros()" style="min-width:0">
-      <select id="tco-forma" onchange="renderTesCobros()">
-        <option value="">Todas las formas</option>
-        <option value="efectivo">Efectivo</option>
-        <option value="transf">Transferencia</option>
-        <option value="cheque">Cheque</option>
-      </select>
-      <input id="tco-q" placeholder="Buscar cliente..." oninput="renderTesCobros()" style="flex:1;min-width:100px" title="↑↓ navegar · Esc volver">
-    </div>
-    <div class="g4" id="tco-kpis" style="margin-bottom:12px"></div>
-    <div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>Fecha</th><th>Cliente</th><th>Forma</th><th>Efectivo</th><th>Transf.</th><th>Cheque</th><th>Total</th><th>Vendedor</th><th></th></tr></thead>
-      <tbody id="tco-tbody"></tbody>
-    </table></div>
-    <div class="pg" id="tco-pg"></div>
-  </div>
+    <!-- CONTENEDOR SCROLLABLE -->
+    <div style="flex:1; overflow-y:auto; min-height:0; padding-right:4px;">
 
-  <!-- ── TAB PAGOS PROVEEDORES ── -->
-  <div id="tp-pagos" style="display:none">
-    <div class="card" style="margin-bottom:12px">
-      <div style="font-size:12px;font-weight:700;color:var(--PD);margin-bottom:10px;text-transform:uppercase">Registrar pago a proveedor</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-        <div class="fg" style="width:110px"><label style="font-size:10px">FECHA</label>
-          <input type="date" id="pag-fecha" style="width:100%"></div>
-        <div class="fg" style="flex:2;min-width:150px"><label style="font-size:10px">PROVEEDOR</label>
-          <select id="pag-prov" style="width:100%"><option value="">Seleccionar...</option></select></div>
-        <div class="fg" style="width:130px"><label style="font-size:10px">IMPORTE ($)</label>
-          <input type="number" id="pag-importe" min="0" placeholder="0" style="width:100%;font-size:16px;font-weight:700"></div>
-        <div class="fg" style="width:140px"><label style="font-size:10px">FORMA DE PAGO</label>
-          <select id="pag-forma" style="width:100%">
-            <option value="efectivo">💵 Efectivo</option>
-            <option value="transferencia">🏦 Transferencia</option>
-            <option value="cheque">📋 Cheque</option>
-          </select></div>
-        <div class="fg" style="flex:2;min-width:150px"><label style="font-size:10px">CONCEPTO / N° FACTURA</label>
-          <input id="pag-concepto" placeholder="Ej: Factura 001-00123" style="width:100%"
-            onkeydown="if(event.key==='Enter')guardarPago()"></div>
-        <button class="btn P" onclick="guardarPago()" style="padding:9px 18px;font-weight:700">✓ Registrar</button>
-      </div>
-    </div>
-    <div class="tb">
-      <input id="pag-q" placeholder="Buscar proveedor..." oninput="renderTesPagos()" style="flex:1;min-width:120px">
-      <select id="pag-f-forma" onchange="renderTesPagos()">
-        <option value="">Todas las formas</option>
-        <option value="efectivo">Efectivo</option>
-        <option value="transferencia">Transferencia</option>
-        <option value="cheque">Cheque</option>
-      </select>
-    </div>
-    <div class="g4" id="tpag-kpis" style="margin-bottom:12px"></div>
-    <div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>Fecha</th><th>Proveedor</th><th>Concepto</th><th>Forma</th><th>Importe</th><th></th></tr></thead>
-      <tbody id="tpag-tbody"></tbody>
-    </table></div>
-    <div class="pg" id="tpag-pg"></div>
-  </div>
-
-  <!-- ── TAB SALDO DE CAJA ── -->
-  <div id="tp-caja" style="display:none">
-    <div class="tb" style="margin-bottom:10px; flex-wrap:wrap; gap:6px;">
-      <button class="btn sm" onclick="cajaPeriodo('hoy')">Hoy</button>
-      <button class="btn sm" onclick="cajaPeriodo('semana')">Esta semana</button>
-      <button class="btn sm" onclick="cajaPeriodo('mes')">Este mes</button>
-      <button class="btn sm" onclick="cajaPeriodo('custom')">Personalizado</button>
-      <span id="caja-custom-rng" style="display:none; gap:6px; align-items:center;">
-        <!-- ✅ AGREGADOS LABELS "Desde" y "Hasta" -->
-        <label style="font-size:11px; color:var(--txt2); font-weight:600;">Desde</label>
-        <input type="date" id="caja-fd" style="padding:5px 8px; border:1px solid var(--brd); border-radius:6px; font-size:12px;">
-        <label style="font-size:11px; color:var(--txt2); font-weight:600;">Hasta</label>
-        <input type="date" id="caja-fh" style="padding:5px 8px; border:1px solid var(--brd); border-radius:6px; font-size:12px;">
-        <button class="btn sm P" onclick="renderTesCaja()">Aplicar</button>
-      </span>
-    </div>
-    <div id="caja-periodo-label" style="font-size:12px;color:var(--txt2);margin-bottom:12px"></div>
-    <div id="tp-caja-body"></div>
-  </div>
-
-  <!-- ── TAB CONCILIACIÓN BANCARIA ── -->
-  <div id="tp-concil" style="display:none">
-    <div class="card" style="margin-bottom:14px">
-      <div style="font-size:12px;font-weight:700;color:var(--PD);margin-bottom:10px;text-transform:uppercase">Cargar movimiento del extracto bancario</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-        <div class="fg" style="width:110px"><label style="font-size:10px">FECHA</label>
-          <input type="date" id="conc-fecha" style="width:100%"></div>
-        <div class="fg" style="flex:3;min-width:200px"><label style="font-size:10px">DESCRIPCIÓN</label>
-          <input id="conc-desc" placeholder="Ej: Transferencia de cliente..." style="width:100%"></div>
-        <div class="fg" style="width:140px"><label style="font-size:10px">IMPORTE ($)</label>
-          <input type="number" id="conc-importe" min="0" placeholder="0" style="width:100%;font-size:15px;font-weight:700"></div>
-        <div class="fg" style="width:150px"><label style="font-size:10px">TIPO</label>
-          <select id="conc-tipo" style="width:100%">
-            <option value="credito">⬆ Crédito (ingreso)</option>
-            <option value="debito">⬇ Débito (egreso)</option>
-          </select></div>
-        <button class="btn P" onclick="guardarMovBanc()" style="padding:9px 18px;font-weight:700">+ Agregar</button>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
-      <div>
-        <div style="font-size:12px;font-weight:700;color:var(--PD);margin-bottom:8px;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center">
-          🏦 Extracto bancario (pendientes)
-          <button class="btn sm P" onclick="autoConciliar()">⚡ Auto-conciliar</button>
+      <!-- ── TAB COBROS ── -->
+      <div id="tp-cobros" style="display:none">
+        <div class="tb">
+          <label style="font-size:11px;color:var(--txt2);align-self:center">Desde</label>
+          <input type="date" id="tco-fd" onchange="renderTesCobros()" style="min-width:0">
+          <label style="font-size:11px;color:var(--txt2);align-self:center">Hasta</label>
+          <input type="date" id="tco-fh" onchange="renderTesCobros()" style="min-width:0">
+          <select id="tco-forma" onchange="renderTesCobros()">
+            <option value="">Todas las formas</option>
+            <option value="efectivo">Efectivo</option>
+            <option value="transf">Transferencia</option>
+            <option value="cheque">Cheque</option>
+          </select>
+          <input id="tco-q" placeholder="Buscar cliente..." oninput="renderTesCobros()" style="flex:1;min-width:100px" title="↑↓ navegar · Esc volver">
         </div>
-        <div id="conc-banco-list"></div>
+        <div class="g4" id="tco-kpis" style="margin-bottom:12px"></div>
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Fecha</th><th>Cliente</th><th>Forma</th><th>Efectivo</th><th>Transf.</th><th>Cheque</th><th>Total</th><th>Vendedor</th><th></th></tr></thead>
+          <tbody id="tco-tbody"></tbody>
+        </table></div>
+        <div class="pg" id="tco-pg"></div>
       </div>
-      <div>
-        <div style="font-size:12px;font-weight:700;color:var(--PD);margin-bottom:8px;text-transform:uppercase">📋 Sistema (pendientes)</div>
-        <div id="conc-sistema-list"></div>
+
+      <!-- ── TAB PAGOS PROVEEDORES ── -->
+      <div id="tp-pagos" style="display:none">
+        <div class="card" style="margin-bottom:12px">
+          <div style="font-size:12px;font-weight:700;color:var(--PD);margin-bottom:10px;text-transform:uppercase">Registrar pago a proveedor</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+            <div class="fg" style="width:110px"><label style="font-size:10px">FECHA</label>
+              <input type="date" id="pag-fecha" style="width:100%"></div>
+            <div class="fg" style="flex:2;min-width:150px"><label style="font-size:10px">PROVEEDOR</label>
+              <select id="pag-prov" style="width:100%"><option value="">Seleccionar...</option></select></div>
+            <div class="fg" style="width:130px"><label style="font-size:10px">IMPORTE ($)</label>
+              <input type="number" id="pag-importe" min="0" placeholder="0" style="width:100%;font-size:16px;font-weight:700"></div>
+            <div class="fg" style="width:140px"><label style="font-size:10px">FORMA DE PAGO</label>
+              <select id="pag-forma" style="width:100%">
+                <option value="efectivo">💵 Efectivo</option>
+                <option value="transferencia">🏦 Transferencia</option>
+                <option value="cheque">📋 Cheque</option>
+              </select></div>
+            <div class="fg" style="flex:2;min-width:150px"><label style="font-size:10px">CONCEPTO / N° FACTURA</label>
+              <input id="pag-concepto" placeholder="Ej: Factura 001-00123" style="width:100%"
+                onkeydown="if(event.key==='Enter')guardarPago()"></div>
+            <button class="btn P" onclick="guardarPago()" style="padding:9px 18px;font-weight:700">✓ Registrar</button>
+          </div>
+        </div>
+        <div class="tb">
+          <input id="pag-q" placeholder="Buscar proveedor..." oninput="renderTesPagos()" style="flex:1;min-width:120px">
+          <select id="pag-f-forma" onchange="renderTesPagos()">
+            <option value="">Todas las formas</option>
+            <option value="efectivo">Efectivo</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="cheque">Cheque</option>
+          </select>
+        </div>
+        <div class="g4" id="tpag-kpis" style="margin-bottom:12px"></div>
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Fecha</th><th>Proveedor</th><th>Concepto</th><th>Forma</th><th>Importe</th><th></th></tr></thead>
+          <tbody id="tpag-tbody"></tbody>
+        </table></div>
+        <div class="pg" id="tpag-pg"></div>
       </div>
-    </div>
-    <div>
-      <div style="font-size:12px;font-weight:700;color:var(--P);margin-bottom:8px;text-transform:uppercase;display:flex;align-items:center;gap:8px">
-        ✅ Conciliados
-        <span id="conc-count" style="background:var(--PL);color:var(--PD);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600"></span>
+
+      <!-- ── TAB SALDO DE CAJA ── -->
+      <div id="tp-caja" style="display:none">
+        <div class="tb" style="margin-bottom:10px; flex-wrap:wrap; gap:6px;">
+          <button class="btn sm" onclick="cajaPeriodo('hoy')">Hoy</button>
+          <button class="btn sm" onclick="cajaPeriodo('semana')">Esta semana</button>
+          <button class="btn sm" onclick="cajaPeriodo('mes')">Este mes</button>
+          <button class="btn sm" onclick="cajaPeriodo('custom')">Personalizado</button>
+          <span id="caja-custom-rng" style="display:none; gap:6px; align-items:center;">
+            <label style="font-size:11px; color:var(--txt2); font-weight:600;">Desde</label>
+            <input type="date" id="caja-fd" style="padding:5px 8px; border:1px solid var(--brd); border-radius:6px; font-size:12px;">
+            <label style="font-size:11px; color:var(--txt2); font-weight:600;">Hasta</label>
+            <input type="date" id="caja-fh" style="padding:5px 8px; border:1px solid var(--brd); border-radius:6px; font-size:12px;">
+            <button class="btn sm P" onclick="renderTesCaja()">Aplicar</button>
+          </span>
+        </div>
+        <div id="caja-periodo-label" style="font-size:12px;color:var(--txt2);margin-bottom:12px"></div>
+        <div id="tp-caja-body"></div>
       </div>
-      <div id="conc-conciliados"></div>
+
+      <!-- ── TAB CONCILIACIÓN BANCARIA ── -->
+      <div id="tp-concil" style="display:none">
+        <div class="card" style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--PD);margin-bottom:10px;text-transform:uppercase">Cargar movimiento del extracto bancario</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+            <div class="fg" style="width:110px"><label style="font-size:10px">FECHA</label>
+              <input type="date" id="conc-fecha" style="width:100%"></div>
+            <div class="fg" style="flex:3;min-width:200px"><label style="font-size:10px">DESCRIPCIÓN</label>
+              <input id="conc-desc" placeholder="Ej: Transferencia de cliente..." style="width:100%"></div>
+            <div class="fg" style="width:140px"><label style="font-size:10px">IMPORTE ($)</label>
+              <input type="number" id="conc-importe" min="0" placeholder="0" style="width:100%;font-size:15px;font-weight:700"></div>
+            <div class="fg" style="width:150px"><label style="font-size:10px">TIPO</label>
+              <select id="conc-tipo" style="width:100%">
+                <option value="credito">⬆ Crédito (ingreso)</option>
+                <option value="debito">⬇ Débito (egreso)</option>
+              </select></div>
+            <button class="btn P" onclick="guardarMovBanc()" style="padding:9px 18px;font-weight:700">+ Agregar</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--PD);margin-bottom:8px;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center">
+              🏦 Extracto bancario (pendientes)
+              <button class="btn sm P" onclick="autoConciliar()">⚡ Auto-conciliar</button>
+            </div>
+            <div id="conc-banco-list"></div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--PD);margin-bottom:8px;text-transform:uppercase">📋 Sistema (pendientes)</div>
+            <div id="conc-sistema-list"></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--P);margin-bottom:8px;text-transform:uppercase;display:flex;align-items:center;gap:8px">
+            ✅ Conciliados
+            <span id="conc-count" style="background:var(--PL);color:var(--PD);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600"></span>
+          </div>
+          <div id="conc-conciliados"></div>
+        </div>
+      </div>
+
     </div>
   </div>
-
- </div>
 </div>
 
 <!-- CHEQUES EN CARTERA (panel independiente dentro de Tesorería) -->
@@ -2654,7 +2697,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <!-- INFORMES -->
 <div class="panel" id="p-informes">
-  <div class="sech"><h2>📈 Informes</h2></div>
+  <div class="sech"><h2>📈 Informes</h2>
+    <button class="btn A sm" onclick="exportarTodo()" title="Exportar todos los datos a Excel/CSV">💾 Exportar datos</button>
+  </div>
 
   <!-- Tabs internos -->
   <div id="inf-tabs-bar" style="background:var(--bg2);border-radius:8px;padding:8px;margin-bottom:14px;display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0" onkeydown="navInfTabs(event)">
@@ -4085,8 +4130,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   
   <!-- HEADER FIJO -->
   <div style="flex-shrink:0; padding:0 0 12px 0;">
-    <h2 style="margin:0 0 4px 0; font-size:18px;">📥 Importar histórico FoxPro</h2>
-    <p style="color:var(--txt2); font-size:13px; margin:0;">Importá archivos Excel del sistema anterior para análisis comparativo por período</p>
+    <h2 style="margin:0 0 4px 0; font-size:18px;">📊 Histórico FoxPro</h2>
+    <p style="color:var(--txt2); font-size:13px; margin:0;">Importá archivos Excel del sistema anterior y visualizá la evolución de ventas, saldos y CMG.</p>
   </div>
 
   <!-- CONTENEDOR SCROLLABLE -->
@@ -4170,7 +4215,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
 
-  </div><!-- fin scrollable -->
+  </div>
 </div>
 
 <!-- MODAL AJUSTE NC/ND EN COMPROBANTE DE COMPRA -->

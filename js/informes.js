@@ -2051,6 +2051,17 @@ async function renderDashboardEvolucion(filtro){
 
   // Chart
   if(wrap)wrap.style.display='block';
+  
+  // ⭐ PERMITIR SCROLL sobre el canvas
+  const canvas = document.getElementById('dash-evol-chart');
+  if (canvas) {
+    canvas.style.touchAction = 'pan-y';
+    canvas.style.pointerEvents = 'auto';
+    canvas.addEventListener('wheel', function(e) {
+      e.stopPropagation();
+    }, { passive: true });
+  }
+
   if(typeof Chart!=='undefined'){
     if(_dashEvolChart){_dashEvolChart.destroy();_dashEvolChart=null;}
     const ctx=document.getElementById('dash-evol-chart')?.getContext('2d');
@@ -2059,10 +2070,123 @@ async function renderDashboardEvolucion(filtro){
       const hasVentas=periodos.some(p=>p.ventas>0);
       const hasSaldos=periodos.some(p=>p.saldos>0);
       const hasCMG=periodos.some(p=>p.cmg>0);
-      if(hasVentas)sets.push({label:'Ventas',data:periodos.map(p=>Math.round(p.ventas)),borderColor:'#1a7a52',backgroundColor:'rgba(26,122,82,0.1)',tension:0.3,fill:false,pointRadius:4});
-      if(hasSaldos)sets.push({label:'Saldos adeudados',data:periodos.map(p=>Math.round(p.saldos)),borderColor:'#c0392b',backgroundColor:'rgba(192,57,43,0.08)',tension:0.3,fill:false,pointRadius:4});
-      if(hasCMG)sets.push({label:'CMG (resultado)',data:periodos.map(p=>Math.round(p.cmg)),borderColor:'#1a5fa8',backgroundColor:'rgba(26,95,168,0.08)',tension:0.3,fill:false,pointRadius:4});
-      _dashEvolChart=new Chart(ctx,{type:'line',data:{labels:periodos.map(p=>p.periodo),datasets:sets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{y:{ticks:{callback:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1000?'$'+(v/1000).toFixed(0)+'k':'$'+v}}}}});
+      if(hasVentas)sets.push({
+        label:'Ventas',
+        data:periodos.map(p=>Math.round(p.ventas)),
+        borderColor:'#1a7a52',
+        backgroundColor:'rgba(26,122,82,0.1)',
+        tension:0.3,
+        fill:false,
+        pointRadius:5,
+        pointBackgroundColor:'#1a7a52',
+        pointBorderColor:'#fff',
+        pointBorderWidth:2
+      });
+      if(hasSaldos)sets.push({
+        label:'Saldos adeudados',
+        data:periodos.map(p=>Math.round(p.saldos)),
+        borderColor:'#c0392b',
+        backgroundColor:'rgba(192,57,43,0.08)',
+        tension:0.3,
+        fill:false,
+        pointRadius:5,
+        pointBackgroundColor:'#c0392b',
+        pointBorderColor:'#fff',
+        pointBorderWidth:2
+      });
+      if(hasCMG)sets.push({
+        label:'CMG (resultado)',
+        data:periodos.map(p=>Math.round(p.cmg)),
+        borderColor:'#1a5fa8',
+        backgroundColor:'rgba(26,95,168,0.08)',
+        tension:0.3,
+        fill:false,
+        pointRadius:5,
+        pointBackgroundColor:'#1a5fa8',
+        pointBorderColor:'#fff',
+        pointBorderWidth:2
+      });
+      
+      _dashEvolChart=new Chart(ctx,{
+        type:'line',
+        data:{
+          labels:periodos.map(p=>p.periodo),
+          datasets:sets
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          
+          // ⭐ INTERACCIÓN: tooltips
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          
+          plugins:{
+            legend:{position:'top'},
+            // ⭐ TOOLTIP mejorado
+            tooltip: {
+              enabled: true,
+              mode: 'index',
+              intersect: false,
+              backgroundColor: 'rgba(0,0,0,0.85)',
+              titleFont: { size: 13, weight: 'bold' },
+              bodyFont: { size: 12 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                label: function(context) {
+                  const label = context.dataset.label || '';
+                  const value = context.parsed.y;
+                  return label + ': $' + value.toLocaleString('es-AR');
+                },
+                afterBody: function(tooltipItems) {
+                  const index = tooltipItems[0]?.dataIndex;
+                  if (index !== undefined && periodos[index]) {
+                    const p = periodos[index];
+                    const pctCmg = p.ventas > 0 ? ((p.cmg / p.ventas) * 100) : 0;
+                    return [
+                      `━━━━━━━━━━━━━━━━━━━━`,
+                      `💹 Margen: ${pctCmg.toFixed(1)}%`
+                    ];
+                  }
+                  return [];
+                }
+              }
+            }
+          },
+          scales:{
+            y:{
+              ticks:{
+                callback:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1000?'$'+(v/1000).toFixed(0)+'k':'$'+v
+              }
+            }
+          },
+          // ⭐ HOVER: resaltar al pasar el mouse
+          hover: {
+            mode: 'index',
+            intersect: false
+          },
+          // ⭐ ON CLICK: mostrar detalle
+          onClick: function(event, elements) {
+            if (elements.length > 0) {
+              const index = elements[0].index;
+              const p = periodos[index];
+              if (p) {
+                const pctCmg = p.ventas > 0 ? ((p.cmg / p.ventas) * 100) : 0;
+                alert(
+                  `📊 ${p.periodo}\n` +
+                  `━━━━━━━━━━━━━━━━━━━━━━\n` +
+                  `💰 Ventas: $${p.ventas.toLocaleString('es-AR')}\n` +
+                  `📈 CMG: $${p.cmg.toLocaleString('es-AR')} (${pctCmg.toFixed(1)}%)\n` +
+                  `💳 Saldos: $${p.saldos.toLocaleString('es-AR')}`
+                );
+              }
+            }
+          }
+        }
+      });
     }
   }
 
