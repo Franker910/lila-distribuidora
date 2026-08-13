@@ -174,61 +174,87 @@ async function doLogin(){
   entrarApp(found);
 }
 
-function entrarApp(found){
-  usuarioActual=found;
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('app').style.display='flex';
-  document.getElementById('app').style.flexDirection='column';
-  document.getElementById('top-usuario').textContent=found.nombre+' ('+found.rol+')';
-  document.getElementById('top-fecha').textContent=new Date().toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'});
-  ['np-fecha','cob-fecha','nc-fecha'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=hoyLocal();});
+function entrarApp(found) {
+  usuarioActual = found;
   
-  // Aplicar permisos de navegación
-  const sidebar=document.getElementById('sidebar');
-  const btnMenu=document.getElementById('btn-menu');
-  cerrarMenu();
-  const esMovil=found.rol==='vendedor'||found.rol==='repartidor';
-  if(esMovil){
-    if(sidebar)sidebar.style.display='none';
-    if(btnMenu)btnMenu.style.display='none';
-    document.querySelector('[data-p="vendedor-home"]').style.display='flex';
-    // Si es admin en modo vendedor, mostrar botón para volver al admin
-    if(found.rol_original==='admin' || found.user==='mauricio' || found.esAdmin){
+  //  DETECTAR DISPOSITIVO
+  const esMovil = window.innerWidth <= 768 || 
+                  /Android|iPhone|iPad|iPod|BlackBerry|Opera Mini/i.test(navigator.userAgent) ||
+                  ('ontouchstart' in window && window.innerWidth <= 1024);
+  
+  //  DETERMINAR ROL Y VISTA SEGÚN DISPOSITIVO
+  const esAdminReal = found.esAdmin || found.rol === 'admin' || found.rol_original === 'admin';
+  
+  // Si es admin y está en móvil → vista móvil (rol vendedor)
+  // Si es admin y está en escritorio → vista escritorio (rol admin)
+  // Si no es admin → vista móvil siempre (no tiene acceso a escritorio)
+  if (esAdminReal && !esMovil) {
+    // Admin en escritorio → vista completa
+    usuarioActual.vista = 'escritorio';
+    usuarioActual.rol = 'admin';
+  } else if (esAdminReal && esMovil) {
+    // Admin en móvil → vista móvil (vendedor por defecto)
+    usuarioActual.vista = 'movil';
+    usuarioActual.rol = 'vendedor';
+  } else {
+    // Vendedor o repartidor → siempre móvil
+    usuarioActual.vista = 'movil';
+    // Mantener su rol original (vendedor/repartidor)
+  }
+  
+  // Guardar rol original para poder volver
+  usuarioActual.rol_original = found.rol_original || found.rol;
+  usuarioActual.esAdmin = found.esAdmin || found.rol === 'admin' || found.rol_original === 'admin';
+
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('app').style.flexDirection = 'column';
+  document.getElementById('top-usuario').textContent = found.nombre + ' (' + usuarioActual.rol + ')';
+  document.getElementById('top-fecha').textContent = new Date().toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' });
+  ['np-fecha', 'cob-fecha', 'nc-fecha'].forEach(id => { const el = document.getElementById(id); if (el) el.value = hoyLocal(); });
+
+  // Aplicar vista
+  if (usuarioActual.vista === 'movil') {
+    mostrarVistaMovil();
+    
+    // Si es admin con dual rol en móvil, mostrar botón para volver a admin
+    if (usuarioActual.esAdmin) {
       const btnAdmin = document.getElementById('btn-volver-admin');
-      if(btnAdmin) btnAdmin.style.display='flex';
+      if (btnAdmin) btnAdmin.style.display = 'flex';
     }
-    // Dual rol (vendedor/repartidor) en el mismo celular: mostrar el toggle
-    if(found.dualRolMovil){
-      const btnRol=document.getElementById('btn-cambiar-rol-movil');
-      if(btnRol){btnRol.style.display='flex';actualizarBtnRolMovil();}
+    
+    // Si tiene dualRolMovil, mostrar toggle (vendedor/repartidor)
+    if (found.dualRolMovil) {
+      const btnRol = document.getElementById('btn-cambiar-rol-movil');
+      if (btnRol) { btnRol.style.display = 'flex'; actualizarBtnRolMovil(); }
     }
   } else {
-    if(sidebar)sidebar.style.display='';
-    if(btnMenu)btnMenu.style.display='';
+    mostrarVistaEscritorio();
   }
 
-  // Si es móvil (vendedor o repartidor), ir directo a home
-  if(esMovil){
-    cargarTodo().then(()=>{initVersionCheck();go('vendedor-home');});
-  } else {
-    cargarTodo().then(()=>{
-      initVersionCheck();
+  // Cargar datos y navegar
+  cargarTodo().then(() => {
+    initVersionCheck();
+    if (usuarioActual.vista === 'movil') {
+      go('vendedor-home');
+      renderVendedorHome();
+    } else {
       // Limpiar estado del sidebar
-      document.querySelectorAll('.sidebar-group').forEach(g=>{
-        g.classList.remove('open','active');
-        const chev=g.querySelector('.sidebar-group-btn span');
-        if(chev)chev.textContent='▶';
-        const items=g.querySelector('.sidebar-items');
-        if(items)items.style.display='';
+      document.querySelectorAll('.sidebar-group').forEach(g => {
+        g.classList.remove('open', 'active');
+        const chev = g.querySelector('.sidebar-group-btn span');
+        if (chev) chev.textContent = '▶';
+        const items = g.querySelector('.sidebar-items');
+        if (items) items.style.display = '';
       });
-      document.querySelectorAll('.sidebar-item,.sidebar-dash').forEach(b=>b.classList.remove('on'));
-      const dashBtn=document.querySelector('.sidebar-dash[data-p="dash"]');
-      if(dashBtn){dashBtn.classList.add('on');}
+      document.querySelectorAll('.sidebar-item,.sidebar-dash').forEach(b => b.classList.remove('on'));
+      const dashBtn = document.querySelector('.sidebar-dash[data-p="dash"]');
+      if (dashBtn) { dashBtn.classList.add('on'); }
       go('dash');
       initSidebarKeyNav();
       focoHamburguesa();
-    });
-  }
+    }
+  });
 }
 
 async function logout(){
@@ -475,19 +501,19 @@ function ajustarDrop(inputEl,dropEl){
   }
 }
 
-function volverAdmin(){
-  // Cambiar rol temporalmente a admin
-  if(usuarioActual) usuarioActual.rol = 'admin';
-  const sidebar = document.getElementById('sidebar');
-  if(sidebar) sidebar.style.display = '';
-  const btnMenu = document.getElementById('btn-menu');
-  if(btnMenu) btnMenu.style.display = '';
-  document.querySelector('[data-p="vendedor-home"]').style.display = 'none';
-  const btnAdmin = document.getElementById('btn-volver-admin');
-  if(btnAdmin) btnAdmin.style.display = 'none';
+function volverAdmin() {
+  // Solo funciona si es admin y está en móvil
+  if (!usuarioActual?.esAdmin || usuarioActual.vista !== 'movil') {
+    toast('No tenés permisos de administrador en este dispositivo', 'info');
+    return;
+  }
+  
+  // Cambiar a vista escritorio
+  usuarioActual.vista = 'escritorio';
+  usuarioActual.rol = 'admin';
+  mostrarVistaEscritorio();
   go('dash');
-  initSidebarKeyNav();
-  focoHamburguesa();
+  toast('💻 Cambiado a modo administrador');
 }
 
 // Alternar Vendedor/Repartidor en el mismo celular (mauricio, alexis, david:
@@ -496,6 +522,8 @@ function volverAdmin(){
 function toggleRolMovil(){
   if(!usuarioActual)return;
   usuarioActual.rol = usuarioActual.rol==='repartidor'?'vendedor':'repartidor';
+  // Mantener vista móvil
+  usuarioActual.vista = 'movil';
   actualizarBtnRolMovil();
   renderVendedorHome();
   if(usuarioActual.rol==='repartidor')cargarHojaRutaRepartidor();
@@ -706,7 +734,49 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('#hr-cli-q')&&!e.target.closest('#hr-cli-drop'))hide('hr-cli-drop');
 });
 
-function go(p){
+function go(p) {
+  // ⭐ VERIFICAR ACCESO A ESCRITORIO
+  if (usuarioActual?.vista === 'movil') {
+    // Paneles permitidos en móvil
+    const panelesMoviles = ['vendedor-home', 'pedido-movil', 'cobranza-hoy', 'cobranza', 'hoja-ruta', 'pedidos', 'cuentas'];
+    
+    // Si el panel no está en la lista de permitidos
+    if (!panelesMoviles.includes(p) && p !== 'vendedor-home') {
+      // Si es admin con permiso, ofrecer cambiar a escritorio
+      if (usuarioActual.esAdmin) {
+        if (confirm('📱 ¿Querés cambiar a vista de escritorio para acceder a esta función?')) {
+          usuarioActual.vista = 'escritorio';
+          usuarioActual.rol = 'admin';
+          mostrarVistaEscritorio();
+          setTimeout(() => go(p), 300);
+        }
+        return;
+      } else {
+        // Vendedor/repartidor: no tiene acceso
+        toast('⚠️ Esta función solo está disponible en la versión de escritorio', 'info');
+        return;
+      }
+    }
+  }
+  
+  // Si es móvil y el panel no es móvil, redirigir al home
+  if (usuarioActual?.vista === 'movil' && p !== 'vendedor-home') {
+    const panelesMoviles = ['vendedor-home', 'pedido-movil', 'cobranza-hoy', 'cobranza', 'hoja-ruta'];
+    if (!panelesMoviles.includes(p)) {
+      // Si es admin, mostrar opción de cambiar
+      if (usuarioActual.esAdmin) {
+        if (confirm('📱 ¿Querés cambiar a vista de escritorio?')) {
+          toggleVista();
+          setTimeout(() => go(p), 300);
+        }
+        return;
+      } else {
+        toast('Esta función solo está disponible en escritorio', 'info');
+        return;
+      }
+    }
+  }
+
   // 🔽 Limpiar parámetros de la URL para que no interfieran
   const params = new URLSearchParams(window.location.search);
   const origen = params.get('origen');
@@ -1289,3 +1359,108 @@ observer.observe(document.getElementById('main-body'), {
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(fixDashScroll, 500);
 });
+
+// ═══════════════════════════════════════════════════════════════
+// VISTAS: ESCRITORIO vs MÓVIL
+// ═══════════════════════════════════════════════════════════════
+
+function mostrarVistaMovil() {
+  // Ocultar sidebar y navegación
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  const nav = document.getElementById('main-nav');
+  const btnMenu = document.getElementById('btn-menu');
+  
+  if (sidebar) sidebar.style.display = 'none';
+  if (overlay) overlay.style.display = 'none';
+  if (nav) nav.style.display = 'none';
+  if (btnMenu) btnMenu.style.display = 'none';
+  
+  // Ocultar todos los paneles
+  document.querySelectorAll('.panel').forEach(p => {
+    p.classList.remove('on');
+    p.style.display = 'none';
+  });
+  
+  // Mostrar el home del vendedor
+  const home = document.getElementById('p-vendedor-home');
+  if (home) {
+    home.classList.add('on');
+    home.style.display = 'flex';
+  }
+  
+  // Si es admin, mostrar botón para volver a escritorio
+  if (usuarioActual?.esAdmin) {
+    const btnAdmin = document.getElementById('btn-volver-admin');
+    if (btnAdmin) btnAdmin.style.display = 'flex';
+  } else {
+    const btnAdmin = document.getElementById('btn-volver-admin');
+    if (btnAdmin) btnAdmin.style.display = 'none';
+  }
+  
+  // Mostrar toggle de rol solo si tiene dualRolMovil
+  if (usuarioActual?.dualRolMovil) {
+    const btnRol = document.getElementById('btn-cambiar-rol-movil');
+    if (btnRol) {
+      btnRol.style.display = 'flex';
+      actualizarBtnRolMovil();
+    }
+  }
+}
+
+function mostrarVistaEscritorio() {
+  // Mostrar sidebar y navegación
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  const nav = document.getElementById('main-nav');
+  const btnMenu = document.getElementById('btn-menu');
+  
+  if (sidebar) sidebar.style.display = '';
+  if (overlay) overlay.style.display = '';
+  if (nav) nav.style.display = 'flex';
+  if (btnMenu) btnMenu.style.display = '';
+  
+  // Ocultar el home del vendedor
+  const home = document.getElementById('p-vendedor-home');
+  if (home) {
+    home.classList.remove('on');
+    home.style.display = 'none';
+  }
+  
+  // Ocultar botones de cambio
+  const btnAdmin = document.getElementById('btn-volver-admin');
+  if (btnAdmin) btnAdmin.style.display = 'none';
+  const btnRol = document.getElementById('btn-cambiar-rol-movil');
+  if (btnRol) btnRol.style.display = 'none';
+}
+
+function toggleVista() {
+  if (!usuarioActual) return;
+  
+  if (usuarioActual.vista === 'escritorio') {
+    usuarioActual.vista = 'movil';
+    usuarioActual.rol = 'vendedor'; // Por defecto
+    mostrarVistaMovil();
+    renderVendedorHome();
+    go('vendedor-home');
+    toast('📱 Cambiado a vista móvil');
+  } else {
+    usuarioActual.vista = 'escritorio';
+    usuarioActual.rol = usuarioActual.rol_original || 'admin';
+    mostrarVistaEscritorio();
+    go('dash');
+    toast('💻 Cambiado a vista escritorio');
+  }
+}
+
+function volverAdmin() {
+  // Cambiar rol temporalmente a admin
+  if(usuarioActual) {
+    usuarioActual.rol = 'admin';
+    usuarioActual.vista = 'escritorio';
+  }
+  mostrarVistaEscritorio();
+  go('dash');
+  initSidebarKeyNav();
+  focoHamburguesa();
+}
