@@ -2740,11 +2740,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <!-- COMISIONES POR PERSONA -->
-<div class="panel" id="p-comisiones">
+<div class="panel" id="p-comisiones" style="display:flex; flex-direction:column; height:100%; overflow-y:auto; padding-right:4px;">
   <div class="sech"><h2>👤 Comisiones por persona</h2></div>
 
   <!-- Config personas -->
-  <div class="card" style="margin-bottom:12px">
+  <div class="card" style="margin-bottom:12px; flex-shrink:0;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <div style="font-weight:600;font-size:14px">👤 Personas y porcentajes</div>
       <button class="btn P sm" onclick="agregarPersonaCom()">+ Agregar persona</button>
@@ -2764,7 +2764,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <!-- Filtros -->
-  <div class="card" style="margin-bottom:12px">
+  <div class="card" style="margin-bottom:12px; flex-shrink:0;">
     <div style="font-weight:600;margin-bottom:10px">📅 Período</div>
     <div class="fr">
       <div class="fg"><label>Desde</label><input type="date" id="com-desde"></div>
@@ -2779,8 +2779,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <!-- Resultados -->
-  <div id="com-res-panel" style="display:none">
-    <div class="card" style="margin-bottom:12px">
+  <div id="com-res-panel" style="display:none;">
+    <div class="card" style="margin-bottom:12px;">
       <div style="font-weight:600;margin-bottom:10px">📊 Comisiones por persona</div>
       <div class="tbl-wrap"><table class="tbl">
         <thead><tr>

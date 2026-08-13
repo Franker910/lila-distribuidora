@@ -849,6 +849,9 @@ function cargarComPersonas(){try{_comPersonas=JSON.parse(localStorage.getItem('l
 function guardarComPersonas(){localStorage.setItem('lila_com_personas',JSON.stringify(_comPersonas));}
 
 function renderComPersonas(){
+  // Ocultar resultados al modificar la lista de personas
+  document.getElementById('com-res-panel').style.display = 'none';
+  
   const tbody = document.getElementById('com-personas-tbody');
   if (!tbody) return;
   
@@ -866,13 +869,13 @@ function renderComPersonas(){
     <tr>
       <td>
         <input type="text" value="${p.nombre || ''}" 
-          list="vendedores-lista-${i}"
-          oninput="_comPersonas[${i}].nombre=this.value;guardarComPersonas()"
+          id="com-nombre-${i}"
           placeholder="Escribí un nombre..."
+          autocomplete="off"
+          oninput="comFiltrarVendedores(${i}, this.value)"
+          onfocus="comFiltrarVendedores(${i}, this.value)"
           style="width:100%; padding:6px 10px; border:1px solid var(--brd); border-radius:6px; font-size:13px; font-family:inherit;">
-        <datalist id="vendedores-lista-${i}">
-          ${todosVendedores.map(v => `<option value="${v}">`).join('')}
-        </datalist>
+        <div id="com-drop-${i}" class="drop" style="display:none;"></div>
       </td>
       <td>
         <select onchange="_comPersonas[${i}].rol=this.value;guardarComPersonas()" style="padding:6px 10px; border:1px solid var(--brd); border-radius:6px; font-size:13px; font-family:inherit; width:100%;">
@@ -884,12 +887,12 @@ function renderComPersonas(){
       <td style="text-align:center;">
         <input type="number" value="${p.pct_ventas ?? 2}" min="0" max="100" step="0.1" 
           oninput="_comPersonas[${i}].pct_ventas=parseFloat(this.value)||0;guardarComPersonas()" 
-          style="width:70px; padding:6px 8px; border:1px solid var(--brd); border-radius:6px; font-size:13px; text-align:center; font-family:inherit;">
+          style="width:60px; padding:6px 4px; border:1px solid var(--brd); border-radius:6px; font-size:13px; text-align:center; font-family:inherit;">
       </td>
       <td style="text-align:center;">
         <input type="number" value="${p.pct_cobranza ?? 1}" min="0" max="100" step="0.1" 
           oninput="_comPersonas[${i}].pct_cobranza=parseFloat(this.value)||0;guardarComPersonas()" 
-          style="width:70px; padding:6px 8px; border:1px solid var(--brd); border-radius:6px; font-size:13px; text-align:center; font-family:inherit;">
+          style="width:60px; padding:6px 4px; border:1px solid var(--brd); border-radius:6px; font-size:13px; text-align:center; font-family:inherit;">
       </td>
       <td style="text-align:center;">
         <button class="btn D sm" onclick="_comPersonas.splice(${i},1);guardarComPersonas();renderComPersonas()">🗑</button>
@@ -897,6 +900,106 @@ function renderComPersonas(){
     </tr>
   `).join('');
 }
+
+// ─── FILTRAR VENDEDORES PARA COMISIONES POR PERSONA ───
+function comFiltrarVendedores(idx, valor) {
+  const drop = document.getElementById('com-drop-' + idx);
+  if (!drop) return;
+  
+  const q = (valor || '').toLowerCase().trim();
+  
+  const vendedores = [...new Set(_clientes.map(c => c.vendedor).filter(Boolean))].sort();
+  const usuarios = USUARIOS.filter(u => u.rol === 'vendedor' || u.rol === 'repartidor').map(u => u.nombre);
+  const todosVendedores = [...new Set([...vendedores, ...usuarios])].sort();
+  
+  if (q.length < 1) {
+    drop.style.display = 'none';
+    return;
+  }
+  
+  const filtrados = todosVendedores.filter(v => v.toLowerCase().includes(q));
+  
+  const input = document.getElementById('com-nombre-' + idx);
+  if (!input) return;
+  
+  const rect = input.getBoundingClientRect();
+  
+  drop.style.position = 'fixed';
+  drop.style.top = (rect.bottom + 4) + 'px';
+  drop.style.left = rect.left + 'px';
+  drop.style.width = (rect.width || 200) + 'px';
+  drop.style.maxHeight = '200px';
+  drop.style.overflowY = 'auto';
+  drop.style.zIndex = '99999';
+  drop.style.background = 'var(--bg)';
+  drop.style.border = '1px solid var(--brd)';
+  drop.style.borderRadius = '8px';
+  drop.style.boxShadow = '0 4px 12px rgba(0,0,0,.1)';
+  
+  if (!filtrados.length) {
+    drop.innerHTML = '<div style="padding:8px 12px; color:var(--txt2); font-size:13px;">Sin resultados</div>';
+    drop.style.display = 'block';
+    return;
+  }
+  
+  drop.innerHTML = filtrados.map(v => `
+    <div onmousedown="comSeleccionarVendedor(${idx}, '${v}')" 
+      style="padding:8px 12px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--brd);"
+      onmouseover="this.style.background='var(--bg2)'" 
+      onmouseout="this.style.background=''">
+      ${v}
+    </div>
+  `).join('');
+  
+  drop.style.display = 'block';
+  
+  const spaceBelow = window.innerHeight - rect.bottom;
+  if (spaceBelow < 200 && rect.top > 200) {
+    drop.style.top = (rect.top - 200) + 'px';
+  }
+}
+
+// ─── SELECCIONAR VENDEDOR DEL DESPLEGABLE ───
+function comSeleccionarVendedor(idx, nombre) {
+  const input = document.getElementById('com-nombre-' + idx);
+  const drop = document.getElementById('com-drop-' + idx);
+  
+  if (input) {
+    input.value = nombre;
+    // Forzar el evento input para que actualice _comPersonas
+    const event = new Event('input', { bubbles: true });
+    input.dispatchEvent(event);
+  }
+  
+  if (drop) {
+    drop.style.display = 'none';
+    drop.innerHTML = '';
+  }
+  
+  // Actualizar el objeto _comPersonas
+  if (_comPersonas[idx]) {
+    _comPersonas[idx].nombre = nombre;
+    guardarComPersonas();
+  }
+  
+  // Cerrar cualquier otro drop abierto
+  document.querySelectorAll('[id^="com-drop-"]').forEach(d => {
+    if (d.id !== 'com-drop-' + idx) {
+      d.style.display = 'none';
+    }
+  });
+}
+
+// ─── CERRAR DROPS DE VENDEDORES AL HACER CLICK FUERA ───
+document.addEventListener('click', function(e) {
+  document.querySelectorAll('[id^="com-drop-"]').forEach(drop => {
+    const inputId = drop.id.replace('com-drop-', 'com-nombre-');
+    const input = document.getElementById(inputId);
+    if (!e.target.closest('.drop-wrap') || (input && e.target !== input && !input.contains(e.target))) {
+      drop.style.display = 'none';
+    }
+  });
+});
 
 function agregarPersonaCom(){
   _comPersonas.push({nombre:'',rol:'vendedor',pct_ventas:2,pct_cobranza:1});
@@ -990,17 +1093,20 @@ function calcularComisionesPorPersona(){
     zonaDiv.innerHTML=`<div class="tbl-wrap"><table class="tbl">
       <thead><tr><th>Zona</th><th style="text-align:right">Ventas</th><th style="text-align:right">% del total</th><th style="text-align:right">Cobranza</th><th style="text-align:right">% Cobrado</th></tr></thead>
       <tbody>${zonasArr.map(([z,d])=>{
-        const pctTotal=totalZ>0?Math.round(d.ventas/totalZ*100):0;
-        const pctCob=d.ventas>0?Math.round(d.cobranza/d.ventas*100):0;
-        return `<tr>
-          <td><span class="b bA">${_zonas.find(x=>x.codigo===z)?.descripcion||z}</span></td>
-          <td style="text-align:right;font-weight:600">${fmt(d.ventas)}</td>
-          <td style="text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
-            <div style="background:var(--PL);border-radius:3px;height:8px;width:${pctTotal}px;max-width:80px"></div>
-            <span style="font-size:11px;color:var(--txt2)">${pctTotal}%</span></div></td>
-          <td style="text-align:right">${fmt(d.cobranza)}</td>
-          <td style="text-align:right"><span class="b ${pctCob>=80?'bP':pctCob>=50?'bW':'bD'}">${pctCob}%</span></td>
-        </tr>`;
+      const pctTotal = totalZ > 0 ? Math.round(d.ventas / totalZ * 100) : 0;
+      const pctCob = d.ventas > 0 ? Math.round(d.cobranza / d.ventas * 100) : 0;
+      return `<tr>
+        <td><span class="b bA">${_zonas.find(x=>x.codigo===z)?.descripcion||z}</span></td>
+        <td style="text-align:right;font-weight:600">${fmt(d.ventas)}</td>
+        <td style="text-align:right">
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
+            <div style="background:var(--P);border-radius:3px;height:8px;width:${Math.min(pctTotal, 100)}px;max-width:80px;opacity:0.4;"></div>
+            <span style="font-size:12px;font-weight:600;color:var(--P)">${pctTotal}%</span>
+          </div>
+        </td>
+        <td style="text-align:right">${fmt(d.cobranza)}</td>
+        <td style="text-align:right"><span class="b ${pctCob>=80?'bP':pctCob>=50?'bW':'bD'}">${pctCob}%</span></td>
+      </tr>`;
       }).join('')}</tbody>
       <tfoot><tr style="font-weight:700;background:var(--bg2)">
         <td>TOTAL</td>
