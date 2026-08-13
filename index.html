@@ -569,6 +569,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   touch-action: pan-y !important;
 }
 
+/* DASHBOARD: permitir scroll sobre los gráficos */
+#p-dash canvas {
+  touch-action: pan-y !important;
+  pointer-events: auto !important;
+}
+
+#p-dash canvas:hover {
+  cursor: default;
+}
+
+/* El contenedor del dashboard debe tener scroll */
+#p-dash .scroll-content {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  padding-right: 4px !important;
+}
+
+/* Los gráficos no deben interferir con el scroll */
+#dash-chart-ventas-wrap,
+#dash-chart-zonas-wrap {
+  position: relative;
+  touch-action: pan-y !important;
+}
+
+
+
 </style>
 </head>
 <body>
@@ -692,10 +721,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="body" id="main-body">
 
 <!-- DASHBOARD -->
-<div class="panel" id="p-dash" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">
-  
+<div class="panel on" id="p-dash" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">  
   <!-- CONTENEDOR SCROLLABLE -->
-  <div style="flex:1; overflow-y:auto; min-height:0; padding-right:4px;">
+  <div class="scroll-content" style="flex:1; overflow-y:auto; min-height:0; padding-right:4px;">
     
     <!-- KPIs -->
     <div class="g4" style="margin-bottom:16px;">
@@ -731,13 +759,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <!-- Gráficos -->
     <div class="g2" style="margin-bottom:16px;">
-      <div class="card">
+      <div class="card" style="height:220px;">
         <div style="font-size:12px;font-weight:700;color:var(--PD);margin-bottom:8px">📈 Ventas últimos 6 meses</div>
-        <div style="position:relative;height:200px"><canvas id="dash-chart-ventas"></canvas></div>
+        <div style="position:relative;height:180px;touch-action:pan-y;">
+          <canvas id="dash-chart-ventas" style="touch-action:pan-y;pointer-events:auto;"></canvas>
+        </div>
       </div>
-      <div class="card">
+      <div class="card" style="height:220px;">
         <div style="font-size:12px;font-weight:700;color:var(--PD);margin-bottom:8px">🗺 Participación por zona</div>
-        <div style="position:relative;height:200px"><canvas id="dash-chart-zonas"></canvas></div>
+        <div style="position:relative;height:180px;touch-action:pan-y;">
+          <canvas id="dash-chart-zonas" style="touch-action:pan-y;pointer-events:auto;"></canvas>
+        </div>
       </div>
     </div>
 
@@ -817,18 +849,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
-<div class="panel" id="p-pedidos">
-  <div id="pedidos-btn-volver-movil" style="display:none;padding:8px 0 0 0">
-    <button onclick="go('vendedor-home')" style="background:var(--bg2);border:1.5px solid var(--brd);border-radius:10px;font-size:20px;cursor:pointer;color:var(--PD);display:flex;align-items:center;gap:8px;padding:12px 16px;min-height:48px;-webkit-tap-highlight-color:transparent"><span>←</span><span style="font-size:15px;font-weight:600">Volver al inicio</span></button>
+<div class="panel" id="p-pedidos" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">
+  
+  <!-- Volver (visible solo en móvil) -->
+  <div id="pedidos-btn-volver-movil" style="display:none; flex-shrink:0; padding:0 0 8px 0;">
+    <button onclick="go('vendedor-home')" style="background:var(--bg2);border:1.5px solid var(--brd);border-radius:10px;font-size:20px;cursor:pointer;color:var(--PD);display:flex;align-items:center;gap:8px;padding:12px 16px;min-height:48px;-webkit-tap-highlight-color:transparent">
+      <span>←</span><span style="font-size:15px;font-weight:600">Volver al inicio</span>
+    </button>
   </div>
-  <div class="sech">
+
+  <!-- Título FIJO -->
+  <div class="sech" style="flex-shrink:0;">
     <h2>Pedidos</h2>
     <div style="display:flex;gap:6px">
       <button class="btn P" onclick="abrirPedidoMovil()">📱 Nuevo pedido</button>
       <button class="btn" onclick="abrirPedido()" id="btn-nuevo-pedido-desk">+ Escritorio</button>
     </div>
   </div>
-  <div class="tb">
+
+  <!-- Buscador FIJO -->
+  <div class="tb" style="flex-shrink:0;">
     <input id="ped-q" placeholder="Buscar cliente..." oninput="renderPedidos();resetNav('ped-lista')" onkeydown="navPedidos(event)" style="flex:0 0 400px;">
     <select id="ped-est" onchange="renderPedidos()">
       <option value="">Todos</option>
@@ -837,7 +877,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <option value="remitado">Remitados</option>
     </select>
   </div>
-  <div id="ped-lista"><div class="loading">Cargando...</div></div>
+
+  <!-- LISTA SCROLLABLE -->
+  <div id="ped-lista" style="flex:1; overflow-y:auto; min-height:0; padding-right:4px;">
+    <div class="loading">Cargando...</div>
+  </div>
+
 </div>
 
 <!-- PEDIDO MÓVIL estilo Moviler -->
@@ -1180,26 +1225,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <!-- CARGAS -->
 <div class="panel" id="p-carga">
+  
   <!-- Vista lista de cargas -->
-  <div id="carga-vista-lista">
-    <div class="sech">
+  <div id="carga-vista-lista" style="display:flex; flex-direction:column; height:100%; overflow:hidden;">
+    
+    <div class="sech" style="flex-shrink:0;">
       <h2>Cargas emitidas</h2>
       <button class="btn P" onclick="mostrarNuevaCarga()">+ Nueva carga</button>
     </div>
-    <div class="tb">
-      <input id="car-q" placeholder="Buscar cliente o Nº..." oninput="renderCargas()" style="flex:1;min-width:450px">
+
+    <div class="tb" style="flex-shrink:0; flex-wrap:wrap; gap:6px;">
+      <input id="car-q" placeholder="Buscar cliente o Nº..." oninput="renderCargas()" style="flex:1; min-width:450px;">
       <div style="display:flex; align-items:center; gap:4px;">
         <label style="font-size:11px;color:var(--txt2);font-weight:600">Desde</label>
-        <input type="date" id="car-fd" oninput="renderCargas()" style="width:100px">
+        <input type="date" id="car-fd" oninput="renderCargas()" style="width:100px;">
       </div>
       <div style="display:flex; align-items:center; gap:4px;">
         <label style="font-size:11px;color:var(--txt2);font-weight:600">Hasta</label>
-        <input type="date" id="car-fh" oninput="renderCargas()" style="width:100px">
+        <input type="date" id="car-fh" oninput="renderCargas()" style="width:100px;">
       </div>
-      <select id="car-ven" onchange="renderCargas()" style="min-width:130px">
+      <select id="car-ven" onchange="renderCargas()" style="min-width:130px;">
         <option value="">Todos los vendedores</option>
       </select>
-      <select id="car-est" onchange="renderCargas()" style="min-width:100px">
+      <select id="car-est" onchange="renderCargas()" style="min-width:100px;">
         <option value="">Todos los estados</option>
         <option value="armando">Armando</option>
         <option value="lista">Lista</option>
@@ -1207,41 +1255,48 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </select>
       <button class="btn sm" onclick="document.getElementById('car-q').value='';document.getElementById('car-fd').value='';document.getElementById('car-fh').value='';document.getElementById('car-ven').value='';document.getElementById('car-est').value='';renderCargas()">✕ Limpiar</button>
     </div>
-    <div id="carga-lista"><div class="loading">Cargando...</div></div>
+
+    <!-- LISTA SCROLLABLE -->
+    <div id="carga-lista" style="flex:1; overflow-y:auto; min-height:0; padding-right:4px;">
+      <div class="loading">Cargando...</div>
+    </div>
+
   </div>
+
   <!-- Vista nueva carga (pantalla completa) -->
-  <div id="carga-vista-nueva" style="display:none">
-    <div class="sech">
+  <div id="carga-vista-nueva" style="display:none; flex-direction:column; height:100%; overflow:hidden;">
+    <div class="sech" style="flex-shrink:0;">
       <h2>Nueva carga</h2>
       <button class="btn" onclick="ocultarNuevaCarga()">✕ Cancelar</button>
     </div>
+
     <!-- Cabecera -->
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;background:var(--bg2);padding:10px;border-radius:8px;align-items:flex-end">
-      <div class="fg" style="width:150px">
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; background:var(--bg2); padding:10px; border-radius:8px; align-items:flex-end; flex-shrink:0;">
+      <div class="fg" style="width:150px;">
         <label>Fecha de reparto</label>
         <input type="date" id="car-fecha" style="width:100%">
       </div>
-      <div class="fg" style="width:160px">
+      <div class="fg" style="width:160px;">
         <label>Chofer / Reparto</label>
         <input id="car-chofer" style="width:100%" placeholder="Nombre del chofer">
       </div>
-      <div class="fg" style="width:180px">
+      <div class="fg" style="width:180px;">
         <label>Nombre de la carga</label>
         <input id="car-nombre" style="width:100%" placeholder="Ej: Casilda mañana">
       </div>
-      <div class="fg" style="width:130px">
+      <div class="fg" style="width:130px;">
         <label>Filtrar zona</label>
         <select id="car-fil-zona" onchange="loadPedsCarga()" style="width:100%">
           <option value="">Todas las zonas</option>
         </select>
       </div>
-      <div class="fg" style="width:160px">
+      <div class="fg" style="width:160px;">
         <label>Filtrar localidad</label>
         <select id="car-fil-loc" onchange="loadPedsCarga()" style="width:100%">
           <option value="">Todas las localidades</option>
         </select>
       </div>
-      <div class="fg" style="width:160px">
+      <div class="fg" style="width:160px;">
         <label>Filtrar vendedor</label>
         <select id="car-fil-ven" onchange="loadPedsCarga()" style="width:100%">
           <option value="">Todos</option>
@@ -1250,14 +1305,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="btn sm" onclick="selAllPeds(true)">✓ Todos</button>
       <button class="btn sm" onclick="selAllPeds(false)">✗ Ninguno</button>
     </div>
-    <!-- Lista pedidos -->
-    <div id="car-items-lista" style="margin-bottom:12px"></div>
+
+    <!-- Lista pedidos SCROLLABLE -->
+    <div id="car-items-lista" style="flex:1; overflow-y:auto; min-height:0; padding-right:4px; margin-bottom:12px;"></div>
+
     <!-- Totales y guardar -->
-    <div style="display:flex;justify-content:space-between;align-items:center;background:var(--PL);border-radius:8px;padding:10px 14px">
+    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--PL); border-radius:8px; padding:10px 14px; flex-shrink:0;">
       <div id="car-resumen" style="font-size:13px;color:var(--PD)"></div>
       <button class="btn P" onclick="guardarCarga()" style="padding:10px 24px;font-size:14px">✓ Armar carga</button>
     </div>
   </div>
+
 </div>
 
 <!-- REMITOS -->
@@ -3744,112 +3802,124 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <!-- MAESTRO LISTA DE PRECIOS -->
-<div class="panel" id="p-listas-precios">
-  <div style="max-width:900px;margin:0 auto;padding:20px 12px;height:100%;display:flex;flex-direction:column;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-shrink:0">
-      <h2 style="margin:0;font-size:20px">💲 Listas de precios</h2>
-      <button class="btn P" onclick="nuevaListaPrecio()" id="lp-btn-nueva" style="display:none">+ Nueva lista</button>
-    </div>
-    <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;flex-shrink:0">
-      <button id="lp-tab-listas" class="btn P sm" onclick="lpTab('listas')">Listas</button>
-      <button id="lp-tab-precios" class="btn sm" onclick="lpTab('precios')">Precios por lista</button>
-      <button id="lp-tab-clientes" class="btn sm" onclick="lpTab('clientes')">Clientes</button>
-      <button id="lp-tab-sim" class="btn sm" onclick="lpTab('sim')">Simulador</button>
-    </div>
+<div class="panel" id="p-listas-precios" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">
+  
+  <!-- HEADER FIJO -->
+  <div style="flex-shrink:0; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+    <h2 style="margin:0; font-size:20px;">💲 Listas de precios</h2>
+    <button class="btn P" onclick="nuevaListaPrecio()" id="lp-btn-nueva">+ Nueva lista</button>
+  </div>
+
+  <!-- TABS FIJOS -->
+  <div style="flex-shrink:0; display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap;">
+    <button id="lp-tab-listas" class="btn P sm" onclick="lpTab('listas')">Listas</button>
+    <button id="lp-tab-precios" class="btn sm" onclick="lpTab('precios')">Precios por lista</button>
+    <button id="lp-tab-clientes" class="btn sm" onclick="lpTab('clientes')">Clientes</button>
+    <button id="lp-tab-sim" class="btn sm" onclick="lpTab('sim')">Simulador</button>
+  </div>
+
+  <!-- CONTENEDOR SCROLLABLE -->
+  <div style="flex:1; overflow-y:auto; min-height:0; padding-right:4px;">
     
     <!-- Listas -->
-    <div id="lp-sec-listas" style="flex:1;overflow-y:auto;min-height:0;">
-      <div id="lp-listas-res"></div>
+    <div id="lp-sec-listas" style="display:block; width:100%;">
+      <div id="lp-listas-res" style="width:100%;"></div>
     </div>
     
-  <!-- Precios por lista -->
-  <div id="lp-sec-precios" style="display:none;">
-    <div class="card" style="margin-bottom:12px;">
-      <div class="fr" style="flex-wrap:wrap;gap:8px">
-        <div class="fg" style="flex:0 0 220px">
-          <label>Lista</label>
-          <select id="lp-sel-lista" style="width:100%" onchange="lpCargarPrecios()">
-            <option value="">Seleccioná una lista...</option>
-          </select>
-        </div>
-        <div class="fg" style="flex:1;min-width:160px">
-          <label>Buscar producto</label>
-          <input id="lp-pro-q" placeholder="Nombre..." oninput="lpFiltrarPrecios()">
+    <!-- Precios por lista -->
+    <div id="lp-sec-precios" style="display:none; width:100%;">
+      <div class="card" style="margin-bottom:12px; width:100%;">
+        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+          <div class="fg" style="flex:2; min-width:200px;">
+            <label style="font-size:12px; font-weight:600; color:var(--txt2);">Lista</label>
+            <select id="lp-sel-lista" style="width:100%; padding:8px 12px; border:1.5px solid var(--brd); border-radius:8px; font-size:14px; font-family:inherit;" onchange="lpCargarPrecios()">
+              <option value="">Seleccioná una lista...</option>
+            </select>
+          </div>
+          <div class="fg" style="flex:3; min-width:180px;">
+            <label style="font-size:12px; font-weight:600; color:var(--txt2);">Buscar producto</label>
+            <input id="lp-pro-q" placeholder="Nombre..." oninput="lpFiltrarPrecios()" style="width:100%; padding:8px 12px; border:1.5px solid var(--brd); border-radius:8px; font-size:14px; font-family:inherit;">
+          </div>
         </div>
       </div>
+      <div id="lp-precios-res" style="width:100%; min-height:200px;"></div>
     </div>
-    <div id="lp-precios-res" style="max-height:calc(100vh - 280px); overflow-y:auto; border:1px solid var(--brd); border-radius:8px; padding:4px;"></div>
-  </div>
     
     <!-- Clientes -->
-    <div id="lp-sec-clientes" style="display:none;flex:1;overflow-y:auto;min-height:0;">
-      <div class="card" style="margin-bottom:12px;flex-shrink:0;">
-        <div class="fr" style="flex-wrap:wrap;gap:8px">
-          <div class="fg" style="flex:1;min-width:160px">
-            <label>Buscar cliente</label>
-            <input id="lp-cli-q" placeholder="Nombre..." oninput="lpRenderClientes()">
+    <div id="lp-sec-clientes" style="display:none; width:100%;">
+      <div class="card" style="margin-bottom:12px; width:100%;">
+        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+          <div class="fg" style="flex:2; min-width:180px;">
+            <label style="font-size:12px; font-weight:600; color:var(--txt2);">Buscar cliente</label>
+            <input id="lp-cli-q" placeholder="Nombre..." oninput="lpRenderClientes()" style="width:100%; padding:8px 12px; border:1.5px solid var(--brd); border-radius:8px; font-size:14px; font-family:inherit;">
           </div>
-          <div class="fg" style="flex:0 0 220px">
-            <label>Filtrar por lista</label>
-            <select id="lp-cli-lista-fil" style="width:100%" onchange="lpRenderClientes()">
+          <div class="fg" style="flex:2; min-width:200px;">
+            <label style="font-size:12px; font-weight:600; color:var(--txt2);">Filtrar por lista</label>
+            <select id="lp-cli-lista-fil" style="width:100%; padding:8px 12px; border:1.5px solid var(--brd); border-radius:8px; font-size:14px; font-family:inherit;" onchange="lpRenderClientes()">
               <option value="">Todas</option>
             </select>
           </div>
         </div>
       </div>
-      <div id="lp-cli-res"></div>
+      <div id="lp-cli-res" style="width:100%; min-height:200px;"></div>
     </div>
     
     <!-- Simulador -->
-    <div id="lp-sec-sim" style="display:none;flex:1;overflow-y:auto;min-height:0;">
-      <div class="card">
-        <div style="font-weight:700;font-size:15px;margin-bottom:14px">🧮 Simulador de precios</div>
-        <div class="fr" style="flex-wrap:wrap;gap:8px;margin-bottom:12px">
-          <div class="fg" style="flex:1;min-width:160px;position:relative">
-            <label>Cliente (opcional)</label>
-            <input id="lp-sim-cli-q" placeholder="Buscar cliente..." oninput="lpSimDropCli()" autocomplete="off">
+    <div id="lp-sec-sim" style="display:none; width:100%;">
+      <div class="card" style="width:100%;">
+        <div style="font-weight:700; font-size:15px; margin-bottom:14px;">🧮 Simulador de precios</div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px; align-items:flex-end;">
+          <div class="fg" style="flex:2; min-width:180px; position:relative;">
+            <label style="font-size:12px; font-weight:600; color:var(--txt2);">Cliente (opcional)</label>
+            <input id="lp-sim-cli-q" placeholder="Buscar cliente..." oninput="lpSimDropCli()" autocomplete="off" style="width:100%; padding:8px 12px; border:1.5px solid var(--brd); border-radius:8px; font-size:14px; font-family:inherit;">
             <input type="hidden" id="lp-sim-cli-id">
-            <div id="lp-sim-cli-drop" class="drop-list" style="display:none;max-height:220px;overflow-y:auto;position:absolute;top:100%;left:0;right:0;z-index:200;background:#fff;border:1px solid var(--brd);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1)"></div>
+            <div id="lp-sim-cli-drop" class="drop-list" style="display:none; max-height:220px; overflow-y:auto; position:absolute; top:100%; left:0; right:0; z-index:200; background:#fff; border:1px solid var(--brd); border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.1);"></div>
           </div>
-          <div class="fg" style="flex:0 0 220px">
-            <label>Lista a aplicar</label>
-            <select id="lp-sim-lista" style="width:100%">
+          <div class="fg" style="flex:2; min-width:200px;">
+            <label style="font-size:12px; font-weight:600; color:var(--txt2);">Lista a aplicar</label>
+            <select id="lp-sim-lista" style="width:100%; padding:8px 12px; border:1.5px solid var(--brd); border-radius:8px; font-size:14px; font-family:inherit;">
               <option value="">— Sin lista —</option>
             </select>
           </div>
         </div>
-        <div class="fr" style="flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:flex-end">
-          <div class="fg" style="flex:1;min-width:160px;position:relative">
-            <label>Producto</label>
-            <input id="lp-sim-pro-q" placeholder="Buscar producto..." oninput="lpSimDropPro()" autocomplete="off">
-            <div id="lp-sim-pro-drop" class="drop-list" style="display:none;max-height:220px;overflow-y:auto;position:absolute;top:100%;left:0;right:0;z-index:200;background:#fff;border:1px solid var(--brd);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1)"></div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px; align-items:flex-end;">
+          <div class="fg" style="flex:2; min-width:180px; position:relative;">
+            <label style="font-size:12px; font-weight:600; color:var(--txt2);">Producto</label>
+            <input id="lp-sim-pro-q" placeholder="Buscar producto..." oninput="lpSimDropPro()" autocomplete="off" style="width:100%; padding:8px 12px; border:1.5px solid var(--brd); border-radius:8px; font-size:14px; font-family:inherit;">
+            <div id="lp-sim-pro-drop" class="drop-list" style="display:none; max-height:220px; overflow-y:auto; position:absolute; top:100%; left:0; right:0; z-index:200; background:#fff; border:1px solid var(--brd); border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.1);"></div>
           </div>
-          <div class="fg" style="flex:0 0 90px"><label>Cant.</label><input id="lp-sim-cant" type="number" value="1" min="0.01" step="any" inputmode="decimal"></div>
-          <div style="padding-bottom:0px"><button class="btn P" onclick="lpSimAgregar()" style="height:38px;padding:0 18px">Agregar</button></div>
+          <div class="fg" style="flex:0 0 100px;">
+            <label style="font-size:12px; font-weight:600; color:var(--txt2);">Cant.</label>
+            <input id="lp-sim-cant" type="number" value="1" min="0.01" step="any" inputmode="decimal" style="width:100%; padding:8px 12px; border:1.5px solid var(--brd); border-radius:8px; font-size:14px; font-family:inherit;">
+          </div>
+          <div style="flex-shrink:0; padding-bottom:0px;">
+            <button class="btn P" onclick="lpSimAgregar()" style="padding:8px 20px;">Agregar</button>
+          </div>
         </div>
-        <div id="lp-sim-items"></div>
-        <div id="lp-sim-totales" style="display:none;margin-top:12px;background:var(--PL);border-radius:10px;padding:14px 16px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
+        <div id="lp-sim-items" style="width:100%; min-height:50px;"></div>
+        <div id="lp-sim-totales" style="display:none; margin-top:12px; background:var(--PL); border-radius:10px; padding:14px 16px; width:100%;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
             <div>
-              <div style="font-size:11px;color:var(--txt2)">Total con lista</div>
-              <div id="lp-sim-tot-val" style="font-size:22px;font-weight:700;color:var(--PD)">$0</div>
+              <div style="font-size:11px; color:var(--txt2);">Total con lista</div>
+              <div id="lp-sim-tot-val" style="font-size:22px; font-weight:700; color:var(--PD);">$0</div>
             </div>
-            <div style="text-align:right">
-              <div style="font-size:11px;color:var(--txt2)">vs precio base</div>
-              <div id="lp-sim-tot-base" style="font-size:15px;font-weight:600;color:var(--txt2)">$0</div>
+            <div style="text-align:right;">
+              <div style="font-size:11px; color:var(--txt2);">vs precio base</div>
+              <div id="lp-sim-tot-base" style="font-size:15px; font-weight:600; color:var(--txt2);">$0</div>
             </div>
-            <div style="text-align:right">
-              <div style="font-size:11px;color:var(--txt2)">Diferencia</div>
-              <div id="lp-sim-tot-diff" style="font-size:15px;font-weight:700">$0</div>
+            <div style="text-align:right;">
+              <div style="font-size:11px; color:var(--txt2);">Diferencia</div>
+              <div id="lp-sim-tot-diff" style="font-size:15px; font-weight:700;">$0</div>
             </div>
           </div>
         </div>
-        <div style="margin-top:10px;text-align:right">
-          <button class="btn sm" onclick="_lpSimItems=[];lpSimRender()" style="color:var(--D)">Limpiar</button>
+        <div style="margin-top:10px; text-align:right;">
+          <button class="btn sm" onclick="_lpSimItems=[];lpSimRender()" style="color:var(--D);">Limpiar</button>
         </div>
       </div>
     </div>
-  </div>
+
+  </div><!-- fin scroll -->
 </div>
 
 <!-- MAESTRO PROVEEDORES -->

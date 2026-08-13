@@ -1252,3 +1252,40 @@ function volverDeRemito() {
   sessionStorage.removeItem('origenRemito');
   go('remitos');
 }
+
+//Forzar scroll en dashboard 
+function fixDashScroll() {
+  const dash = document.getElementById('p-dash');
+  if (!dash || !dash.classList.contains('on')) return;
+  
+  const canvases = dash.querySelectorAll('canvas');
+  canvases.forEach(c => {
+    c.style.touchAction = 'pan-y';
+    c.style.pointerEvents = 'auto';
+    
+    // NO prevenir el scroll
+    c.addEventListener('wheel', function(e) {
+      // Solo permitir que el scroll pase al contenedor
+      e.stopPropagation();
+    }, { passive: true });
+  });
+}
+
+// Ejecutar cuando se muestra el dashboard
+const observer = new MutationObserver(() => {
+  const dash = document.getElementById('p-dash');
+  if (dash && dash.classList.contains('on')) {
+    setTimeout(fixDashScroll, 300);
+  }
+});
+observer.observe(document.getElementById('main-body'), { 
+  childList: true, 
+  subtree: true,
+  attributes: true,
+  attributeFilter: ['class']
+});
+
+// También ejecutar al cargar
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(fixDashScroll, 500);
+});
