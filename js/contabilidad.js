@@ -838,7 +838,9 @@ function calcularContribMarginal(){
     }).join('');
   }
 
-  document.getElementById('cm-res-panel').style.display='block';
+  const panel = document.getElementById('cm-res-panel');
+  panel.style.display = 'block';
+  panel.classList.add('show');
 }
 
 // ─── COMISIONES POR PERSONA ───

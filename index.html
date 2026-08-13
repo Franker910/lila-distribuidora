@@ -262,6 +262,71 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   touch-action: none;
 }
 
+/* FIX: Contribución Marginal scroll */
+#p-contrib-zona {
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+#cm-res-panel {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  min-height: 100px !important;
+  max-height: calc(100% - 120px) !important;
+  display: none;
+}
+
+#cm-res-panel.show {
+  display: block !important;
+}
+
+/* Asegurar que el body contenedor tenga altura */
+.panel.on {
+  height: 100% !important;
+  max-height: 100% !important;
+}
+
+/* FIX: Saldos por Zona - scroll */
+#p-saldos-zona {
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+#sz-tabla-wrap {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  min-height: 100px !important;
+  max-height: 100% !important;
+}
+
+#sz-tabla {
+  width: 100% !important;
+  min-height: 100px !important;
+}
+
+/* Asegurar que la tabla no se desborde */
+#sz-tabla table {
+  width: 100%;
+  min-width: 100%;
+}
+
+/* Para el contenedor principal del body */
+#main-body {
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+.panel.on {
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
 </style>
 </head>
 <body>
@@ -2802,131 +2867,145 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 
-<!-- GASTOS FIJOS -->
-<div class="panel" id="p-gastos-fijos">
-  <div class="sech">
-    <h2>📋 Gastos Fijos</h2>
-    <button class="btn P" onclick="agregarGastoFijo()">+ Agregar</button>
-  </div>
-
-  <div class="card" style="margin-bottom:12px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div>
-        <div style="font-weight:600;font-size:14px">Plantillas de gastos recurrentes</div>
-        <div style="font-size:12px;color:var(--txt2)">Configurá los gastos fijos mensuales. Después los registrás con un clic para cualquier mes.</div>
-      </div>
-    </div>
-    <div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>Descripción</th><th>Tipo</th><th style="text-align:right">Importe estimado</th><th style="text-align:center">Activo</th><th></th></tr></thead>
-      <tbody id="gf-tbody"></tbody>
-    </table></div>
-  </div>
-
-  <div class="card" style="margin-bottom:12px">
-    <div style="font-weight:600;margin-bottom:10px">📅 Registrar mes</div>
-    <div class="fr" style="align-items:flex-end">
-      <div class="fg"><label>Mes a registrar</label><input type="month" id="gf-mes"></div>
-      <div class="fg"><label>Fecha del comprobante</label><input type="date" id="gf-fecha-comp"></div>
-      <div class="fg" style="align-self:flex-end">
-        <button class="btn P" onclick="aplicarGastosFijos()" style="width:100%">✓ Registrar gastos del mes</button>
-      </div>
-    </div>
-    <div id="gf-estado" style="margin-top:10px"></div>
-  </div>
-
-  <div class="card">
-    <div style="font-weight:600;margin-bottom:10px">📊 Resumen del mes actual</div>
-    <div id="gf-resumen"></div>
-  </div>
-</div>
-
 <!-- SALDOS POR ZONA -->
-<div class="panel" id="p-saldos-zona">
-  <div class="sech">
-    <h2>🗺️ Saldos por Zona</h2>
-    <button class="btn sm A" onclick="imprimirSaldosZona()">🖨️ Imprimir</button>
+<div class="panel" id="p-saldos-zona" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">
+  
+  <!-- HEADER -->
+  <div style="flex-shrink:0; display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h2 style="margin:0; font-size:18px;">🗺️ Saldos por Zona</h2>
+    <button class="btn A sm" onclick="imprimirSaldosZona()" style="padding:6px 14px;">🖨️ Imprimir</button>
   </div>
-  <div class="card" style="margin-bottom:12px">
-    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
-      <div class="fg" style="min-width:180px">
-        <label>Zona</label>
-        <select id="sz-zona" onchange="renderSaldosZona()" style="width:100%">
-          <option value="">Todas las zonas</option>
+
+  <!-- FILTROS FIJOS -->
+  <div style="flex-shrink:0; background:var(--bg); border:1px solid var(--brd); border-radius:10px; padding:14px; margin-bottom:12px;">
+    <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+      
+      <!-- Selector de Zona -->
+      <div class="fg" style="flex:2; min-width:200px;">
+        <label style="font-size:12px; font-weight:600; color:var(--txt2);">Seleccionar Zona</label>
+        <select id="sz-zona" onchange="renderSaldosZona()" style="width:100%; padding:8px 12px; border:1.5px solid var(--brd); border-radius:8px; font-size:14px; font-family:inherit;">
+          <option value="">— Seleccioná una zona —</option>
         </select>
       </div>
-      <div class="fg" style="min-width:140px">
-        <label>Solo con saldo</label>
-        <select id="sz-filtro" onchange="renderSaldosZona()" style="width:100%">
-          <option value="deudores">Solo con deuda</option>
-          <option value="todos">Todos</option>
+
+      <!-- Filtro: solo con deuda -->
+      <div class="fg" style="flex:1; min-width:140px;">
+        <label style="font-size:12px; font-weight:600; color:var(--txt2);">Mostrar</label>
+        <select id="sz-filtro" onchange="renderSaldosZona()" style="width:100%; padding:8px 12px; border:1.5px solid var(--brd); border-radius:8px; font-size:14px; font-family:inherit;">
+          <option value="todos">Todos los clientes</option>
+          <option value="deudores" selected>Solo con deuda</option>
         </select>
       </div>
-      <div class="fg" style="min-width:140px">
-        <label>Ordenar por</label>
-        <select id="sz-orden" onchange="renderSaldosZona()" style="width:100%">
+
+      <!-- Orden -->
+      <div class="fg" style="flex:1; min-width:140px;">
+        <label style="font-size:12px; font-weight:600; color:var(--txt2);">Ordenar por</label>
+        <select id="sz-orden" onchange="renderSaldosZona()" style="width:100%; padding:8px 12px; border:1.5px solid var(--brd); border-radius:8px; font-size:14px; font-family:inherit;">
           <option value="saldo">Mayor saldo</option>
           <option value="nombre">Nombre A-Z</option>
           <option value="dias">Días sin cobrar</option>
         </select>
       </div>
-      <button class="btn P" onclick="renderSaldosZona()">🔄 Actualizar</button>
-    </div>
-  </div>
-  <div id="sz-resumen" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px"></div>
-  <div id="sz-tabla"></div>
-</div>
 
-<!-- CONTRIBUCIÓN MARGINAL POR ZONA -->
-<div class="panel" id="p-contrib-zona">
-  <div class="sech"><h2>📊 Contribución Marginal por Zona</h2></div>
-
-  <div class="card" style="margin-bottom:12px">
-    <div style="font-weight:600;margin-bottom:10px">📅 Período</div>
-    <div class="fr">
-      <div class="fg"><label>Desde</label><input type="date" id="cm-desde"></div>
-      <div class="fg"><label>Hasta</label><input type="date" id="cm-hasta"></div>
-      <div class="fg" style="align-self:flex-end">
-        <button class="btn P" onclick="calcularContribMarginal()" style="width:100%">▶ Calcular</button>
+      <div style="flex-shrink:0; padding-bottom:0px;">
+        <button class="btn P" onclick="renderSaldosZona()" style="padding:8px 20px;">🔄 Actualizar</button>
       </div>
     </div>
   </div>
 
-  <div id="cm-res-panel" style="display:none">
-    <!-- KPIs globales -->
-    <div id="cm-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px"></div>
+  <!-- RESUMEN (KPIs) -->
+  <div id="sz-resumen" style="flex-shrink:0; display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px;"></div>
 
-    <!-- Tabla por zona -->
-    <div class="card" style="margin-bottom:12px">
-      <div style="font-weight:600;margin-bottom:10px">🗺 Por zona</div>
-      <div class="tbl-wrap"><table class="tbl">
-        <thead><tr>
-          <th>Zona</th>
-          <th style="text-align:right">Ventas</th>
-          <th style="text-align:right">CMV</th>
-          <th style="text-align:right">Contrib. Marginal</th>
-          <th style="text-align:right">% Margen</th>
-          <th style="text-align:right">Remitos</th>
-        </tr></thead>
-        <tbody id="cm-zona-tbody"></tbody>
-      </table></div>
-    </div>
-
-    <!-- Top productos por margen -->
-    <div class="card">
-      <div style="font-weight:600;margin-bottom:10px">🏆 Top 15 productos por contribución</div>
-      <div class="tbl-wrap"><table class="tbl">
-        <thead><tr>
-          <th>Producto</th>
-          <th style="text-align:right">Unidades</th>
-          <th style="text-align:right">Ventas</th>
-          <th style="text-align:right">CMV</th>
-          <th style="text-align:right">Margen</th>
-          <th style="text-align:right">% Margen</th>
-        </tr></thead>
-        <tbody id="cm-prod-tbody"></tbody>
-      </table></div>
+  <!-- TABLA SCROLLABLE -->
+  <div id="sz-tabla-wrap" style="flex:1; overflow-y:auto; min-height:200px; background:var(--bg); border:1px solid var(--brd); border-radius:10px; padding:4px;">
+    <div id="sz-tabla" style="width:100%;">
+      <div style="text-align:center; padding:60px 20px; color:var(--txt2); font-size:15px;">
+        <div style="font-size:40px; margin-bottom:12px;">🗺️</div>
+        <div style="font-weight:600;">Seleccioná una zona para ver los saldos</div>
+        <div style="font-size:13px; margin-top:6px;">Elegí una zona en el selector de arriba</div>
+      </div>
     </div>
   </div>
+
+</div>
+
+<!-- CONTRIBUCIÓN MARGINAL POR ZONA -->
+<div class="panel" id="p-contrib-zona" style="display:flex; flex-direction:column; height:100%; width:100%; position:relative; overflow:hidden;">
+  
+  <!-- HEADER FIJO -->
+  <div style="flex-shrink:0; padding:0 0 12px 0;">
+    <div class="sech">
+      <h2>📊 Contribución Marginal por Zona</h2>
+    </div>
+  </div>
+
+  <!-- FILTROS FIJOS -->
+  <div style="flex-shrink:0; margin-bottom:12px; background:var(--bg); border:1px solid var(--brd); border-radius:10px; padding:14px;">
+    <div style="font-weight:600;margin-bottom:10px">📅 Período</div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+      <div class="fg" style="flex:1; min-width:120px;">
+        <label>Desde</label>
+        <input type="date" id="cm-desde" style="width:100%;">
+      </div>
+      <div class="fg" style="flex:1; min-width:120px;">
+        <label>Hasta</label>
+        <input type="date" id="cm-hasta" style="width:100%;">
+      </div>
+      <div style="flex-shrink:0;">
+        <button class="btn P" onclick="calcularContribMarginal()" style="padding:8px 24px;">▶ Calcular</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENEDOR SCROLLABLE -->
+  <div id="cm-res-panel" style="display:none; flex:1; overflow-y:auto; overflow-x:hidden; min-height:200px; max-height:100%; padding-right:4px;">
+    
+    <!-- KPIs -->
+    <div id="cm-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px;"></div>
+
+    <!-- Tabla Zonas -->
+    <div style="background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:12px;margin-bottom:12px;">
+      <div style="font-weight:600;margin-bottom:10px;">🗺 Por zona</div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr>
+              <th style="border:1px solid var(--brd);padding:6px 10px;text-align:left;background:var(--bg2);">Zona</th>
+              <th style="border:1px solid var(--brd);padding:6px 10px;text-align:right;background:var(--bg2);">Ventas</th>
+              <th style="border:1px solid var(--brd);padding:6px 10px;text-align:right;background:var(--bg2);">CMV</th>
+              <th style="border:1px solid var(--brd);padding:6px 10px;text-align:right;background:var(--bg2);">Contrib. Marginal</th>
+              <th style="border:1px solid var(--brd);padding:6px 10px;text-align:right;background:var(--bg2);">% Margen</th>
+              <th style="border:1px solid var(--brd);padding:6px 10px;text-align:right;background:var(--bg2);">Remitos</th>
+            </tr>
+          </thead>
+          <tbody id="cm-zona-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tabla Productos -->
+    <div style="background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:12px;margin-bottom:12px;">
+      <div style="font-weight:600;margin-bottom:10px;">🏆 Top 15 productos por contribución</div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr>
+              <th style="border:1px solid var(--brd);padding:6px 10px;text-align:left;background:var(--bg2);">Producto</th>
+              <th style="border:1px solid var(--brd);padding:6px 10px;text-align:right;background:var(--bg2);">Unidades</th>
+              <th style="border:1px solid var(--brd);padding:6px 10px;text-align:right;background:var(--bg2);">Ventas</th>
+              <th style="border:1px solid var(--brd);padding:6px 10px;text-align:right;background:var(--bg2);">CMV</th>
+              <th style="border:1px solid var(--brd);padding:6px 10px;text-align:right;background:var(--bg2);">Margen</th>
+              <th style="border:1px solid var(--brd);padding:6px 10px;text-align:right;background:var(--bg2);">% Margen</th>
+            </tr>
+          </thead>
+          <tbody id="cm-prod-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="height:20px;"></div>
+
+  </div><!-- fin cm-res-panel -->
 </div>
 
 <!-- BUSCADOR GLOBAL F3 -->

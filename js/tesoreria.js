@@ -1672,133 +1672,254 @@ function imprimirRendicion(){
 }
 
 // ─── SALDOS POR ZONA ───
-function initSaldosZona(){
-  if(!_clientes.length)cargarClientes().then(renderSaldosZona);
-  else renderSaldosZona();
-  // Poblar select de zonas
-  const sel=document.getElementById('sz-zona');
-  if(sel&&sel.options.length<=1){
-    const zonas=[...new Set(_clientes.map(c=>c.zona||'Sin zona').filter(Boolean))].sort();
-    zonas.forEach(z=>{const o=document.createElement('option');o.value=z;o.textContent=z==='Sin zona'?z:nombreZona(z);sel.appendChild(o);});
+
+function initSaldosZona() {
+  // Cargar clientes si no están cargados
+  if (!_clientes.length) {
+    cargarClientes().then(() => {
+      poblarSelectorZonas();
+      renderSaldosZona();
+    });
+  } else {
+    poblarSelectorZonas();
+    renderSaldosZona();
   }
 }
 
-function renderSaldosZona(){
-  const zonaFil=document.getElementById('sz-zona')?.value||'';
-  const filtro=document.getElementById('sz-filtro')?.value||'deudores';
-  const orden=document.getElementById('sz-orden')?.value||'saldo';
-  const hoy=hoyLocal();
-
-  let lista=_clientes.filter(c=>c.activo!==false);
-  if(zonaFil)lista=lista.filter(c=>(c.zona||'Sin zona')===zonaFil);
-  if(filtro==='deudores')lista=lista.filter(c=>(c.saldo||0)>0);
-
-  if(orden==='saldo')lista.sort((a,b)=>(b.saldo||0)-(a.saldo||0));
-  else if(orden==='nombre')lista.sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
-  else if(orden==='dias')lista.sort((a,b)=>{
-    const dA=a.ultimo_remito?Math.floor((new Date(hoy)-new Date(a.ultimo_remito))/864e5):9999;
-    const dB=b.ultimo_remito?Math.floor((new Date(hoy)-new Date(b.ultimo_remito))/864e5):9999;
-    return dB-dA;
+function poblarSelectorZonas() {
+  const sel = document.getElementById('sz-zona');
+  if (!sel) return;
+  
+  // Guardar valor seleccionado actual
+  const valorActual = sel.value;
+  
+  // Limpiar y agregar opción por defecto
+  sel.innerHTML = '<option value="">— Seleccioná una zona —</option>';
+  
+  // Obtener zonas únicas de los clientes
+  const zonas = [...new Set(_clientes.map(c => c.zona).filter(Boolean))].sort();
+  
+  zonas.forEach(z => {
+    const opt = document.createElement('option');
+    opt.value = z;
+    // Mostrar descripción de la zona si existe
+    const zonaObj = _zonas.find(zn => zn.codigo === z);
+    opt.textContent = zonaObj ? `${z} - ${zonaObj.descripcion}` : z;
+    if (z === valorActual) opt.selected = true;
+    sel.appendChild(opt);
   });
+}
 
-  const totalSaldo=lista.reduce((s,c)=>s+(c.saldo||0),0);
-  const totalClientes=lista.length;
+function renderSaldosZona() {
+  const zonaSeleccionada = document.getElementById('sz-zona')?.value || '';
+  const filtro = document.getElementById('sz-filtro')?.value || 'deudores';
+  const orden = document.getElementById('sz-orden')?.value || 'saldo';
+  const hoy = hoyLocal();
 
-  // Resumen por zona
-  const porZona={};
-  lista.forEach(c=>{
-    const z=c.zona||'Sin zona';
-    if(!porZona[z]){porZona[z]={total:0,cant:0};}
-    porZona[z].total+=c.saldo||0;
-    porZona[z].cant++;
-  });
+  const contenedor = document.getElementById('sz-tabla');
+  const resumenContainer = document.getElementById('sz-resumen');
 
-  document.getElementById('sz-resumen').innerHTML=`
-    <div class="stat" style="flex:0 0 auto"><div class="n" style="color:var(--D)">${fmt(totalSaldo)}</div><div class="l">Deuda total</div></div>
-    <div class="stat" style="flex:0 0 auto"><div class="n">${totalClientes}</div><div class="l">Clientes con deuda</div></div>
-    ${Object.entries(porZona).sort((a,b)=>b[1].total-a[1].total).map(([z,v])=>
-      `<div class="stat" style="flex:0 0 auto"><div class="n" style="color:var(--D);font-size:15px">${fmt(v.total)}</div><div class="l">${z==='Sin zona'?z:nombreZona(z)} (${v.cant})</div></div>`
-    ).join('')}
-  `;
-
-  if(!lista.length){
-    document.getElementById('sz-tabla').innerHTML='<div class="empty">Sin clientes con deuda en esa zona</div>';
+  // Si no hay zona seleccionada, mostrar mensaje
+  if (!zonaSeleccionada) {
+    resumenContainer.innerHTML = '';
+    contenedor.innerHTML = `
+      <div style="text-align:center; padding:60px 20px; color:var(--txt2); font-size:15px;">
+        <div style="font-size:40px; margin-bottom:12px;">🗺️</div>
+        <div style="font-weight:600;">Seleccioná una zona para ver los saldos</div>
+        <div style="font-size:13px; margin-top:6px;">Elegí una zona en el selector de arriba</div>
+      </div>
+    `;
     return;
   }
 
-  // Agrupar por zona para la tabla
-  let html='';
-  const grupos=zonaFil?{[zonaFil]:lista}:lista.reduce((acc,c)=>{
-    const z=c.zona||'Sin zona';
-    if(!acc[z])acc[z]=[];
-    acc[z].push(c);
-    return acc;
-  },{});
+  // Filtrar clientes por zona
+  let lista = _clientes.filter(c => c.activo !== false && (c.zona || 'Sin zona') === zonaSeleccionada);
+  
+  if (filtro === 'deudores') {
+    lista = lista.filter(c => (c.saldo || 0) > 0);
+  }
 
-  Object.entries(grupos).sort((a,b)=>{
-    const tA=a[1].reduce((s,c)=>s+(c.saldo||0),0);
-    const tB=b[1].reduce((s,c)=>s+(c.saldo||0),0);
-    return tB-tA;
-  }).forEach(([zona,clientes])=>{
-    const totalZ=clientes.reduce((s,c)=>s+(c.saldo||0),0);
-    html+=`<div style="margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--PD);color:#fff;padding:8px 14px;border-radius:8px 8px 0 0">
-        <span style="font-weight:700">🗺️ ${zona==='Sin zona'?zona:nombreZona(zona)}</span>
-        <span style="font-weight:700">${fmt(totalZ)} · ${clientes.length} cliente${clientes.length!==1?'s':''}</span>
+  // Ordenar
+  if (orden === 'saldo') {
+    lista.sort((a, b) => (b.saldo || 0) - (a.saldo || 0));
+  } else if (orden === 'nombre') {
+    lista.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+  } else if (orden === 'dias') {
+    lista.sort((a, b) => {
+      const dA = a.ultimo_remito ? Math.floor((new Date(hoy) - new Date(a.ultimo_remito)) / 864e5) : 9999;
+      const dB = b.ultimo_remito ? Math.floor((new Date(hoy) - new Date(b.ultimo_remito)) / 864e5) : 9999;
+      return dB - dA;
+    });
+  }
+
+  // Calcular totales
+  const totalDeuda = lista.reduce((s, c) => s + (c.saldo || 0), 0);
+  const totalClientes = lista.length;
+  const clientesConDeuda = lista.filter(c => (c.saldo || 0) > 0.01).length;
+  const promedio = totalClientes > 0 ? totalDeuda / totalClientes : 0;
+
+  // --- RESÚMEN ---
+  resumenContainer.innerHTML = `
+    <div style="background:var(--bg); border:1px solid var(--brd); border-radius:8px; padding:10px 14px; display:flex; gap:20px; flex-wrap:wrap; align-items:center;">
+      <div>
+        <div style="font-size:11px; color:var(--txt2); font-weight:600; text-transform:uppercase;">Total Deuda</div>
+        <div style="font-size:20px; font-weight:700; color:var(--D);">${fmt(totalDeuda)}</div>
       </div>
-      <div class="tbl-wrap"><table class="tbl" style="border-radius:0 0 8px 8px">
-        <thead><tr><th>Cód.</th><th>Cliente</th><th>Localidad</th><th>Vendedor</th><th>Último remito</th><th>Días</th><th>Último cobro</th><th style="text-align:right">Saldo vencido</th><th style="text-align:right">Saldo</th></tr></thead>
-        <tbody>
-          ${clientes.map(c=>{
-            const dias=c.ultimo_remito?Math.floor((new Date(hoy)-new Date(c.ultimo_remito))/864e5):null;
-            const condPago=c.condicion_pago||0;
-            const diasColor=dias===null?'color:var(--txt2)':dias>(condPago+5)?'color:var(--D);font-weight:700':dias>condPago?'color:var(--W)':'color:var(--P)';
-            // Vencido = remitos sin cobrar cuya antigüedad supera los días de
-            // condición de pago del cliente (lo que estipule cada vendedor).
-            const remsCli=_remitos.filter(r=>String(r.cliente_id)===String(c.id)&&!r.anulado&&!r.cobrado);
-            const vencido=remsCli.filter(r=>{
-              const dRem=Math.floor((new Date(hoy)-new Date(r.fecha))/864e5);
-              return dRem>condPago;
-            }).reduce((s,r)=>s+(r.saldo_pendiente??r.total??0),0);
-            const ultimoCobro=_cobros.filter(co=>String(co.cliente_id)===String(c.id)).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(-1)[0]?.fecha||'—';
-            return `<tr onclick="histCliente(${c.id})" style="cursor:pointer" title="Ver cuenta corriente">
-              <td style="color:var(--txt2)">${c.codigo||'—'}</td>
-              <td style="font-weight:600">${c.nombre}</td>
-              <td style="font-size:12px;color:var(--txt2)">${c.localidad||'—'}</td>
-              <td style="font-size:12px;color:var(--txt2)">${c.vendedor||'—'}</td>
-              <td style="font-size:12px;color:var(--txt2)">${c.ultimo_remito||'—'}</td>
-              <td style="${diasColor}">${dias!==null?dias+' d':'—'}</td>
-              <td style="font-size:12px;color:var(--txt2)">${ultimoCobro}</td>
-              <td style="text-align:right;font-weight:700;color:${vencido>0?'var(--D)':'var(--txt2)'}">${vencido>0?fmt(vencido):'—'}</td>
-              <td style="text-align:right;font-weight:700;color:var(--D)">${fmt(c.saldo||0)}</td>
-            </tr>`;
-          }).join('')}
-          <tr style="background:var(--PL);font-weight:700">
-            <td colspan="8" style="padding:7px 8px;border-top:2px solid var(--brd)">Total zona ${zona}</td>
-            <td style="text-align:right;color:var(--D);padding:7px 8px;border-top:2px solid var(--brd)">${fmt(totalZ)}</td>
-          </tr>
-        </tbody>
-      </table></div>
-    </div>`;
+      <div>
+        <div style="font-size:11px; color:var(--txt2); font-weight:600; text-transform:uppercase;">Clientes</div>
+        <div style="font-size:20px; font-weight:700; color:var(--txt);">${totalClientes}</div>
+        <div style="font-size:11px; color:var(--txt2);">${clientesConDeuda} con deuda</div>
+      </div>
+      <div>
+        <div style="font-size:11px; color:var(--txt2); font-weight:600; text-transform:uppercase;">Promedio</div>
+        <div style="font-size:20px; font-weight:700; color:var(--P);">${fmt(promedio)}</div>
+      </div>
+      <div style="flex:1; text-align:right; font-size:12px; color:var(--txt2);">
+        Zona: <strong style="color:var(--txt);">${zonaSeleccionada}</strong>
+        ${filtro === 'deudores' ? ' · Solo deudores' : ' · Todos los clientes'}
+      </div>
+    </div>
+  `;
+
+  // --- TABLA ---
+  if (!lista.length) {
+    contenedor.innerHTML = `
+      <div style="text-align:center; padding:40px 20px; color:var(--txt2);">
+        <div style="font-size:30px; margin-bottom:8px;">✅</div>
+        <div>No hay clientes ${filtro === 'deudores' ? 'con deuda' : ''} en la zona <strong>${zonaSeleccionada}</strong></div>
+      </div>
+    `;
+    return;
+  }
+
+  // Construir tabla
+  let html = `
+    <table class="tbl" style="width:100%; border-collapse:collapse; font-size:13px;">
+      <thead>
+        <tr>
+          <th style="border:1px solid var(--brd); padding:8px 10px; text-align:left; background:var(--bg2);">Cód.</th>
+          <th style="border:1px solid var(--brd); padding:8px 10px; text-align:left; background:var(--bg2);">Cliente</th>
+          <th style="border:1px solid var(--brd); padding:8px 10px; text-align:left; background:var(--bg2);">Localidad</th>
+          <th style="border:1px solid var(--brd); padding:8px 10px; text-align:left; background:var(--bg2);">Vendedor</th>
+          <th style="border:1px solid var(--brd); padding:8px 10px; text-align:center; background:var(--bg2);">Último remito</th>
+          <th style="border:1px solid var(--brd); padding:8px 10px; text-align:center; background:var(--bg2);">Días</th>
+          <th style="border:1px solid var(--brd); padding:8px 10px; text-align:right; background:var(--bg2);">Vencido</th>
+          <th style="border:1px solid var(--brd); padding:8px 10px; text-align:right; background:var(--bg2);">Saldo</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  lista.forEach(c => {
+    const dias = c.ultimo_remito ? Math.floor((new Date(hoy) - new Date(c.ultimo_remito)) / 864e5) : null;
+    const condPago = c.condicion_pago || 0;
+    
+    // Color de días
+    let diasColor = 'var(--txt2)';
+    if (dias !== null) {
+      if (dias > (condPago + 5)) diasColor = 'var(--D)';
+      else if (dias > condPago) diasColor = 'var(--W)';
+      else diasColor = 'var(--P)';
+    }
+    
+    // Calcular vencido (remitos sin cobrar que superan la condición de pago)
+    const remsCli = _remitos.filter(r => String(r.cliente_id) === String(c.id) && !r.anulado && !r.cobrado);
+    const vencido = remsCli.filter(r => {
+      const dRem = Math.floor((new Date(hoy) - new Date(r.fecha)) / 864e5);
+      return dRem > condPago;
+    }).reduce((s, r) => s + (r.saldo_pendiente ?? r.total ?? 0), 0);
+
+    // Badge de estado
+    const saldo = c.saldo || 0;
+    let estadoClass = 'bP';
+    let estadoText = '✅ Al día';
+    if (saldo > 0.01) {
+      if (dias !== null && dias > (condPago + 5)) {
+        estadoClass = 'bD';
+        estadoText = '⚠️ Vencido';
+      } else {
+        estadoClass = 'bW';
+        estadoText = '⏳ Pendiente';
+      }
+    }
+
+    html += `
+      <tr onclick="histCliente(${c.id})" style="cursor:pointer;" title="Ver cuenta corriente">
+        <td style="border:1px solid var(--brd); padding:6px 10px; color:var(--txt2);">${c.codigo || '—'}</td>
+        <td style="border:1px solid var(--brd); padding:6px 10px; font-weight:600;">${c.nombre}</td>
+        <td style="border:1px solid var(--brd); padding:6px 10px; color:var(--txt2);">${c.localidad || '—'}</td>
+        <td style="border:1px solid var(--brd); padding:6px 10px; color:var(--txt2);">${c.vendedor || '—'}</td>
+        <td style="border:1px solid var(--brd); padding:6px 10px; text-align:center; font-size:12px; color:var(--txt2);">${c.ultimo_remito || '—'}</td>
+        <td style="border:1px solid var(--brd); padding:6px 10px; text-align:center; font-weight:600; color:${diasColor};">${dias !== null ? dias + ' d' : '—'}</td>
+        <td style="border:1px solid var(--brd); padding:6px 10px; text-align:right; font-weight:700; color:${vencido > 0 ? 'var(--D)' : 'var(--txt2)'};">${vencido > 0 ? fmt(vencido) : '—'}</td>
+        <td style="border:1px solid var(--brd); padding:6px 10px; text-align:right; font-weight:700; color:${saldo > 0.01 ? 'var(--D)' : 'var(--P)'};">${fmt(saldo)}</td>
+      </tr>
+    `;
   });
 
-  document.getElementById('sz-tabla').innerHTML=html;
+  // Total general
+  html += `
+        <tr style="background:var(--PL); font-weight:700; border-top:2px solid var(--brd);">
+          <td colspan="7" style="padding:8px 10px; text-align:right;">TOTAL ZONA</td>
+          <td style="padding:8px 10px; text-align:right; color:var(--D);">${fmt(totalDeuda)}</td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+
+  contenedor.innerHTML = html;
+
+  const wrap = document.getElementById('sz-tabla-wrap');
+  if (wrap) {
+    wrap.style.overflowY = 'auto';
+    wrap.style.flex = '1 1 auto';
+  }
 }
 
-function imprimirSaldosZona(){
-  const szVal=document.getElementById('sz-zona')?.value;
-  const titulo=szVal?(szVal==='Sin zona'?szVal:nombreZona(szVal)):'Todas las zonas';
-  const body=document.getElementById('sz-tabla').innerHTML;
-  const resumen=document.getElementById('sz-resumen').innerHTML;
-  const w=window.open('','_blank');
-  w.document.write(`<html><head><title>Saldos por Zona</title>
-  <style>body{font-family:Arial;padding:20px;font-size:12px;color:#000}table{width:100%;border-collapse:collapse;margin-bottom:12px}th,td{padding:5px 8px;border:1px solid #ddd;text-align:left}th{background:#f5f5f5;font-weight:600}h3{margin:14px 0 4px;color:#444}.stat{display:inline-block;margin:4px 8px 4px 0;font-size:12px}@media print{button{display:none}}</style>
-  </head><body>
-  <h2>Saldos por Zona — Distribuidora Lila</h2>
-  <h3>${titulo} · ${new Date().toLocaleDateString('es-AR')}</h3>
-  ${body}
-  <script>window.print();<\/script>
-  </body></html>`);
+function imprimirSaldosZona() {
+  const zonaVal = document.getElementById('sz-zona')?.value || '';
+  const titulo = zonaVal ? (zonaVal === 'Sin zona' ? zonaVal : (nombreZona(zonaVal) || zonaVal)) : 'Todas las zonas';
+  
+  // Obtener el contenido de la tabla (sin el mensaje de "seleccioná una zona")
+  const tablaContent = document.getElementById('sz-tabla').innerHTML;
+  const resumenContent = document.getElementById('sz-resumen').innerHTML;
+  
+  // Verificar si hay tabla o es el mensaje de selección
+  if (!zonaVal) {
+    alert('Primero seleccioná una zona para imprimir.');
+    return;
+  }
+
+  const w = window.open('', '_blank');
+  w.document.write(`
+    <html>
+      <head>
+        <title>Saldos por Zona — Distribuidora Lila</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; font-size: 12px; color: #000; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+          th, td { padding: 5px 8px; border: 1px solid #ddd; text-align: left; }
+          th { background: #f5f5f5; font-weight: 600; }
+          h2 { margin: 0 0 4px 0; color: #1a7a52; }
+          h3 { margin: 4px 0 14px 0; color: #444; font-weight: 400; }
+          .resumen-print { background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 14px; display: flex; gap: 20px; }
+          .resumen-print .item { display: inline-block; margin-right: 20px; }
+          .resumen-print .label { font-size: 10px; color: #666; text-transform: uppercase; }
+          .resumen-print .value { font-size: 18px; font-weight: 700; }
+          @media print { button { display: none; } }
+        </style>
+      </head>
+      <body>
+        <h2>Distribuidora Lila</h2>
+        <h3>Saldos por Zona — ${titulo} · ${new Date().toLocaleDateString('es-AR')}</h3>
+        <div class="resumen-print">${resumenContent}</div>
+        ${tablaContent}
+        <script>
+          window.onload = function() { window.print(); }
+        <\/script>
+      </body>
+    </html>
+  `);
   w.document.close();
 }
 
