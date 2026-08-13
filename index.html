@@ -637,6 +637,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   pointer-events: auto !important;
 }
 
+.movil-only {
+  display: none !important;
+}
 </style>
 </head>
 <body>
@@ -692,7 +695,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="sidebar-group-btn" onclick="toggleSidebar('ventas')">🛒 Ventas <span id="sc-ventas">▶</span></button>
     <div class="sidebar-items">
       <button class="sidebar-item" onclick="go('pedidos')" data-p="pedidos">🛒 Pedidos</button>
-      <button class="sidebar-item" onclick="abrirPedidoMovil()" data-p="pedido-movil">📱 Pedido móvil</button>
+      <button class="sidebar-item movil-only" onclick="abrirPedidoMovil()" data-p="pedido-movil">📱 Pedido móvil</button>
       <button class="sidebar-item" onclick="go('carga')" data-p="carga">🚚 Cargas</button>
       <button class="sidebar-item" onclick="go('remitos')" data-p="remitos">📄 Remitos</button>
       <button class="sidebar-item" onclick="go('remito-rapido')" data-p="remito-rapido">⚡ Remito rápido</button>
@@ -900,8 +903,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="sech" style="flex-shrink:0;">
     <h2>Pedidos</h2>
     <div style="display:flex;gap:6px">
-      <button class="btn P" onclick="abrirPedidoMovil()">📱 Nuevo pedido</button>
-      <button class="btn" onclick="abrirPedido()" id="btn-nuevo-pedido-desk">+ Escritorio</button>
+      <button class="btn" onclick="abrirPedido()" id="btn-nuevo-pedido-desk">+ Nuevo pedido</button>
     </div>
   </div>
 

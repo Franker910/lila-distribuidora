@@ -1406,6 +1406,11 @@ function mostrarVistaMovil() {
       actualizarBtnRolMovil();
     }
   }
+
+    // Mostrar elementos solo-móvil
+  document.querySelectorAll('.movil-only').forEach(el => {
+    el.style.display = '';
+  });
 }
 
 function mostrarVistaEscritorio() {
@@ -1451,7 +1456,13 @@ function toggleVista() {
     go('dash');
     toast('💻 Cambiado a vista escritorio');
   }
+
+    // Ocultar elementos solo-móvil
+  document.querySelectorAll('.movil-only').forEach(el => {
+    el.style.display = 'none !important';
+  });
 }
+
 
 function volverAdmin() {
   // Cambiar rol temporalmente a admin
