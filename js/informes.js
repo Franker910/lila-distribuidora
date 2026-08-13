@@ -1358,6 +1358,8 @@ async function cargarPeriodosImport() {
   _impPeriodos.resultado = [...new Set((r.data||[]).map(x=>x.periodo))].sort(ordCrono);
 }
 
+
+
 // Normaliza cualquier forma de escribir un período a "MM-AAAA". Devuelve null si no se puede interpretar.
 // Acepta: "Mayo 2026", "05-2026", "05 2026", "5/2026", "2026-05", "05.2026"
 function normalizarPeriodo(txt) {
@@ -2180,6 +2182,13 @@ async function informeHistoricoChart(anioFiltro) {
   // Renderizar gráfico
   const ctx = document.getElementById('inf-hist-chart');
   if (!ctx) return;
+  
+  ctx.style.touchAction = 'pan-y';
+  ctx.style.pointerEvents = 'auto';
+  ctx.addEventListener('wheel', function(e) {
+    e.stopPropagation();
+  }, { passive: true });
+  
   _infCharts.historico?.destroy();
 
   const pctLabel = hayGastos ? 'Resultado % (s/venta)' : 'CMG % (s/venta)';
