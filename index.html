@@ -4033,97 +4033,104 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <!-- HOJA DE RUTA -->
-<div class="panel" id="p-hoja-ruta">
-  <div style="padding:0 0 16px;display:flex;align-items:center;gap:8px;flex-shrink:0">
+<div class="panel" id="p-hoja-ruta" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">
+  
+  <!-- HEADER -->
+  <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-bottom:12px;">
     <button onclick="go('vendedor-home')" id="hr-btn-volver"
-      style="display:none;min-width:48px;min-height:48px;padding:0 10px 0 4px;background:none;border:none;cursor:pointer;color:var(--PD);flex-shrink:0;align-items:center;gap:4px;border-radius:10px;-webkit-tap-highlight-color:transparent"
+      style="display:none; min-width:48px; min-height:48px; padding:0 10px 0 4px; background:none; border:none; cursor:pointer; color:var(--PD); flex-shrink:0; align-items:center; gap:4px; border-radius:10px; -webkit-tap-highlight-color:transparent"
       aria-label="Volver al inicio">
-      <span style="font-size:26px;line-height:1">←</span><span style="font-size:14px;font-weight:600">Volver</span>
+      <span style="font-size:26px; line-height:1;">←</span><span style="font-size:14px; font-weight:600;">Volver</span>
     </button>
-    <h2 style="margin:0;flex:1">🗺 Hoja de ruta del día</h2>
+    <h2 style="margin:0; flex:1; font-size:18px;">🗺 Hoja de ruta</h2>
   </div>
 
-  <!-- TABS: Admin / Mi ruta (vendedor) -->
-  <div style="display:flex;gap:8px;margin-bottom:16px;flex-shrink:0" id="hr-tabs">
-    <button id="hr-tab-admin" onclick="hrTab('admin')"
-      style="flex:1;min-height:48px;padding:10px 14px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--P);background:var(--P);color:#fff;-webkit-tap-highlight-color:transparent">🛠 Armar ruta (Admin)</button>
-    <button id="hr-tab-mia" onclick="hrTab('mia')"
-      style="flex:1;min-height:48px;padding:10px 14px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--brd);background:var(--bg);color:var(--txt);-webkit-tap-highlight-color:transparent">📱 Mi ruta</button>
-  </div>
+  <!-- ⭐ ELIMINAR LOS TABS - ya no son necesarios -->
 
-  <!-- Área scrollable: solo esto se mueve, el header/tabs de arriba quedan fijos -->
-  <div style="flex:1;overflow-y:auto;min-height:0">
+  <!-- CONTENEDOR SCROLLABLE -->
+  <div style="flex:1; overflow-y:auto; min-height:0; padding-right:4px;">
 
-  <!-- PANEL ADMIN: armar la ruta del día -->
-  <div id="hr-panel-admin">
-    <div class="g2" style="gap:10px;margin-bottom:12px">
-      <div class="fg">
-        <label style="font-size:12px;color:var(--txt2)">Fecha</label>
-        <input type="date" id="hr-fecha" style="width:100%" onchange="hrCargarRuta()">
+    <!-- PANEL ADMIN: armar la ruta -->
+    <div id="hr-panel-admin">
+      <div class="g2" style="gap:10px; margin-bottom:12px;">
+        <div class="fg">
+          <label style="font-size:12px; color:var(--txt2);">Fecha</label>
+          <input type="date" id="hr-fecha" style="width:100%;" onchange="hrCargarRuta()">
+        </div>
+        <div class="fg">
+          <label style="font-size:12px; color:var(--txt2);">Vendedor / Repartidor</label>
+          <select id="hr-vendedor" style="width:100%;" onchange="hrCargarRuta()">
+            <option value="">— Todos —</option>
+          </select>
+        </div>
       </div>
-      <div class="fg">
-        <label style="font-size:12px;color:var(--txt2)">Vendedor</label>
-        <select id="hr-vendedor" style="width:100%" onchange="hrCargarRuta()">
-          <option value="">— Todos —</option>
-        </select>
+      <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
+        <button onclick="hrAgregarCliente()"
+          style="min-height:46px; padding:10px 16px; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; border:1.5px solid var(--brd); background:var(--bg); color:var(--txt);">
+          + Agregar cliente a ruta
+        </button>
+        <button onclick="hrGuardarRuta()"
+          style="min-height:46px; padding:10px 16px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; border:1.5px solid var(--P); background:var(--P); color:#fff;">
+          💾 Guardar ruta
+        </button>
+        <button onclick="hrCerrarYGenerarRendicion()"
+          style="min-height:46px; padding:10px 16px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; border:1.5px solid var(--A); background:var(--A); color:#fff;">
+          🔒 Cerrar y generar rendición
+        </button>
+        <span id="hr-estado-badge" style="font-size:12px;"></span>
       </div>
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-      <button onclick="hrAgregarCliente()"
-        style="min-height:46px;padding:10px 16px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;border:1.5px solid var(--brd);background:var(--bg);color:var(--txt)">+ Agregar cliente a ruta</button>
-      <button onclick="hrGuardarRuta()"
-        style="min-height:46px;padding:10px 16px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--P);background:var(--P);color:#fff">💾 Guardar ruta</button>
-      <button onclick="hrCerrarYGenerarRendicion()"
-        style="min-height:46px;padding:10px 16px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--A);background:var(--A);color:#fff">🔒 Cerrar y generar rendición</button>
-      <span id="hr-estado-badge" style="font-size:12px"></span>
-    </div>
-    <!-- Buscador para agregar clientes -->
-    <div id="hr-buscador-wrap" style="display:none;margin-bottom:12px;position:relative">
-      <input id="hr-cli-q" type="text" placeholder="Buscar cliente por nombre, zona..." autocomplete="off"
-        style="width:100%;padding:10px 12px;border:2px solid var(--P);border-radius:8px;font-size:14px;box-sizing:border-box;font-family:inherit"
-        oninput="hrFiltrarClientes()">
-      <div id="hr-cli-drop" style="position:absolute;top:100%;left:0;right:0;background:var(--bg);border:1.5px solid var(--P);border-radius:8px;max-height:220px;overflow-y:auto;z-index:50;display:none"></div>
-    </div>
-    <!-- Lista de clientes en la ruta de hoy -->
-    <div id="hr-lista-ruta" style="margin-top:8px"></div>
-  </div>
-
-  <!-- PANEL MI RUTA: vendedor ve su lista del día -->
-  <div id="hr-panel-mia" style="display:none">
-    <div class="g2" style="gap:10px;margin-bottom:12px">
-      <div class="fg">
-        <label style="font-size:12px;color:var(--txt2)">Fecha</label>
-        <input type="date" id="hr-fecha-mia" style="width:100%" onchange="hrVerMiRuta()">
+      <!-- Buscador para agregar clientes -->
+      <div id="hr-buscador-wrap" style="display:none; margin-bottom:12px; position:relative;">
+        <input id="hr-cli-q" type="text" placeholder="Buscar cliente por nombre, zona..." autocomplete="off"
+          style="width:100%; padding:10px 12px; border:2px solid var(--P); border-radius:8px; font-size:14px; box-sizing:border-box; font-family:inherit;"
+          oninput="hrFiltrarClientes()">
+        <div id="hr-cli-drop" style="position:absolute; top:100%; left:0; right:0; background:var(--bg); border:1.5px solid var(--P); border-radius:8px; max-height:220px; overflow-y:auto; z-index:50; display:none;"></div>
       </div>
-    </div>
-    <div id="hr-mia-agregar-wrap" style="margin-bottom:12px">
-      <button id="hr-mia-btn-agregar" onclick="hrMiRutaAgregarToggle()"
-        style="width:100%;min-height:48px;padding:10px 16px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--brd);background:var(--bg);color:var(--txt);-webkit-tap-highlight-color:transparent">+ Agregar cliente sobre la marcha</button>
-      <div id="hr-mia-buscador" style="display:none;margin-top:8px;position:relative">
-        <input id="hr-mia-cli-q" type="text" placeholder="Buscar cliente por nombre..." autocomplete="off"
-          style="width:100%;padding:12px 14px;border:2px solid var(--P);border-radius:8px;font-size:15px;box-sizing:border-box;font-family:inherit"
-          oninput="hrMiRutaFiltrar()">
-        <div id="hr-mia-cli-drop" style="position:absolute;top:100%;left:0;right:0;background:var(--bg);border:1.5px solid var(--P);border-radius:8px;max-height:260px;overflow-y:auto;z-index:50;display:none"></div>
-      </div>
+      <!-- Lista de clientes en la ruta -->
+      <div id="hr-lista-ruta" style="margin-top:8px;"></div>
     </div>
 
-    <!-- Gastos de reparto: carga rápida por preset -->
-    <div style="background:var(--bg);border:1.5px solid var(--brd);border-radius:14px;padding:12px;margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
-        <span style="font-size:12px;font-weight:700;color:var(--txt2);text-transform:uppercase">⛽ Gastos de hoy</span>
-        <span id="hr-mia-gastos-total" style="font-size:15px;font-weight:700;color:var(--D)">$0</span>
+    <!-- PANEL MI RUTA: vendedor/repartidor ve su lista del día -->
+    <div id="hr-panel-mia" style="display:none;">
+      <div class="g2" style="gap:10px; margin-bottom:12px;">
+        <div class="fg">
+          <label style="font-size:12px; color:var(--txt2);">Fecha</label>
+          <input type="date" id="hr-fecha-mia" style="width:100%;" onchange="hrVerMiRuta()">
+        </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <button onclick="hrAbrirGasto('Combustible')" style="min-height:46px;border-radius:10px;border:1.5px solid var(--brd);background:var(--bg2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">⛽ Combustible</button>
-        <button onclick="hrAbrirGasto('Gomería')" style="min-height:46px;border-radius:10px;border:1.5px solid var(--brd);background:var(--bg2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">🔧 Gomería</button>
-        <button onclick="hrAbrirGasto('Viáticos')" style="min-height:46px;border-radius:10px;border:1.5px solid var(--brd);background:var(--bg2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">🍔 Viáticos</button>
-        <button onclick="hrAbrirGasto('Varios')" style="min-height:46px;border-radius:10px;border:1.5px solid var(--brd);background:var(--bg2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent">📦 Varios</button>
+      
+      <div id="hr-mia-agregar-wrap" style="margin-bottom:12px;">
+        <button id="hr-mia-btn-agregar" onclick="hrMiRutaAgregarToggle()"
+          style="width:100%; min-height:48px; padding:10px 16px; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; border:1.5px solid var(--brd); background:var(--bg); color:var(--txt); -webkit-tap-highlight-color:transparent;">
+          + Agregar cliente sobre la marcha
+        </button>
+        <div id="hr-mia-buscador" style="display:none; margin-top:8px; position:relative;">
+          <input id="hr-mia-cli-q" type="text" placeholder="Buscar cliente por nombre..." autocomplete="off"
+            style="width:100%; padding:12px 14px; border:2px solid var(--P); border-radius:8px; font-size:15px; box-sizing:border-box; font-family:inherit;"
+            oninput="hrMiRutaFiltrar()">
+          <div id="hr-mia-cli-drop" style="position:absolute; top:100%; left:0; right:0; background:var(--bg); border:1.5px solid var(--P); border-radius:8px; max-height:260px; overflow-y:auto; z-index:50; display:none;"></div>
+        </div>
       </div>
-      <div id="hr-mia-gastos-lista" style="margin-top:8px"></div>
-    </div>
 
-    <div id="hr-mia-lista" style="margin-top:8px"><div class="empty">Sin clientes asignados para hoy</div></div>
-  </div>
+      <!-- Gastos de reparto -->
+      <div style="background:var(--bg); border:1.5px solid var(--brd); border-radius:14px; padding:12px; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:9px;">
+          <span style="font-size:12px; font-weight:700; color:var(--txt2); text-transform:uppercase;">⛽ Gastos de hoy</span>
+          <span id="hr-mia-gastos-total" style="font-size:15px; font-weight:700; color:var(--D);">$0</span>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <button onclick="hrAbrirGasto('Combustible')" style="min-height:46px; border-radius:10px; border:1.5px solid var(--brd); background:var(--bg2); font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; -webkit-tap-highlight-color:transparent;">⛽ Combustible</button>
+          <button onclick="hrAbrirGasto('Gomería')" style="min-height:46px; border-radius:10px; border:1.5px solid var(--brd); background:var(--bg2); font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; -webkit-tap-highlight-color:transparent;">🔧 Gomería</button>
+          <button onclick="hrAbrirGasto('Viáticos')" style="min-height:46px; border-radius:10px; border:1.5px solid var(--brd); background:var(--bg2); font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; -webkit-tap-highlight-color:transparent;">🍔 Viáticos</button>
+          <button onclick="hrAbrirGasto('Varios')" style="min-height:46px; border-radius:10px; border:1.5px solid var(--brd); background:var(--bg2); font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; -webkit-tap-highlight-color:transparent;">📦 Varios</button>
+        </div>
+        <div id="hr-mia-gastos-lista" style="margin-top:8px;"></div>
+      </div>
+
+      <div id="hr-mia-lista" style="margin-top:8px;">
+        <div class="empty">Sin clientes asignados para hoy</div>
+      </div>
+    </div>
 
   </div>
 </div>
