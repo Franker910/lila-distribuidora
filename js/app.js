@@ -37,6 +37,8 @@ const USUARIOS = [
   {user:'david',     nombre:'David',     rol:'vendedor',    vendedor:'David',     dualRolMovil:true},
   {user:'emiliano',  nombre:'Emiliano',  rol:'repartidor',  vendedor:'Emiliano'},
   {user:'gaston',    nombre:'Gastón',    rol:'repartidor',  vendedor:'Gastón'},
+    // USUARIO DE PRUEBA REPARTIDOR
+  {user:'repartidor', nombre:'Repartidor Test', rol:'repartidor', vendedor:'Repartidor Test'},
 ];
 
 const emailDe = u => u.user + '@' + EMAIL_DOMINIO;
@@ -60,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260813-01';
+const APP_VERSION = '20260814-01';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -258,11 +260,28 @@ function entrarApp(found) {
 }
 
 async function logout(){
-  usuarioActual=null;
+  // LIMPIAR CAMPOS DE LOGIN
+  const userInput = document.getElementById('login-user');
+  const passInput = document.getElementById('login-pass');
+  const errEl = document.getElementById('login-err');
+  
+  if (userInput) userInput.value = '';
+  if (passInput) passInput.value = '';
+  if (errEl) errEl.textContent = '';
+  
+  // Cerrar sesión en Supabase
+  usuarioActual = null;
   try{ await sb.auth.signOut(); }catch(e){}
-  localStorage.removeItem('lila-sesion'); // limpia restos del sistema viejo
-  document.getElementById('login-screen').style.display='flex';
-  document.getElementById('app').style.display='none';
+  localStorage.removeItem('lila-sesion');
+  
+  // Mostrar pantalla de login
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  
+  // Poner foco en el campo de usuario
+  setTimeout(() => {
+    if (userInput) userInput.focus();
+  }, 100);
 }
 
 // ─── AUTO-SESIÓN ───

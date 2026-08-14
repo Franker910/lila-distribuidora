@@ -1442,40 +1442,85 @@ async function guardarND(){
 let _pmCliId=null, _pmCarrito=[], _pmMarcaActual=null, _pmProdActual=null;
 
 function renderVendedorHome(){
-  const bloques=document.getElementById('vh-bloques');
-  if(!bloques)return;
-  // Guardar el HTML original de vendedor una sola vez, para poder restaurarlo
-  // si un usuario dualRolMovil vuelve de Repartidor a Vendedor (toggleRolMovil).
-  if(!window._vhBloquesOriginal) window._vhBloquesOriginal=bloques.innerHTML;
-  const esRep=usuarioActual?.rol==='repartidor';
-  if(!esRep){
-    bloques.innerHTML=window._vhBloquesOriginal;
-    _renderComisionCard();
+  const saludo = document.getElementById('vh-saludo');
+  const fecha = document.getElementById('vh-fecha');
+  const bloques = document.getElementById('vh-bloques');
+  const comCard = document.getElementById('vh-comision-card');
+  
+  if (saludo) saludo.textContent = 'Hola, ' + (usuarioActual?.nombre || 'usuario') + '!';
+  if (fecha) fecha.textContent = new Date().toLocaleDateString('es-AR', { 
+    weekday: 'long', 
+    day: 'numeric', 
+    month: 'long', 
+    year: 'numeric' 
+  });
+  
+  // Guardar el HTML original de vendedor una sola vez
+  if (!window._vhBloquesOriginal && bloques) {
+    window._vhBloquesOriginal = bloques.innerHTML;
+  }
+  
+  // ⭐ Si es repartidor → NO mostrar comisión
+  if (usuarioActual?.rol === 'repartidor') {
+    if (bloques) {
+      bloques.innerHTML = `
+        <div style="background:#fff;border-radius:20px;padding:16px;box-shadow:0 2px 16px rgba(0,0,0,.07)">
+          <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-left:2px">
+            🚚 Reparto
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <button onclick="go('hoja-ruta')"
+              style="display:flex;align-items:center;gap:16px;width:100%;padding:20px 22px;background:#5b21b6;color:#fff;border:none;border-radius:14px;font-size:19px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 3px 10px rgba(91,33,182,.25)">
+              <span style="font-size:28px;line-height:1">🗺</span>
+              <span>Mi ruta de hoy</span>
+            </button>
+            <button onclick="go('cobranza')"
+              style="display:flex;align-items:center;gap:16px;width:100%;padding:16px 22px;background:var(--PL);color:var(--PD);border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">
+              <span style="font-size:22px;line-height:1">💰</span>
+              <span>Registrar cobro</span>
+            </button>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:20px;padding:16px;box-shadow:0 2px 16px rgba(0,0,0,.07)">
+          <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-left:2px">📦 Devoluciones</div>
+          <button onclick="go('nc')"
+            style="display:flex;align-items:center;gap:16px;width:100%;padding:20px 22px;background:var(--W);color:#fff;border:none;border-radius:14px;font-size:19px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 3px 10px rgba(234,88,12,.25)">
+            <span style="font-size:28px;line-height:1">📋</span><span>Registrar devolución</span>
+          </button>
+        </div>
+      `;
+    }
+    
+    // Ocultar comisión para repartidores
+    if (comCard) {
+      comCard.style.display = 'none';
+      comCard.innerHTML = '';
+    }
     return;
   }
-  bloques.innerHTML=`
-    <div style="background:#fff;border-radius:20px;padding:16px;box-shadow:0 2px 16px rgba(0,0,0,.07)">
-      <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-left:2px">💰 Cobro</div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <button onclick="go('cobranza')"
-          style="display:flex;align-items:center;gap:16px;width:100%;padding:20px 22px;background:#1a6fa8;color:#fff;border:none;border-radius:14px;font-size:19px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 3px 10px rgba(26,111,168,.25)">
-          <span style="font-size:28px;line-height:1">💰</span><span>Cobrar</span>
-        </button>
-        <button onclick="go('hoja-ruta')"
-          style="display:flex;align-items:center;gap:16px;width:100%;padding:16px 22px;background:#ede9fe;color:#5b21b6;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">
-          <span style="font-size:22px;line-height:1">🗺</span><span>Hoja de ruta</span>
-        </button>
-      </div>
-    </div>
-    <div style="background:#fff;border-radius:20px;padding:16px;box-shadow:0 2px 16px rgba(0,0,0,.07)">
-      <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-left:2px">📦 Devoluciones</div>
-      <button onclick="go('nc')"
-        style="display:flex;align-items:center;gap:16px;width:100%;padding:20px 22px;background:var(--W);color:#fff;border:none;border-radius:14px;font-size:19px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 3px 10px rgba(234,88,12,.25)">
-        <span style="font-size:28px;line-height:1">📋</span><span>Registrar devolución</span>
-      </button>
-    </div>
-    <div id="vh-comision-card"></div>`;
-  _renderComisionCard();
+  
+  // Para vendedores: restaurar bloques originales y mostrar comisión
+  if (bloques && window._vhBloquesOriginal) {
+    bloques.innerHTML = window._vhBloquesOriginal;
+  }
+  
+  // Mostrar comisión usando la función de tesoreria.js
+  if (comCard) {
+    comCard.style.display = 'block';
+    // Llamar a la función que está en tesoreria.js
+    if (typeof _renderComisionCard === 'function') {
+      _renderComisionCard();
+    } else {
+      // Fallback: mostrar un placeholder
+      comCard.innerHTML = `
+        <div style="background:var(--bg2);border-radius:14px;padding:14px 16px;text-align:center">
+          <div style="font-size:11px;color:var(--txt2);text-transform:uppercase">Comisión estimada del mes</div>
+          <div style="font-size:24px;font-weight:700;color:var(--P)" id="vh-comision-monto">$0</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:2px">Actualizado al día de hoy</div>
+        </div>
+      `;
+    }
+  }
 }
 
 function abrirPedidoMovil(){
