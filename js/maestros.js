@@ -983,16 +983,27 @@ function editarZona(id){
 }
 
 async function guardarZona(){
+  const nombre = (document.getElementById('zona-nombre').value||'').trim();
   const cod = (document.getElementById('zona-cod').value||'').trim();
-  if(!cod){ alert('Ingresá el código de zona'); return; }
+  const vendedor = document.getElementById('zona-ven').value.trim();
+  const descripcion = document.getElementById('zona-desc').value.trim();
+  
+  if(!nombre){ alert('Ingresá el nombre de la zona'); return; }
+  
   const editId = document.getElementById('zona-edit-id').value;
   const obj = {
-    codigo: cod,
-    vendedor: document.getElementById('zona-ven').value.trim(),
-    descripcion: document.getElementById('zona-desc').value.trim(),
+    nombre: nombre,
+    codigo: cod || nombre, 
+    vendedor: vendedor,
+    descripcion: descripcion,
   };
-  if(editId){ await sb.from('zonas').update(obj).eq('id', editId); }
-  else { await sb.from('zonas').insert(obj); }
+  
+  if(editId){ 
+    await sb.from('zonas').update(obj).eq('id', editId); 
+  } else { 
+    await sb.from('zonas').insert(obj); 
+  }
+  
   cerrar('m-zona');
   await cargarZonas();
   renderZonas();
