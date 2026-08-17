@@ -12,7 +12,7 @@ function abrirAjusteComp(compId, tipo){
     ?'📋 Nota de crédito — Comprobante de compra'
     :'⚠️ Nota de débito — Comprobante de compra';
   document.getElementById('ca-info').innerHTML=`
-    <div style="margin-bottom:4px"><strong>${comp.proveedor_nom}</strong> · ${comp.nro_comprobante||'Sin Nro'}</div>
+    <div style="margin-bottom:4px"><strong>${esc(comp.proveedor_nom)}</strong> · ${comp.nro_comprobante||'Sin Nro'}</div>
     <div>Fecha: ${comp.fecha} · Importe actual: <strong style="color:var(--D)">${fmt(comp.importe)}</strong></div>
     <div style="margin-top:4px;font-size:12px;color:${esNC?'var(--P)':'var(--W)'}">
       ${esNC?'✅ NC reduce el monto que debés al proveedor':'⚠️ ND incrementa el monto que debés al proveedor'}
@@ -562,7 +562,7 @@ function renderGastos(){
   tbody.innerHTML=sl.map(g=>`<tr>
     <td>${g.fecha}</td>
     <td><span class="b bA" style="font-size:11px">${g.tipo}</span></td>
-    <td style="color:var(--txt2);font-size:12px">${g.descripcion||'—'}</td>
+    <td style="color:var(--txt2);font-size:12px">${esc(g.descripcion||'—')}</td>
     <td style="font-size:12px">${g.contrapartida}</td>
     <td style="font-size:11px;color:var(--txt2)">${g.comprobante||'—'}</td>
     <td style="font-weight:700;color:var(--D)">${fmt(g.importe)}</td>
@@ -611,7 +611,7 @@ function renderGastosFijos(){
     return;
   }
   tbody.innerHTML=_gf.map((g,i)=>`<tr>
-    <td><input value="${g.descripcion||''}" placeholder="Ej: Sueldo Juan" oninput="_gf[${i}].descripcion=this.value;guardarGF()" style="width:100%;padding:5px 7px;border:1px solid var(--brd);border-radius:6px;font-size:13px"></td>
+    <td><input value="${esc(g.descripcion||'')}" placeholder="Ej: Sueldo Juan" oninput="_gf[${i}].descripcion=this.value;guardarGF()" style="width:100%;padding:5px 7px;border:1px solid var(--brd);border-radius:6px;font-size:13px"></td>
     <td><select onchange="_gf[${i}].tipo=this.value;guardarGF()" style="padding:5px 7px;border:1px solid var(--brd);border-radius:6px;font-size:12px;width:100%">
       <option value="">— Elegir —</option>
       ${GF_TIPOS.map(t=>`<option value="${t}" ${g.tipo===t?'selected':''}>${t}</option>`).join('')}
@@ -870,7 +870,7 @@ function renderComPersonas(){
   tbody.innerHTML = _comPersonas.map((p, i) => `
     <tr>
       <td>
-        <input type="text" value="${p.nombre || ''}" 
+        <input type="text" value="${esc(p.nombre || '')}" 
           id="com-nombre-${i}"
           placeholder="Escribí un nombre..."
           autocomplete="off"
@@ -1054,7 +1054,7 @@ function calcularComisionesPorPersona(){
 
   const tbody=document.getElementById('com-res-tbody');
   tbody.innerHTML=res.map(p=>`<tr>
-    <td style="font-weight:600">${p.nombre||'—'}</td>
+    <td style="font-weight:600">${esc(p.nombre||'—')}</td>
     <td><span class="b ${rolBadge(p.rol)}">${rolLabel(p.rol)}</span></td>
     <td style="text-align:right">${fmt(p.ventas)}</td>
     <td style="text-align:right">${fmt(p.cobranza)}</td>
@@ -1140,7 +1140,7 @@ function dropProvComp(){
   if(q.length<1){drop.style.display='none';return;}
   const m=_proveedores.filter(p=>(p.nombre||'').toLowerCase().includes(q)).sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'','es'));
   drop.innerHTML=m.map(p=>`<div style="padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--brd);font-size:13px"
-    onmousedown="selProvComp(${p.id})"><strong>${p.nombre}</strong>
+    onmousedown="selProvComp(${p.id})"><strong>${esc(p.nombre)}</strong>
     ${p.cuit?'<span style="font-size:11px;color:var(--txt2);margin-left:6px">CUIT: '+p.cuit+'</span>':''}</div>`).join('');
   drop.style.display=m.length?'block':'none';
 }
@@ -1218,7 +1218,7 @@ function filtrarBusqProv(){
     <div style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;gap:10px"
       onmousedown="selProvComp(${p.id});document.getElementById('modal-busq-prov').remove();setTimeout(()=>document.getElementById('comp-nro')?.focus(),50)">
       <div>
-        <div style="font-weight:600;font-size:13px">${p.nombre}</div>
+        <div style="font-weight:600;font-size:13px">${esc(p.nombre)}</div>
         ${p.cuit?'<div style="font-size:11px;color:var(--txt2)">CUIT: '+p.cuit+'</div>':''}
       </div>
       ${p._saldo?`<div style="font-size:12px;font-weight:700;color:var(--D);flex-shrink:0">${fmt(p._saldo)}</div>`:''}
@@ -1231,7 +1231,7 @@ function navBusqProv(e){
   if(!items.length)return;
   if(e.key==='ArrowDown'){e.preventDefault();_busqProvIdx=Math.min(_busqProvIdx+1,items.length-1);items.forEach((el,i)=>el.style.background=i===_busqProvIdx?'var(--PL)':'');items[_busqProvIdx]?.scrollIntoView({block:'nearest'});}
   else if(e.key==='ArrowUp'){e.preventDefault();_busqProvIdx=Math.max(_busqProvIdx-1,0);items.forEach((el,i)=>el.style.background=i===_busqProvIdx?'var(--PL)':'');items[_busqProvIdx]?.scrollIntoView({block:'nearest'});}
-  else if(e.key==='Enter'){e.preventDefault();const target=_busqProvIdx>=0?items[_busqProvIdx]:items.length===1?items[0]:null;if(target){const attr=target.getAttribute('onmousedown');if(attr)eval(attr);}_busqProvIdx=-1;}
+  else if(e.key==='Enter'){e.preventDefault();const target=_busqProvIdx>=0?items[_busqProvIdx]:items.length===1?items[0]:null;if(target){target.onmousedown?.();}_busqProvIdx=-1;}
   else if(e.key==='Escape'){document.getElementById('modal-busq-prov')?.remove();}
 }
 
@@ -1464,7 +1464,7 @@ function toggleCompCostos(){
 
 function agregarItemCostoComp(){
   const lista=document.getElementById('comp-costos-lista');
-  const opts=_productos.map(p=>`<option value="${p.id}">${p.codigo?p.codigo+' — ':''}${p.nombre}</option>`).join('');
+  const opts=_productos.map(p=>`<option value="${p.id}">${p.codigo?p.codigo+' — ':''}${esc(p.nombre)}</option>`).join('');
   const row=document.createElement('div');
   row.className='comp-costo-row';
   row.style.cssText='display:grid;grid-template-columns:1fr 72px 130px 90px 20px;gap:4px;align-items:center';
@@ -1529,7 +1529,7 @@ function abrirCargaArticulos(compId){
   const comp=_comprobantes.find(c=>c.id===compId); if(!comp)return;
   _cargaArtCompId=compId;
   const info=document.getElementById('carga-art-info');
-  if(info)info.innerHTML=`Comprobante <b>${comp.nro_comprobante||'#'+comp.id}</b> · <b>${comp.proveedor_nom||''}</b> · ${comp.fecha||''} · ${fmt(comp.importe)}`;
+  if(info)info.innerHTML=`Comprobante <b>${comp.nro_comprobante||'#'+comp.id}</b> · <b>${esc(comp.proveedor_nom||'')}</b> · ${comp.fecha||''} · ${fmt(comp.importe)}`;
   _caItems=[]; _caProTemp=null; _caStagingVals={cod:'',cant:'1',costo:'0'};
   document.getElementById('m-carga-articulos').classList.add('on');
   renderItemsCA();
@@ -1568,7 +1568,7 @@ function dropProCA(){
   const q=val.toLowerCase();
   const m=_productos.filter(p=>(p.nombre||'').toLowerCase().includes(q));
   drop.innerHTML=m.length?m.map(p=>`<div class="drop-item" onmousedown="selProCA(${p.id})" style="padding:9px 12px">
-      <div style="font-weight:600;font-size:14px">${p.nombre}</div>
+      <div style="font-weight:600;font-size:14px">${esc(p.nombre)}</div>
       <div style="font-size:12px;color:var(--txt2);margin-top:2px">Cód: ${p.codigo||p.id} · Unidad: ${p.unidad||'—'} · Costo actual: ${fmt(p.costo||0)}</div>
     </div>`).join(''):'<div style="padding:8px;color:var(--txt2);font-size:12px">Sin resultados</div>';
   drop.style.display='block';
@@ -1652,7 +1652,7 @@ function _caStagingRowHTML(){
         oninput="dropProCA()" onkeydown="_caCodKeydown(event)" style="width:100%;text-align:center;${_caInputStyle}">
       <div class="drop" id="ca-pro-drop" style="width:280px"></div>
     </span>
-    <span class="pnom" style="color:${p?'inherit':'var(--txt2)'}">${p?p.nombre:'— código, nombre o F2 —'}</span>
+    <span class="pnom" style="color:${p?'inherit':'var(--txt2)'}">${esc(p?p.nombre:'— código, nombre o F2 —')}</span>
     <span style="width:64px;flex-shrink:0;text-align:center;font-size:12px;color:var(--txt2)">${p?.unidad||''}</span>
     <input type="text" inputmode="decimal" id="ca-cant" value="${_caStagingVals.cant}" oninput="updStagingCA('cant',this.value,this)" onkeydown="_caStagingKeydown(event,'cant')"
       style="width:80px;text-align:center;${_caInputStyle};border-color:var(--P);border-width:2px" title="Cantidad recibida (actualiza stock)">
@@ -1669,7 +1669,7 @@ function renderItemsCA(){
     const sub=it.cant*it.costo;
     return `<div class="pitem">
       <span style="width:80px;flex-shrink:0;text-align:center;font-size:11px;color:var(--txt2)">${it.codigo||''}</span>
-      <span class="pnom">${it.nom}</span>
+      <span class="pnom">${esc(it.nom)}</span>
       <span style="width:64px;flex-shrink:0;text-align:center;font-size:12px;color:var(--txt2)">${it.unidad||''}</span>
       <input type="text" inputmode="decimal" data-idx="${i}" data-field="cant" value="${it.cant}" oninput="updItemCA(${i},'cant',this.value,this)" style="width:80px;text-align:center;${_caInputStyle}">
       <input type="text" inputmode="decimal" data-idx="${i}" data-field="costo" value="${it.costo}" oninput="updItemCA(${i},'costo',this.value,this)" style="width:110px;text-align:right;${_caInputStyle}">
@@ -1851,7 +1851,7 @@ function histProveedor(id){
   document.getElementById('m-ver-body').innerHTML=`
     <div style="background:var(--bg2);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--txt2)">
       <span>CUIT: ${p.cuit||'—'}</span>
-      <span>📞 ${p.telefono||'—'}</span>
+      <span>📞 ${esc(p.telefono||'—')}</span>
       <span>Plazo pago: <b>${p.plazo_pago_dias!=null?p.plazo_pago_dias+' días':'—'}</b></span>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;background:${saldoFinal>0?'var(--DL)':'var(--PL)'};border-radius:8px;padding:10px 14px;margin-bottom:12px">
@@ -1893,7 +1893,7 @@ function pagarComprobante(id){
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:3000;display:flex;align-items:center;justify-content:center';
   modal.innerHTML=`<div style="background:var(--bg);border-radius:12px;padding:20px;width:360px;max-width:95vw">
     <div style="font-weight:600;font-size:15px;margin-bottom:4px">💸 Pagar comprobante ${comp.nro_comprobante||'#'+comp.id}</div>
-    <div style="font-size:13px;color:var(--txt2);margin-bottom:14px">${comp.proveedor_nom||''} · ${fmt(comp.importe)}</div>
+    <div style="font-size:13px;color:var(--txt2);margin-bottom:14px">${esc(comp.proveedor_nom||'')} · ${fmt(comp.importe)}</div>
     <div style="margin-bottom:14px">
       <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Forma de pago</label>
       <select id="pagcomp-forma" style="width:100%">
@@ -1915,7 +1915,7 @@ function pagarComprobante(id){
     const hoy=hoyLocal();
     const {error:e1}=await sb.from('comprobantes_compras').update({estado:'pagado', fecha_pago:hoy}).eq('id',id);
     if(e1){alert('Error al marcar el comprobante: '+e1.message);this.textContent='✓ Confirmar pago';this.disabled=false;return;}
-    const concepto=`${(comp.tipo||'Comprobante').toUpperCase()} ${comp.nro_comprobante||'#'+comp.id}${comp.descripcion?' — '+comp.descripcion:''}`;
+    const concepto=`${(comp.tipo||'Comprobante').toUpperCase()} ${comp.nro_comprobante||'#'+comp.id}${esc(comp.descripcion?' — '+comp.descripcion:'')}`;
     const {error:e2}=await sb.from('pagos_proveedores').insert({
       fecha:hoy, proveedor_id:comp.proveedor_id, proveedor:comp.proveedor_nom||'',
       importe:comp.importe, forma, concepto
@@ -1946,7 +1946,7 @@ function imprimirOrdenPago(id, fechaPago, forma){
   if(!forma){const pago=_pagoDeComprobante(c);forma=pago?.forma||'';}
   const formaLabel=forma==='efectivo'?'💵 Efectivo':forma==='transferencia'?'🏦 Transferencia':forma==='cheque'?'📋 Cheque':'';
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>Orden de pago — ${c.proveedor_nom||''}</title>
+  w.document.write(`<!DOCTYPE html><html><head><title>Orden de pago — ${esc(c.proveedor_nom||'')}</title>
   <style>
     body{font-family:Arial,sans-serif;padding:30px;color:#000;max-width:520px;margin:0 auto}
     .titulo{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:16px}
@@ -1964,11 +1964,11 @@ function imprimirOrdenPago(id, fechaPago, forma){
   </div>
   <div class="row"><span><b>Fecha de pago:</b></span><span>${hoy}</span></div>
   ${formaLabel?`<div class="row"><span><b>Forma de pago:</b></span><span>${formaLabel}</span></div>`:''}
-  <div class="row"><span><b>Proveedor:</b></span><span>${c.proveedor_nom||'—'}</span></div>
+  <div class="row"><span><b>Proveedor:</b></span><span>${esc(c.proveedor_nom||'—')}</span></div>
   ${prov?.cuit?`<div class="row"><span><b>CUIT:</b></span><span>${prov.cuit}</span></div>`:''}
   <div class="row"><span><b>Comprobante:</b></span><span>${c.nro_comprobante||'#'+c.id}</span></div>
   <div class="row"><span><b>Fecha comprobante:</b></span><span>${c.fecha||'—'}</span></div>
-  ${c.descripcion?`<div class="row"><span><b>Descripción:</b></span><span>${c.descripcion}</span></div>`:''}
+  ${c.descripcion?`<div class="row"><span><b>Descripción:</b></span><span>${esc(c.descripcion)}</span></div>`:''}
   <div class="row total"><span>IMPORTE PAGADO</span><span>${fmt(c.importe)}</span></div>
   <div class="firma">
     <div>Firma proveedor</div>
@@ -2007,8 +2007,8 @@ function imprimirComprobante(id){
     <div class="nro">COMPROBANTE DE COMPRA ${c.nro_comprobante||'#'+c.id}</div>
   </div>
   <div class="row"><span><b>Fecha:</b></span><span>${c.fecha||'—'}</span></div>
-  <div class="row"><span><b>Proveedor:</b></span><span>${c.proveedor_nom||'—'}</span></div>
-  ${c.descripcion?`<div class="row"><span><b>Descripción:</b></span><span>${c.descripcion}</span></div>`:''}
+  <div class="row"><span><b>Proveedor:</b></span><span>${esc(c.proveedor_nom||'—')}</span></div>
+  ${c.descripcion?`<div class="row"><span><b>Descripción:</b></span><span>${esc(c.descripcion)}</span></div>`:''}
   ${c.fecha_vencimiento?`<div class="row"><span><b>Vencimiento:</b></span><span>${c.fecha_vencimiento}</span></div>`:''}
   <div class="row"><span><b>Cond. pago:</b></span><span>${c.condicion_pago?c.condicion_pago+' días':'Contado'}</span></div>
   <div class="row"><span><b>Estado:</b></span><span>${estado}</span></div>
@@ -2029,10 +2029,10 @@ function verComprobanteCompra(id){
       <span>Cond. pago: <b>${c.condicion_pago?c.condicion_pago+'d':'Contado'}</b></span>
       ${c.fecha_vencimiento?`<span>Vence: <b>${c.fecha_vencimiento}</b></span>`:''}
     </div>
-    ${c.descripcion?`<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">${c.descripcion}</div>`:''}
+    ${c.descripcion?`<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">${esc(c.descripcion)}</div>`:''}
     <div style="text-align:right;font-size:16px;font-weight:700;color:var(--PD);border-top:2px solid var(--brd);padding-top:10px">Importe: ${fmt(c.importe)}</div>
   `;
-  popupDetalle(c.nro_comprobante||('Comprobante #'+c.id),`${c.proveedor_nom||''} · ${c.fecha}`,body);
+  popupDetalle(c.nro_comprobante||('Comprobante #'+c.id),`${esc(c.proveedor_nom||'')} · ${c.fecha}`,body);
 }
 
 function renderComprobantes(){
@@ -2088,9 +2088,9 @@ function renderComprobantes(){
     const diasVenc = c.fecha_vencimiento ? Math.floor((new Date(c.fecha_vencimiento)-new Date())/(864e5)) : null;
     return `<tr data-comp-id="${c.id}" style="${estado==='vencido'?'background:var(--DL)':''}">
       <td>${c.fecha}</td>
-      <td style="font-weight:600">${c.proveedor_nom}</td>
+      <td style="font-weight:600">${esc(c.proveedor_nom)}</td>
       <td style="color:var(--txt2);font-size:12px">${c.nro_comprobante||'—'}</td>
-      <td style="font-size:12px">${c.descripcion||c.tipo||'—'}</td>
+      <td style="font-size:12px">${esc(c.descripcion||c.tipo||'—')}</td>
       <td style="font-size:12px;${estado==='vencido'?'color:var(--D);font-weight:600':''}">${c.fecha_vencimiento||'—'}${diasVenc!==null&&estado==='pendiente'?` <span style="font-size:10px;color:var(--txt2)">(${diasVenc}d)</span>`:''}</td>
       <td style="font-size:12px">${c.condicion_pago?c.condicion_pago+'d':'Contado'}</td>
       <td style="font-weight:600;color:var(--D)">${fmt(c.importe)}</td>
@@ -2283,7 +2283,7 @@ async function importarCSVAfip(input){
   if(conCuenta.length){
     const {data:asientosIns,error:errAs}=await sb.from('asientos').insert(conCuenta.map(c=>({
       fecha:c.fecha,
-      descripcion:`${(c.tipo||'').toUpperCase()} ${c.nro_comprobante} - ${c.proveedor_nom} - ${c.descripcion}`,
+      descripcion:`${(c.tipo||'').toUpperCase()} ${c.nro_comprobante} - ${esc(c.proveedor_nom)} - ${esc(c.descripcion)}`,
       tipo:'COMPRA', referencia_id:c.id, referencia_tipo:'comprobante_compra'
     }))).select();
     if(!errAs&&asientosIns){

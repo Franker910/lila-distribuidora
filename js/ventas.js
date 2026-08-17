@@ -25,8 +25,8 @@ function renderPedidos(){
     <div style="background:var(--bg);border:1.5px solid var(--brd);border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
       <div onclick="toggleDetallePed(${p.id})" style="display:flex;justify-content:space-between;align-items:center;padding:14px;cursor:pointer;border-left:4px solid var(--P)">
         <div style="flex:1;min-width:0">
-          <div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">#${p.id} — ${p.cliente}</div>
-          <div style="font-size:12px;color:var(--txt2);margin-top:2px">${p.localidad||''} · ${(_zonas.find(z=>z.codigo===p.zona)?.descripcion||p.zona)||''} · ${p.vendedor||'—'} · ${p.fecha||''}</div>
+          <div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">#${p.id} — ${esc(p.cliente)}</div>
+          <div style="font-size:12px;color:var(--txt2);margin-top:2px">${esc(p.localidad||'')} · ${(_zonas.find(z=>z.codigo===p.zona)?.descripcion||p.zona)||''} · ${esc(p.vendedor||'—')} · ${p.fecha||''}</div>
           <div style="margin-top:4px;display:flex;align-items:center;gap:6px">${stBadge(p.estado)}<span style="font-size:11px;color:var(--txt2)">${(p.items||[]).length} producto${(p.items||[]).length!==1?'s':''}${p.visita?' · '+p.visita:''}</span></div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-left:12px;flex-shrink:0">
@@ -36,8 +36,8 @@ function renderPedidos(){
       </div>
       <div id="ped-det-${p.id}" style="display:none;border-top:1px solid var(--brd)">
         <div style="padding:12px 16px;font-size:13px;color:var(--txt2);background:var(--bg2)">
-          ${(p.items||[]).map(it=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid var(--brd)"><span>${it.nom||it.nombre}</span><span style="font-weight:600">${it.cant} ${it.un||'un'} · ${fmt(it.precio*it.cant)}</span></div>`).join('')}
-          ${p.obs?`<div style="margin-top:8px;color:var(--txt2);font-size:12px">Obs: ${p.obs}</div>`:''}
+          ${(p.items||[]).map(it=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid var(--brd)"><span>${esc(it.nom||it.nombre)}</span><span style="font-weight:600">${it.cant} ${it.un||'un'} · ${fmt(it.precio*it.cant)}</span></div>`).join('')}
+          ${p.obs?`<div style="margin-top:8px;color:var(--txt2);font-size:12px">Obs: ${esc(p.obs)}</div>`:''}
         </div>
         <div style="display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--brd)">
           ${p.estado==='pendiente'?`
@@ -135,7 +135,7 @@ function dropCli(){
   const drop=document.getElementById('np-cli-drop');
   if(q.length<1){drop.style.display='none';return;}
   const m=_clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q)||(c.telefono||'').includes(q));
-  drop.innerHTML=m.map(c=>`<div onmousedown="selCli(${c.id})"><strong>${c.nombre}</strong> <span style="color:var(--txt2);font-size:11px">${c.localidad} · ${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||''}</span></div>`).join('');
+  drop.innerHTML=m.map(c=>`<div onmousedown="selCli(${c.id})"><strong>${esc(c.nombre)}</strong> <span style="color:var(--txt2);font-size:11px">${esc(c.localidad)} · ${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||''}</span></div>`).join('');
   drop.style.display=m.length?'block':'none';
 }
 
@@ -153,7 +153,7 @@ function selCli(id){
   const detalle=document.getElementById('np-cli-detalle');
   const saldoEl=document.getElementById('np-cli-saldo');
   if(nombre)nombre.textContent=c.nombre;
-  if(detalle)detalle.textContent=`📍 ${c.localidad||''} · ${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||''} · 📞 ${c.telefono||'—'} · Dto: ${c.descuento||0}%${dias!==null?' · Último rem: '+dias+' días':''}`;
+  if(detalle)detalle.textContent=`📍 ${esc(c.localidad||'')} · ${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||''} · 📞 ${esc(c.telefono||'—')} · Dto: ${c.descuento||0}%${dias!==null?' · Último rem: '+dias+' días':''}`;
   if(saldoEl){
     saldoEl.textContent=fmt(c.saldo||0);
     saldoEl.style.color=(c.saldo||0)>0?'var(--D)':'var(--P)';
@@ -182,7 +182,7 @@ function dropPro(){
     const stockColor=stock<=0?'color:#C00000;font-weight:600':stock<=5?'color:#C55A11;font-weight:600':'color:var(--txt2)';
     const stockIcon=stock<=0?'❌ Sin stock':stock<=5?'⚠️ Stock bajo: '+stock:stock+' '+( p.unidad||'');
     return `<div class="drop-item" onmousedown="selPro(${p.id})">
-      <div style="font-weight:600">${p.nombre}</div>
+      <div style="font-weight:600">${esc(p.nombre)}</div>
       <div style="display:flex;gap:8px;font-size:11px;margin-top:2px">
         <span style="color:var(--PD);font-weight:600">${fmt(p.precio)}</span>
         <span style="${stockColor}">${stockIcon}</span>
@@ -225,7 +225,7 @@ function renderItems(){
   el.innerHTML=_items.map((it,i)=>{
     const base=it.precio*it.cant,dtoA=base*(it.dto/100),neto=base-dtoA;let iva=0;
     sub+=base;dtoT+=dtoA;ivaT+=0;tot+=neto;
-    return `<div class="pitem"><span class="pnom">${it.nom}</span><input type="number" value="${it.cant}" min="0.01" step="0.01" onchange="updItem(${i},'cant',this.value)" style="width:70px"><span style="color:var(--txt2);font-size:11px">${it.un}</span><input type="number" value="${it.precio}" onchange="updItem(${i},'precio',this.value)" style="width:90px;text-align:right"><span style="width:45px;text-align:center;font-size:11px;color:var(--txt2)">${it.dto?it.dto+'%':''}</span><span class="ptot">${fmt(it.precio*it.cant*(1-it.dto/100))}</span><button class="btn D sm" onclick="delItem(${i})">🗑</button></div>`;
+    return `<div class="pitem"><span class="pnom">${esc(it.nom)}</span><input type="number" value="${it.cant}" min="0.01" step="0.01" onchange="updItem(${i},'cant',this.value)" style="width:70px"><span style="color:var(--txt2);font-size:11px">${it.un}</span><input type="number" value="${it.precio}" onchange="updItem(${i},'precio',this.value)" style="width:90px;text-align:right"><span style="width:45px;text-align:center;font-size:11px;color:var(--txt2)">${it.dto?it.dto+'%':''}</span><span class="ptot">${fmt(it.precio*it.cant*(1-it.dto/100))}</span><button class="btn D sm" onclick="delItem(${i})">🗑</button></div>`;
   }).join('');
   tb.style.display='flex';
   document.getElementById('np-desglose').textContent=`Sub ${fmt(sub)}${dtoT>0?' | Dto '+fmt(dtoT):''}`;
@@ -375,13 +375,12 @@ function navBusq(e, listaId, inputId, esPro){
   } else if(e.key==='Enter'){
     e.preventDefault();
     if(_busqIdx>=0 && items[_busqIdx]){
-      // Simular click en el item seleccionado
-      const attr=items[_busqIdx].getAttribute('onmousedown');
-      if(attr) eval(attr);
+      // Simular click en el item seleccionado (llama el handler directo,
+      // sin eval)
+      items[_busqIdx].onmousedown?.();
     } else if(items.length===1){
       // Si hay solo uno, seleccionarlo directo
-      const attr=items[0].getAttribute('onmousedown');
-      if(attr) eval(attr);
+      items[0].onmousedown?.();
     }
     _busqIdx=-1;
   } else if(e.key==='Escape'){
@@ -409,8 +408,8 @@ function filtrarBusqCli(){
     <div onmousedown="selDesدeBuscador('${pfx}',${c.id})"
       style="padding:8px 10px;border-bottom:0.5px solid var(--brd);cursor:pointer;border-radius:6px"
       onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
-      <div style="font-weight:600">${c.nombre} <span style="color:var(--txt2);font-size:11px">Cód: ${c.codigo||c.id}</span></div>
-      <div style="font-size:11px;color:var(--txt2)">${c.direccion||''} ${c.localidad||''} ${c.telefono?'· Tel: '+c.telefono:''}</div>
+      <div style="font-weight:600">${esc(c.nombre)} <span style="color:var(--txt2);font-size:11px">Cód: ${c.codigo||c.id}</span></div>
+      <div style="font-size:11px;color:var(--txt2)">${esc(c.direccion||'')} ${esc(c.localidad||'')} ${esc(c.telefono?'· Tel: '+c.telefono:'')}</div>
     </div>`).join(''):'<div style="padding:12px;color:var(--txt2);font-size:12px">Sin resultados</div>';
 }
 
@@ -464,7 +463,7 @@ function filtrarBusqPro(){
     <div onmousedown="selProDesdeBuscador('${pfx}',${p.id})"
       style="padding:8px 10px;border-bottom:0.5px solid var(--brd);cursor:pointer;border-radius:6px"
       onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
-      <div style="font-weight:600">${p.nombre} <span style="color:var(--txt2);font-size:11px">Cód: ${p.codigo||p.id}</span></div>
+      <div style="font-weight:600">${esc(p.nombre)} <span style="color:var(--txt2);font-size:11px">Cód: ${p.codigo||p.id}</span></div>
       <div style="font-size:11px;color:var(--txt2)">${fmt(p.precio)} · ${p.unidad||''} · Stock: ${p.stock||0}</div>
     </div>`).join(''):'<div style="padding:12px;color:var(--txt2);font-size:12px">Sin resultados</div>';
 }
@@ -522,7 +521,7 @@ function dropCliRR(){
     if(!ven)return matchQ;
     return matchQ&&(c.vendedor||'').toLowerCase().includes(ven);
   });
-  drop.innerHTML=m.map(c=>`<div onmousedown="selCliRR(${c.id})"><strong>${c.nombre}</strong> <span style="color:var(--txt2);font-size:11px">${c.localidad} · ${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||''}</span></div>`).join('');
+  drop.innerHTML=m.map(c=>`<div onmousedown="selCliRR(${c.id})"><strong>${esc(c.nombre)}</strong> <span style="color:var(--txt2);font-size:11px">${esc(c.localidad)} · ${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||''}</span></div>`).join('');
   if(m.length){ajustarDrop(inp,drop);drop.style.display='block';}else{drop.style.display='none';}
 }
 
@@ -545,8 +544,8 @@ function selCliRR(id){
   const dias=diasDesde(c.ultimo_remito);
   const info=document.getElementById('rr-cli-info');
 
-  info.innerHTML=`<div style="font-weight:600;font-size:13px;margin-bottom:3px">${c.nombre}</div>
-    <div style="font-size:12px;color:var(--txt2)">${c.direccion?'📍 '+c.direccion+', ':''} ${c.localidad||''} · ${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||''} | 📞 ${c.telefono||'—'} | Lista: <b>${c.lista||1}</b> | Dto: <b>${c.descuento||0}%</b> | Saldo CC: <b style="${(c.saldo||0)>0?'color:var(--D)':''}">${fmt(c.saldo)}</b>${dias!==null?` | Último rem: <b>${dias} días</b>`:''}</div>`;
+  info.innerHTML=`<div style="font-weight:600;font-size:13px;margin-bottom:3px">${esc(c.nombre)}</div>
+    <div style="font-size:12px;color:var(--txt2)">${esc(c.direccion?'📍 '+esc(c.direccion)+', ':'')} ${esc(c.localidad||'')} · ${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||''} | 📞 ${esc(c.telefono||'—')} | Lista: <b>${c.lista||1}</b> | Dto: <b>${c.descuento||0}%</b> | Saldo CC: <b style="${(c.saldo||0)>0?'color:var(--D)':''}">${fmt(c.saldo)}</b>${dias!==null?` | Último rem: <b>${dias} días</b>`:''}</div>`;
   info.style.display='block';
 
   // Pedido pendiente → solo un chip chico que avisa que existe; usarlo es opcional.
@@ -665,7 +664,7 @@ function dropProRR(){
     const stockColor=stock<=0?'color:#C00000;font-weight:600':stock<=5?'color:#C55A11;font-weight:600':'color:var(--txt2)';
     const stockIcon=stock<=0?'❌ Sin stock':stock<=5?'⚠️ Bajo: '+stock:stock+' '+(p.unidad||'');
     return `<div class="drop-item" onmousedown="selProRR(${p.id})" style="padding:9px 12px">
-      <div style="font-weight:600;font-size:14px">${p.nombre}</div>
+      <div style="font-weight:600;font-size:14px">${esc(p.nombre)}</div>
       <div style="display:flex;gap:8px;font-size:12px;margin-top:3px">
         <span style="color:var(--PD);font-weight:600">${fmt(p.precio)}</span>
         <span style="${stockColor}">${stockIcon}</span>
@@ -741,7 +740,7 @@ function _rrCommitStaging(){
   const unidad=(_rrProTemp.unidad||'').toLowerCase().trim();
   const esPorPeso=['kg','kilo','kilos','k','kilogramo','kilogramos'].includes(unidad);
   if(esPorPeso&&peso<=0){
-    alert('⚠️ '+_rrProTemp.nombre+' se vende por kg. Ingresá el peso real de la balanza.');
+    alert('⚠️ '+esc(_rrProTemp.nombre)+' se vende por kg. Ingresá el peso real de la balanza.');
     const f=document.getElementById('rr-peso');
     if(f){f.focus();f.select();f.style.borderColor='var(--D)';}
     return;
@@ -778,7 +777,7 @@ function _rrStagingRowHTML(){
         oninput="dropProRR()" onkeydown="_rrCodKeydown(event)" style="width:100%;text-align:center">
       <div class="drop" id="rr-pro-drop" style="width:280px"></div>
     </span>
-    <input id="rr-pro-q" readonly tabindex="-1" value="${p?p.nombre:''}" style="flex:1">
+    <input id="rr-pro-q" readonly tabindex="-1" value="${esc(p?p.nombre:'')}" style="flex:1">
     <select id="rr-item-lista" onchange="actualizarListaStagingRR(this.value)" style="width:72px;font-size:11px" title="Lista de precios para este producto">${_rrListaOptions(_rrStagingVals.lista)}</select>
     <input type="text" inputmode="decimal" id="rr-cant" value="${_rrStagingVals.cant}" oninput="updStagingRR('cant',this.value,this)" onkeydown="_rrStagingKeydown(event,'cant')" style="width:58px" title="Cantidad">
     ${pesoCol}
@@ -796,7 +795,7 @@ function _rrListaOptions(selectedListaId) {
     return '<option value="">Base</option>';
   }
   return '<option value="">Base</option>' + _listasPrecios.map(l => 
-    `<option value="${l.id}"${String(l.id) === sel ? ' selected' : ''}>${l.nombre}</option>`
+    `<option value="${l.id}"${String(l.id) === sel ? ' selected' : ''}>${esc(l.nombre)}</option>`
   ).join('');
 }
 
@@ -853,7 +852,7 @@ function renderItemsRR(){
       :`<span style="width:70px;display:inline-block;text-align:center;font-size:12px;color:var(--txt2)">—</span>`;
     return `<div class="pitem">
       <span style="width:55px;flex-shrink:0;text-align:center;font-size:11px;color:var(--txt2)">${codigo}</span>
-      <span class="pnom">${it.nom}${it.esPeso?' <span class="b bA" style="font-size:10px">kg</span>':''} ${pedidoCant}</span>
+      <span class="pnom">${esc(it.nom)}${it.esPeso?' <span class="b bA" style="font-size:10px">kg</span>':''} ${pedidoCant}</span>
       <select onchange="actualizarListaItemRR(${i},this.value)" style="width:72px;font-size:11px" title="Lista de precios para este producto">${_rrListaOptions(it.listaId)}</select>
       <input type="text" inputmode="decimal" data-idx="${i}" data-field="cant" value="${it.cant}" oninput="updItemRR(${i},'cant',this.value,this)" onkeydown="_rrItemKeydown(event,${i},'cant')" style="width:58px" title="Cantidad">
       ${pesoCol}
@@ -1015,7 +1014,7 @@ async function emitirRemitoRapido(){
   toast.style.cssText='position:fixed;bottom:20px;right:20px;background:var(--bg);border:1px solid var(--P);border-radius:10px;padding:14px 18px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.15);display:flex;flex-direction:column;gap:8px';
   toast.innerHTML=`
     <div style="font-weight:600;font-size:14px;color:var(--P)">✅ Remito ${num} grabado</div>
-    <div style="font-size:13px;color:var(--txt2)">${rem.cliente} · ${fmt(rem.total)}</div>
+    <div style="font-size:13px;color:var(--txt2)">${esc(rem.cliente)} · ${fmt(rem.total)}</div>
     <div style="display:flex;gap:8px;margin-top:4px">
       <button onclick="imprimirRemito();this.closest('div[style*=fixed]').remove()" style="flex:1;padding:8px;background:var(--P);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">🖨️ Imprimir</button>
       <button onclick="this.closest('div[style*=fixed]').remove()" style="flex:1;padding:8px;background:var(--bg2);border:0.5px solid var(--brd);border-radius:6px;cursor:pointer">Cerrar</button>
@@ -1088,7 +1087,7 @@ function dropCliNC(){
   const drop=document.getElementById('nc-cli-drop');
   if(q.length<1){drop.style.display='none';return;}
   const m=_clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q));
-  drop.innerHTML=m.map(c=>`<div onmousedown="selCliNC(${c.id})"><strong>${c.nombre}</strong> <span style="color:var(--txt2);font-size:11px">Saldo: ${fmt(c.saldo)}</span></div>`).join('');
+  drop.innerHTML=m.map(c=>`<div onmousedown="selCliNC(${c.id})"><strong>${esc(c.nombre)}</strong> <span style="color:var(--txt2);font-size:11px">Saldo: ${fmt(c.saldo)}</span></div>`).join('');
   drop.style.display=m.length?'block':'none';
 }
 
@@ -1165,7 +1164,7 @@ function dropProNC(){
   const drop=document.getElementById('nc-pro-drop');
   if(q.length<1){drop.style.display='none';_ncProTemp=null;return;}
   const m=_productos.filter(p=>(p.nombre||'').toLowerCase().includes(q)||(p.codigo||'').toString().includes(q));
-  drop.innerHTML=m.map(p=>`<div onmousedown="selProNC(${p.id})"><strong>${p.nombre}</strong> <span style="color:var(--txt2);font-size:11px">${fmt(p.precio)} · stock:${p.stock||0} ${p.unidad||''}</span></div>`).join('');
+  drop.innerHTML=m.map(p=>`<div onmousedown="selProNC(${p.id})"><strong>${esc(p.nombre)}</strong> <span style="color:var(--txt2);font-size:11px">${fmt(p.precio)} · stock:${p.stock||0} ${p.unidad||''}</span></div>`).join('');
   drop.style.display=m.length?'block':'none';
 }
 
@@ -1241,7 +1240,7 @@ function renderItemsNC(){
   el.innerHTML=_ncItems.map((it,i)=>{
     const subtot=it.precio*it.cant;tot+=subtot;
     return `<div class="pitem">
-      <span class="pnom">${it.nom}</span>
+      <span class="pnom">${esc(it.nom)}</span>
       <input type="number" value="${it.cant}" min="0.01" step="0.01" onchange="_ncItems[${i}].cant=parseFloat(this.value)||0;renderItemsNC()" style="width:70px">
       <span style="color:var(--txt2);font-size:11px">${it.un}</span>
       <span class="ptot">${fmt(subtot)}</span>
@@ -1320,13 +1319,13 @@ function verNCDetalle(id){
   const motivoTxt=esND?n.motivo.replace('ND:',''):n.motivo;
   const body=`
     <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:13px;margin-bottom:10px">
-      <span>Motivo: <b>${motivoTxt||'—'}</b></span>
+      <span>Motivo: <b>${esc(motivoTxt)||'—'}</b></span>
       ${n.remito_id?`<span>Vinculada a: <b>R-${String(n.remito_id).padStart(4,'0')}</b></span>`:''}
     </div>
-    ${n.observaciones?`<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">Obs: ${n.observaciones}</div>`:''}
+    ${n.observaciones?`<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">Obs: ${esc(n.observaciones)}</div>`:''}
     <div style="text-align:right;font-size:16px;font-weight:700;color:var(--PD);border-top:2px solid var(--brd);padding-top:10px">Importe: ${fmt(Math.abs(n.importe))}</div>
   `;
-  popupDetalle((esND?'ND-':'NC-')+String(n.id).padStart(4,'0'),`${n.cliente||''} · ${n.fecha}`,body);
+  popupDetalle((esND?'ND-':'NC-')+String(n.id).padStart(4,'0'),`${esc(n.cliente||'')} · ${n.fecha}`,body);
 }
 
 function imprimirNC(id){
@@ -1334,7 +1333,7 @@ function imprimirNC(id){
   const esND=(n.motivo||'').startsWith('ND:');
   const nro=(esND?'ND-':'NC-')+String(n.id).padStart(4,'0');
   const motivoTxt=esND?n.motivo.replace('ND:',''):n.motivo;
-  const filasItems=(n.items||[]).map(it=>`<tr><td style="padding:4px 6px;border-bottom:1px solid #eee">${it.nom}</td><td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:center">${it.cant}</td><td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:right">${fmt(it.precio)}</td></tr>`).join('');
+  const filasItems=(n.items||[]).map(it=>`<tr><td style="padding:4px 6px;border-bottom:1px solid #eee">${esc(it.nom)}</td><td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:center">${it.cant}</td><td style="padding:4px 6px;border-bottom:1px solid #eee;text-align:right">${fmt(it.precio)}</td></tr>`).join('');
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><title>${nro}</title>
   <style>
@@ -1351,12 +1350,12 @@ function imprimirNC(id){
     <div class="nro">${esND?'NOTA DE DÉBITO':'NOTA DE CRÉDITO'} ${nro}</div>
   </div>
   <div class="row"><span><b>Fecha:</b></span><span>${n.fecha||'—'}</span></div>
-  <div class="row"><span><b>Cliente:</b></span><span>${n.cliente||'—'}</span></div>
-  <div class="row"><span><b>Motivo:</b></span><span>${motivoTxt||'—'}</span></div>
+  <div class="row"><span><b>Cliente:</b></span><span>${esc(n.cliente||'—')}</span></div>
+  <div class="row"><span><b>Motivo:</b></span><span>${esc(motivoTxt)||'—'}</span></div>
   ${n.remito_id?`<div class="row"><span><b>Factura vinculada:</b></span><span>R-${String(n.remito_id).padStart(4,'0')}</span></div>`:''}
   ${filasItems?`<table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:13px"><thead><tr><th style="text-align:left;padding:4px 6px;border-bottom:1px solid #000">Producto</th><th style="padding:4px 6px;border-bottom:1px solid #000">Cant.</th><th style="text-align:right;padding:4px 6px;border-bottom:1px solid #000">Precio</th></tr></thead><tbody>${filasItems}</tbody></table>`:''}
   <div class="row total"><span>IMPORTE</span><span>${fmt(Math.abs(n.importe))}</span></div>
-  ${n.observaciones?`<div style="font-size:12px;color:#555;margin-top:8px">Obs: ${n.observaciones}</div>`:''}
+  ${n.observaciones?`<div style="font-size:12px;color:#555;margin-top:8px">Obs: ${esc(n.observaciones)}</div>`:''}
   <div style="text-align:center;margin-top:16px"><button onclick="window.print()" style="padding:8px 20px;background:#1a7a52;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">🖨️ Imprimir</button></div>
   </body></html>`);
   w.document.close();
@@ -1369,10 +1368,10 @@ function renderNCs(){
   if(!data.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty">${_ncs.length?'Sin resultados':'Sin notas de crédito'}</div></td></tr>`;return;}
   tbody.innerHTML=data.map(n=>`<tr data-nc-id="${n.id}">
     <td style="font-weight:600;color:var(--A)">NC-${String(n.id).padStart(4,'0')}</td>
-    <td>${n.fecha}</td><td style="font-weight:500">${n.cliente}</td>
-    <td><span class="b ${n.motivo==='devolucion'?'bW':'bA'}">${n.motivo||''}</span></td>
+    <td>${n.fecha}</td><td style="font-weight:500">${esc(n.cliente)}</td>
+    <td><span class="b ${esc(n.motivo==='devolucion'?'bW':'bA')}">${esc(n.motivo||'')}</span></td>
     <td style="font-weight:600;color:var(--D)">${fmt(n.importe)}</td>
-    <td>${n.observaciones||'—'}</td>
+    <td>${esc(n.observaciones||'—')}</td>
     <td><button class="btn sm" onclick="imprimirNC(${n.id})" title="Imprimir">🖨</button></td>
   </tr>`).join('');
 }
@@ -1394,7 +1393,7 @@ function dropCliND(){
   const drop=document.getElementById('nd-cli-drop');if(!drop)return;
   if(q.length<1){drop.style.display='none';return;}
   const m=_clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q));
-  drop.innerHTML=m.map(c=>`<div onmousedown="selCliND(${c.id})"><strong>${c.nombre}</strong> <span style="color:var(--txt2);font-size:11px">Saldo: ${fmt(c.saldo)}</span></div>`).join('');
+  drop.innerHTML=m.map(c=>`<div onmousedown="selCliND(${c.id})"><strong>${esc(c.nombre)}</strong> <span style="color:var(--txt2);font-size:11px">Saldo: ${fmt(c.saldo)}</span></div>`).join('');
   drop.style.display=m.length?'block':'none';
 }
 
@@ -1566,8 +1565,8 @@ function buscarClienteMovil(){
   lista.innerHTML=m.map(c=>`
     <div onclick="selClienteMovil(${c.id})" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--brd);cursor:pointer;background:#fff;active:background:var(--PL)">
       <div>
-        <div style="font-size:15px;font-weight:600">[${c.codigo||c.id}] ${c.nombre.toUpperCase()}</div>
-        <div style="font-size:12px;color:var(--txt2)">${c.direccion||''} ${c.localidad||''} · Tel: ${c.telefono||'—'}</div>
+        <div style="font-size:15px;font-weight:600">[${c.codigo||c.id}] ${esc(c.nombre.toUpperCase())}</div>
+        <div style="font-size:12px;color:var(--txt2)">${esc(c.direccion||'')} ${esc(c.localidad||'')} · Tel: ${esc(c.telefono||'—')}</div>
       </div>
       <div style="text-align:right;min-width:80px">
         <div style="font-size:14px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
@@ -1579,8 +1578,8 @@ function buscarClienteMovil(){
 function selClienteMovil(id){
   const c=_clientes.find(x=>x.id===id);if(!c)return;
   _pmCliId=id;
-  document.getElementById('pm-cli-nombre').textContent=`[${c.codigo||c.id}] ${c.nombre.toUpperCase()}`;
-  document.getElementById('pm-cli-detalle').textContent=`${c.localidad||''} · ${c.telefono||''}`;
+  document.getElementById('pm-cli-nombre').textContent=`[${c.codigo||c.id}] ${esc(c.nombre.toUpperCase())}`;
+  document.getElementById('pm-cli-detalle').textContent=`${esc(c.localidad||'')} · ${esc(c.telefono||'')}`;
   const saldoEl=document.getElementById('pm-cli-saldo');
   const saldoWrap=document.getElementById('pm-cli-saldo-wrap');
   if(saldoEl){saldoEl.textContent=fmt(c.saldo||0);saldoEl.style.color=(c.saldo||0)>0?'#ffb3b3':'#b3ffcc';}
@@ -1605,7 +1604,7 @@ async function verSaldoMovil(){
   modal.innerHTML=`<div style="background:var(--bg);border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:85vh;overflow-y:auto">
     <div style="padding:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div style="font-size:15px;font-weight:700;color:var(--PD)">${c.nombre}</div>
+        <div style="font-size:15px;font-weight:700;color:var(--PD)">${esc(c.nombre)}</div>
         <button onclick="document.getElementById('pm-saldo-modal').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--txt2)">✕</button>
       </div>
       <div style="background:var(--PL);border-radius:10px;padding:12px;margin-bottom:14px;text-align:center">
@@ -1648,7 +1647,7 @@ async function verSaldoMovil(){
       (!esCobro?'<span style="font-size:10px;background:#e8f5e9;color:#2e7d32;padding:2px 6px;border-radius:4px;margin-left:4px">✓ cobrado</span>':''  );
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:0.5px solid var(--brd)">
       <div>
-        <div style="font-size:14px;font-weight:600">${m.desc}${badge}</div>
+        <div style="font-size:14px;font-weight:600">${esc(m.desc)}${badge}</div>
         <div style="font-size:11px;color:var(--txt2)">${m.fecha}</div>
       </div>
       <div style="font-size:16px;font-weight:700;color:${color}">${signo}${fmt(m.importe)}</div>
@@ -1691,7 +1690,7 @@ function toggleMarcaMovil(marca,key,pref){
   else{
     const items=_pmItemsActuales()||[];
     const prods=_productos.filter(p=>_pmMarcaDe(p)===marca&&p.activo!==false);
-    div.innerHTML=prods.map(p=>{const enCarrito=items.find(x=>x.id===p.id);const si=_stockInfo(p);return `<div onclick="abrirPopupMovil(${p.id})" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--brd);cursor:pointer;background:${enCarrito?'var(--PL)':'#fff'};border-left:${enCarrito?'4px solid var(--P)':'4px solid transparent'}"><div style="flex:1"><div style="font-size:15px;font-weight:${enCarrito?'700':'500'}">${p.nombre}</div><div style="font-size:12px;color:${si.color};font-weight:${si.peso};margin-top:2px">${si.txt}</div>${enCarrito?`<div style="font-size:12px;color:var(--P);font-weight:600">✓ ${enCarrito.cant} ${p.unidad||''} en pedido</div>`:''}</div><div style="text-align:right;margin-left:12px"><div style="font-size:15px;font-weight:700;color:var(--PD)">${fmt(p.precio||0)}</div><div style="width:30px;height:30px;border-radius:50%;background:var(--P);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;margin-left:auto;margin-top:2px">+</div></div></div>`;}).join('')||`<div style="padding:14px 18px;color:var(--txt2);font-size:13px">Sin productos</div>`;
+    div.innerHTML=prods.map(p=>{const enCarrito=items.find(x=>x.id===p.id);const si=_stockInfo(p);return `<div onclick="abrirPopupMovil(${p.id})" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--brd);cursor:pointer;background:${enCarrito?'var(--PL)':'#fff'};border-left:${enCarrito?'4px solid var(--P)':'4px solid transparent'}"><div style="flex:1"><div style="font-size:15px;font-weight:${enCarrito?'700':'500'}">${esc(p.nombre)}</div><div style="font-size:12px;color:${si.color};font-weight:${si.peso};margin-top:2px">${si.txt}</div>${enCarrito?`<div style="font-size:12px;color:var(--P);font-weight:600">✓ ${enCarrito.cant} ${p.unidad||''} en pedido</div>`:''}</div><div style="text-align:right;margin-left:12px"><div style="font-size:15px;font-weight:700;color:var(--PD)">${fmt(p.precio||0)}</div><div style="width:30px;height:30px;border-radius:50%;background:var(--P);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;margin-left:auto;margin-top:2px">+</div></div></div>`;}).join('')||`<div style="padding:14px 18px;color:var(--txt2);font-size:13px">Sin productos</div>`;
     div.style.display='block';if(chev)chev.textContent='⌄';
     div.scrollIntoView({behavior:'smooth',block:'nearest'});
   }
@@ -1710,7 +1709,7 @@ function abrirPopupMovil(prodId){
   const _lpPrecioMostrar=_lpPrecioLista!=null?_lpPrecioLista:_lpPrecioBase;
   const _lpListaNom=_pmCliId&&getListaCliente(_pmCliId)?(_listasPrecios.find(l=>l.id==getListaCliente(_pmCliId))?.nombre||''):'';
   const _siPop=_stockInfo(p);
-  document.getElementById('pm-popup-precio').innerHTML=fmt(_lpPrecioMostrar)+' <span style="color:var(--txt2)">'+(p.unidad||'')+'</span>'+(_lpListaNom?` <span style="font-size:11px;background:var(--PL);color:var(--PD);border-radius:4px;padding:1px 5px">${_lpListaNom}</span>`:'')+`<div style="font-size:13px;font-weight:${_siPop.peso};color:${_siPop.color};margin-top:4px">${_siPop.txt}</div>`;
+  document.getElementById('pm-popup-precio').innerHTML=fmt(_lpPrecioMostrar)+' <span style="color:var(--txt2)">'+(p.unidad||'')+'</span>'+(_lpListaNom?` <span style="font-size:11px;background:var(--PL);color:var(--PD);border-radius:4px;padding:1px 5px">${esc(_lpListaNom)}</span>`:'')+`<div style="font-size:13px;font-weight:${_siPop.peso};color:${_siPop.color};margin-top:4px">${_siPop.txt}</div>`;
   document.getElementById('pm-cant').value=existente?existente.cant:1;
   document.getElementById('pm-dto').value=existente?existente.dto:(p.descuento||0);
   // En modo edición ocultar el backdrop del sheet para evitar doble oscurecimiento
@@ -1799,7 +1798,7 @@ function mostrarResumenMovil(){
   document.getElementById('pm-resumen-items').innerHTML=_pmCarrito.map(x=>`
     <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--brd);font-size:14px">
       <div>
-        <div style="font-weight:600">${x.nom}</div>
+        <div style="font-weight:600">${esc(x.nom)}</div>
         <div style="color:var(--txt2);font-size:12px">${x.cant} ${x.un} × ${fmt(x.precio)}${x.dto>0?' − '+x.dto+'%':''}</div>
       </div>
       <div style="font-weight:700;color:var(--PD)">${fmt(x.neto)}</div>
@@ -1926,7 +1925,7 @@ function verCobranzaHoy(){
         if(c.cheque_terceros>0)formas.push('Ch:'+fmt(c.cheque_terceros));
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--brd)">
           <div>
-            <div style="font-size:14px;font-weight:600">${c.cliente}</div>
+            <div style="font-size:14px;font-weight:600">${esc(c.cliente)}</div>
             <div style="font-size:11px;color:var(--txt2)">${formas.join(' · ')||c.forma||'—'}</div>
           </div>
           <div style="font-size:16px;font-weight:700;color:var(--P)">${fmt(c.importe)}</div>
@@ -1966,7 +1965,7 @@ function detalleMovilHTML(p){
     tot += neto;
     return `<div style="display:flex;align-items:center;min-height:52px;padding:10px 0;border-bottom:1px solid var(--brd);gap:8px">
       <div style="flex:1;min-width:0">
-        <div style="font-size:16px;font-weight:600;line-height:1.3">${it.nom}</div>
+        <div style="font-size:16px;font-weight:600;line-height:1.3">${esc(it.nom)}</div>
         <div style="font-size:14px;color:var(--txt2);margin-top:2px">${fmt(it.precio)} × ${fmtN(it.cant,2)} ${it.un||'un'}${it.dto?` · ${it.dto}% dto`:''}</div>
       </div>
       <div style="font-size:17px;font-weight:700;color:var(--P);flex-shrink:0">${fmt(neto)}</div>
@@ -1978,7 +1977,7 @@ function detalleMovilHTML(p){
       <span style="color:var(--txt2);font-size:14px">Total</span>
       <span style="color:var(--P)">${fmt(tot)}</span>
     </div>
-    ${obs?`<div style="font-size:14px;color:var(--txt2);padding:6px 0">📝 ${obs}</div>`:''}`;
+    ${obs?`<div style="font-size:14px;color:var(--txt2);padding:6px 0">📝 ${esc(obs)}</div>`:''}`;
 }
 
 function verMisPedidosHoy(){
@@ -2002,8 +2001,8 @@ function verMisPedidosHoy(){
         <div style="background:var(--bg);border:1.5px solid var(--brd);border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
           <div onclick="toggleDetallePedMovil(${p.id})" style="display:flex;justify-content:space-between;align-items:center;padding:14px;cursor:pointer;border-left:4px solid var(--P)">
             <div style="flex:1;min-width:0">
-              <div style="font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.cliente}</div>
-              <div style="font-size:13px;color:var(--txt2);margin-top:3px">${p.items?.length||0} productos · ${p.localidad||''}${p.visita?' · '+p.visita:''}</div>
+              <div style="font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.cliente)}</div>
+              <div style="font-size:13px;color:var(--txt2);margin-top:3px">${p.items?.length||0} productos · ${esc(p.localidad||'')}${p.visita?' · '+p.visita:''}</div>
               <div style="margin-top:5px">${stBadge(p.estado)}</div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;margin-left:12px;flex-shrink:0">
@@ -2090,7 +2089,7 @@ function renderEditPedidoMovil(){
   const filas=items.map((it,i)=>`
     <div style="display:flex;align-items:center;min-height:48px;padding:6px 0;border-bottom:1px solid var(--brd);gap:8px">
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--txt)">${it.nom}</div>
+        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--txt)">${esc(it.nom)}</div>
         <div style="font-size:11px;color:var(--txt2)">${fmt(it.precio)}</div>
       </div>
       <input type="number" inputmode="decimal" value="${it.cant}" min="0" step="0.5"
@@ -2131,8 +2130,8 @@ function filtrarAgregarMovil(){
     return `<div onclick="abrirPopupMovil(${p.id})"
       style="padding:12px 14px;border-bottom:1px solid var(--brd);cursor:pointer;min-height:52px;display:flex;align-items:center;gap:10px;background:${enEdit?'var(--PL)':''}">
       <div style="flex:1;min-width:0">
-        <div style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nombre}</div>
-        ${sub?`<div style="font-size:11px;color:var(--txt2)">${sub}</div>`:''}
+        <div style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.nombre)}</div>
+        ${sub?`<div style="font-size:11px;color:var(--txt2)">${esc(sub)}</div>`:''}
         <div style="font-size:12px;color:${si.color};font-weight:${si.peso}">${si.txt}</div>
         ${enEdit?`<div style="font-size:12px;color:var(--P);font-weight:600">✓ ${enEdit.cant} ${p.unidad||''} en pedido</div>`:''}
       </div>

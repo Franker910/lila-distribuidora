@@ -12,7 +12,7 @@ async function cobrarRemito(id){
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:3000;display:flex;align-items:center;justify-content:center';
   modal.innerHTML = `<div style="background:var(--bg);border-radius:12px;padding:20px;width:360px;max-width:95vw">
     <div style="font-weight:600;font-size:15px;margin-bottom:4px">💵 Cobrar remito R-${String(r.id).padStart(4,'0')}</div>
-    <div style="font-size:13px;color:var(--txt2);margin-bottom:14px">${r.cliente} · Saldo: ${fmt(saldo)}</div>
+    <div style="font-size:13px;color:var(--txt2);margin-bottom:14px">${esc(r.cliente)} · Saldo: ${fmt(saldo)}</div>
     <div style="margin-bottom:10px">
       <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Importe a cobrar</label>
       <input type="number" id="cob-rap-imp" value="${saldo}" style="width:100%;font-size:18px;font-weight:600;box-sizing:border-box">
@@ -73,22 +73,22 @@ function detalleHTML(d,isRem){
   const rows=(d.items||[]).map(it=>{
     const base=it.precio*it.cant,dtoA=base*(it.dto/100),neto=base-dtoA;
     sub+=base;dtoT+=dtoA;tot+=neto;
-    return `<tr><td>${it.nom}</td><td style="text-align:center">${fmtN(it.cant,2)} ${it.un||''}</td><td style="text-align:right">${fmt(it.precio)}</td><td style="text-align:center">${it.dto||0}%</td><td style="text-align:right;font-weight:600">${fmt(neto)}</td></tr>`;
+    return `<tr><td>${esc(it.nom)}</td><td style="text-align:center">${fmtN(it.cant,2)} ${it.un||''}</td><td style="text-align:right">${fmt(it.precio)}</td><td style="text-align:center">${it.dto||0}%</td><td style="text-align:right;font-weight:600">${fmt(neto)}</td></tr>`;
   }).join('');
   return `<div style="font-size:13px">
     <div style="display:flex;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
       <div>
         <div style="font-size:16px;font-weight:700;color:#1a7a52">${num}</div>
         <div style="color:#555">Fecha: ${d.fecha||''}</div>
-        ${d.vendedor?`<div style="color:#555">Vendedor: ${d.vendedor}</div>`:''}
-        ${isRem&&d.carga_id?`<div style="color:#555">Carga: #${d.carga_id}${_cargas.find(c=>c.id===d.carga_id)?.nombre?' · '+_cargas.find(c=>c.id===d.carga_id).nombre:''}</div>`:''}
+        ${d.vendedor?`<div style="color:#555">Vendedor: ${esc(d.vendedor)}</div>`:''}
+        ${isRem&&d.carga_id?`<div style="color:#555">Carga: #${d.carga_id}${_cargas.find(c=>c.id===d.carga_id)?.nombre?' · '+esc(_cargas.find(c=>c.id===d.carga_id).nombre):''}</div>`:''}
       </div>
       <div style="text-align:right;border-left:3px solid #1a7a52;padding-left:12px">
-        <div style="font-weight:700;font-size:14px">${d.cliente}</div>
-        ${dir?`<div style="color:#555">${dir}</div>`:''}
-        <div style="color:#555">${d.localidad||''} · Zona ${_zonas.find(z=>z.codigo===d.zona)?.descripcion||d.zona||'-'}</div>
-        ${tel?`<div style="color:#555">Tel: ${tel}</div>`:''}
-        ${d.lugar_entrega?`<div style="color:#c07000;font-weight:600">📍 Entrega: ${d.lugar_entrega}</div>`:''}
+        <div style="font-weight:700;font-size:14px">${esc(d.cliente)}</div>
+        ${dir?`<div style="color:#555">${esc(dir)}</div>`:''}
+        <div style="color:#555">${esc(d.localidad||'')} · Zona ${_zonas.find(z=>z.codigo===d.zona)?.descripcion||d.zona||'-'}</div>
+        ${tel?`<div style="color:#555">Tel: ${esc(tel)}</div>`:''}
+        ${d.lugar_entrega?`<div style="color:#c07000;font-weight:600">📍 Entrega: ${esc(d.lugar_entrega)}</div>`:''}
       </div>
     </div>
     <div class="tbl-wrap"><table style="width:100%;border-collapse:collapse;font-size:12px">
@@ -97,7 +97,7 @@ function detalleHTML(d,isRem){
     </table></div>
     <div style="margin-top:8px;font-size:12px;color:#777">${dtoT>0?'Descuento: '+fmt(dtoT):''}</div>
     <div style="margin-top:6px;text-align:right;font-size:16px">Total: <strong style="color:#1a7a52">${fmt(tot)}</strong></div>
-    ${(d.observaciones||d.obs)?`<div style="margin-top:8px;color:#555;font-size:12px">Obs: ${d.observaciones||d.obs}</div>`:''}
+    ${(d.observaciones||d.obs)?`<div style="margin-top:8px;color:#555;font-size:12px">Obs: ${esc(d.observaciones||d.obs)}</div>`:''}
   </div>`;
 }
 
@@ -237,7 +237,7 @@ function dropCliCob(){
   const drop=document.getElementById('cob-cli-drop');
   if(q.length<1){drop.style.display='none';return;}
   const m=_clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q));
-  drop.innerHTML=m.map(c=>`<div onmousedown="selCliCob(${c.id})"><strong>${c.nombre}</strong> <span style="color:var(--txt2);font-size:11px">Saldo: ${fmt(c.saldo)}</span></div>`).join('');
+  drop.innerHTML=m.map(c=>`<div onmousedown="selCliCob(${c.id})"><strong>${esc(c.nombre)}</strong> <span style="color:var(--txt2);font-size:11px">Saldo: ${fmt(c.saldo)}</span></div>`).join('');
   drop.style.display=m.length?'block':'none';
 }
 
@@ -252,7 +252,7 @@ function selCliCob(id){
   const ciTxt=document.getElementById('cob-cli-info-txt');
   if(ci){
     const dias=diasDesde(c.ultimo_remito);
-    if(ciTxt)ciTxt.innerHTML=`<b>${c.nombre}</b> · ${c.localidad||''} · ${c.direccion?'📍 '+c.direccion+' · ':''} ${c.telefono||'—'} · Saldo: <b style="${(c.saldo||0)>0?'color:var(--D)':''}">${fmt(c.saldo)}</b>${dias!==null?` · Último rem: ${dias}d`:''}`;
+    if(ciTxt)ciTxt.innerHTML=`<b>${esc(c.nombre)}</b> · ${esc(c.localidad||'')} · ${esc(c.direccion?'📍 '+esc(c.direccion)+' · ':'')} ${esc(c.telefono||'—')} · Saldo: <b style="${(c.saldo||0)>0?'color:var(--D)':''}">${fmt(c.saldo)}</b>${dias!==null?` · Último rem: ${dias}d`:''}`;
     ci.style.display='flex';
   }
   // Mostrar remitos pendientes
@@ -329,7 +329,7 @@ function verRemitoEnCobro(id){
   const rows=(r.items||[]).map(it=>{
     const q=it.esPeso?(it.peso||it.cant||0):it.cant;
     const sub=it.precio*q*(1-(it.dto||0)/100);
-    return `<tr><td style="padding:6px 10px;border-bottom:1px solid var(--brd)">${it.nom}</td><td style="padding:6px 10px;border-bottom:1px solid var(--brd);text-align:center">${q}</td><td style="padding:6px 10px;border-bottom:1px solid var(--brd);text-align:center;color:var(--txt2)">${it.un||''}</td><td style="padding:6px 10px;border-bottom:1px solid var(--brd);text-align:right">${fmt(sub)}</td></tr>`;
+    return `<tr><td style="padding:6px 10px;border-bottom:1px solid var(--brd)">${esc(it.nom)}</td><td style="padding:6px 10px;border-bottom:1px solid var(--brd);text-align:center">${q}</td><td style="padding:6px 10px;border-bottom:1px solid var(--brd);text-align:center;color:var(--txt2)">${it.un||''}</td><td style="padding:6px 10px;border-bottom:1px solid var(--brd);text-align:right">${fmt(sub)}</td></tr>`;
   }).join('');
   const ov=document.createElement('div');
   ov.id='cob-rem-popup';
@@ -339,7 +339,7 @@ function verRemitoEnCobro(id){
       <span style="font-size:16px;font-weight:700;color:var(--P)">${num}</span>
       <button onclick="document.getElementById('cob-rem-popup').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--txt2);line-height:1">✕</button>
     </div>
-    <div style="font-size:12px;color:var(--txt2);margin-bottom:12px">${r.cliente} · ${r.fecha}</div>
+    <div style="font-size:12px;color:var(--txt2);margin-bottom:12px">${esc(r.cliente)} · ${r.fecha}</div>
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead><tr style="background:var(--bg2)">
         <th style="padding:6px 10px;text-align:left;font-weight:600">Producto</th>
@@ -369,19 +369,19 @@ function verCobroDetalle(id){
     <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:13px;margin-bottom:10px">
       <span>Forma: <b>${r.forma||'—'}</b></span>
       <span>Estado: <b>${estBadge}</b></span>
-      ${r.reparto?`<span>Reparto: <b>${r.reparto}</b></span>`:''}
-      ${r.vendedor?`<span>Cobrador: <b>${r.vendedor}</b></span>`:''}
+      ${r.reparto?`<span>Reparto: <b>${esc(r.reparto)}</b></span>`:''}
+      ${r.vendedor?`<span>Cobrador: <b>${esc(r.vendedor)}</b></span>`:''}
     </div>
     ${impRows?`<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px">
       <thead><tr style="background:var(--bg2)"><th style="padding:5px 8px;text-align:left">Imputado a</th><th style="padding:5px 8px;text-align:right">Monto</th></tr></thead>
       <tbody>${impRows}</tbody>
     </table>`:''}
-    ${r.observaciones?`<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">Obs: ${r.observaciones}</div>`:''}
+    ${r.observaciones?`<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">Obs: ${esc(r.observaciones)}</div>`:''}
     ${r.comprobante_url?`<div style="margin-bottom:8px"><a href="${r.comprobante_url}" target="_blank">📎 Ver comprobante adjunto</a></div>`:''}
     <div style="text-align:right;font-size:16px;font-weight:700;color:var(--PD);border-top:2px solid var(--brd);padding-top:10px">Total: ${fmt(r.importe)}</div>
     <button class="btn P" style="width:100%;margin-top:12px" onclick="imprimirRecibo(${r.id})">🧾 Ver / imprimir recibo</button>
   `;
-  popupDetalle('RC-'+String(r.id).padStart(4,'0'),`${r.cliente||''} · ${r.fecha}`,body);
+  popupDetalle('RC-'+String(r.id).padStart(4,'0'),`${esc(r.cliente||'')} · ${r.fecha}`,body);
 }
 
 function limitarImputacion(input, maxRemito){
@@ -601,11 +601,11 @@ function renderCobros(){
     const rendAcciones=esAdmin&&estRend==='pendiente'?`<button class="btn sm" style="background:var(--G);color:#fff;font-size:10px" onclick="validarCobro(${r.id})" title="Validar cobro — aplica saldo">✅</button><button class="btn sm D" style="font-size:10px" onclick="rechazarCobro(${r.id})" title="Rechazar cobro — sin cambio de saldo">❌</button>`:'';
     return `<tr>
       <td>${r.fecha}</td>
-      <td style="font-weight:500">${r.cliente}</td>
+      <td style="font-weight:500">${esc(r.cliente)}</td>
       <td style="font-size:11px;color:var(--txt2)">${formas.join(' · ')||r.forma||'—'}${compLink}</td>
-      <td style="font-size:11px;color:var(--txt2)">${r.reparto||'—'}</td>
+      <td style="font-size:11px;color:var(--txt2)">${esc(r.reparto||'—')}</td>
       <td style="font-weight:600;color:var(--P)">${fmt(r.importe)}</td>
-      <td>${r.vendedor||'—'}</td>
+      <td>${esc(r.vendedor||'—')}</td>
       <td>${transfBadge} ${transfAcciones}</td>
       <td>${rendBadge} ${rendAcciones}</td>
       <td><button class="btn sm" onclick="imprimirRecibo(${r.id})">🖨️</button></td>
@@ -738,7 +738,7 @@ function renderListaHojasRuta(){
     const vendJsSafe=g.vendedor.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     return `<div onclick="seleccionarHojaRendicion('${g.fecha}','${vendJsSafe}')"
       style="cursor:pointer;padding:10px 14px;border-radius:8px;margin-bottom:6px;border:1.5px solid ${sel?'var(--P)':'var(--brd)'};background:${sel?'var(--PL)':'var(--bg)'};display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <div><b>${g.vendedor}</b> <span style="color:var(--txt2);font-size:12px">— ${fechaFmt} · ${g.filas.length} cliente${g.filas.length>1?'s':''}</span>
+      <div><b>${esc(g.vendedor)}</b> <span style="color:var(--txt2);font-size:12px">— ${fechaFmt} · ${g.filas.length} cliente${g.filas.length>1?'s':''}</span>
         ${cerradoPor&&cerradoPor.toLowerCase()!==g.vendedor.toLowerCase()?`<span style="color:var(--txt2);font-size:11px"> · cerrada por ${cerradoPor}</span>`:''}
       </div>
       <div style="display:flex;gap:8px;align-items:center;font-size:11px">
@@ -824,9 +824,9 @@ function renderGrillaRendicion(){
     const chk=puedeAccion?`<input type="checkbox" class="rend-chk" data-cobid="${f.cobPrincipal.id}">`:'';
     return `<tr>
       <td>${chk}</td>
-      <td style="font-weight:500">${nombre}</td>
-      <td>${f.zona?`<span class="b bA">${_zonas.find(z=>z.codigo===f.zona)?.descripcion||f.zona}</span>`:'—'}</td>
-      <td>${vendedor}</td>
+      <td style="font-weight:500">${esc(nombre)}</td>
+      <td>${f.zona?`<span class="b bA">${esc(_zonas.find(z=>z.codigo===f.zona)?.descripcion||f.zona)}</span>`:'—'}</td>
+      <td>${esc(vendedor)}</td>
       <td style="text-align:right">${f.importeRemito?fmt(f.importeRemito):'—'}</td>
       <td style="text-align:center">${f.cobs.length?'✅ Sí':'—'}</td>
       <td style="text-align:right;${f.importeCobrado?'font-weight:700;color:var(--P)':''}">${f.importeCobrado?fmt(f.importeCobrado):'—'}</td>
@@ -856,7 +856,7 @@ function renderGrillaRendicion(){
     ${gastos.length?`
     <div class="card" style="margin-top:10px">
       <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;margin-bottom:8px">⛽ Gastos de reparto</div>
-      ${gastos.map(g=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:var(--txt2)"><span>${g.concepto}${g.proveedor?' · '+g.proveedor:''}</span><span>${fmt(g.importe)}</span></div>`).join('')}
+      ${gastos.map(g=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:var(--txt2)"><span>${esc(g.concepto)}${esc(g.proveedor?' · '+g.proveedor:'')}</span><span>${fmt(g.importe)}</span></div>`).join('')}
       <div style="display:flex;justify-content:space-between;border-top:1px solid var(--brd);margin-top:8px;padding-top:8px;font-size:13px;font-weight:700">
         <span>Total cobrado</span><span>${fmt(totalCobrado)}</span>
       </div>
@@ -936,7 +936,7 @@ function renderSinHojaRuta(){
     const puede=esAdmin&&est==='pendiente';
     const chk=puede?`<input type="checkbox" class="rend-sh-chk" data-cobid="${c.id}">`:'';
     const acciones=puede?`<button class="btn sm" style="background:var(--G);color:#fff;font-size:10px" onclick="validarCobro(${c.id})">✅</button><button class="btn sm D" style="font-size:10px" onclick="rechazarCobro(${c.id})">❌</button>`:'';
-    return `<tr><td>${chk}</td><td style="font-weight:500">${c.cliente||'?'}</td><td>${c.fecha}</td><td>${c.vendedor||'—'}</td><td style="text-align:right;font-weight:700;color:var(--P)">${fmt(c.importe)}</td><td style="font-size:11px;color:var(--txt2)">${c.forma||'—'}</td><td>${c.numero_rendicion||'—'}</td><td>${badge}</td><td style="white-space:nowrap">${acciones}</td></tr>`;
+    return `<tr><td>${chk}</td><td style="font-weight:500">${esc(c.cliente||'?')}</td><td>${c.fecha}</td><td>${esc(c.vendedor||'—')}</td><td style="text-align:right;font-weight:700;color:var(--P)">${fmt(c.importe)}</td><td style="font-size:11px;color:var(--txt2)">${c.forma||'—'}</td><td>${c.numero_rendicion||'—'}</td><td>${badge}</td><td style="white-space:nowrap">${acciones}</td></tr>`;
   }).join('');
   el.innerHTML=`
     <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
@@ -1065,7 +1065,7 @@ function imprimirRecibo(id){
   if((r.efectivo||0)>0)medios.push(['Efectivo',r.efectivo]);
   if((r.transferencia||0)>0)medios.push(['Transferencia',r.transferencia]);
   if((r.cheque_propio||0)>0)medios.push(['Cheque propio',r.cheque_propio]);
-  if((r.cheque_terceros||0)>0)medios.push([`Cheque de terceros${r.banco_cheque?' ('+r.banco_cheque+')':''}${r.nro_cheque?' Nro:'+r.nro_cheque:''}`,r.cheque_terceros]);
+  if((r.cheque_terceros||0)>0)medios.push([`Cheque de terceros${esc(r.banco_cheque?' ('+esc(r.banco_cheque)+')':'')}${r.nro_cheque?' Nro:'+r.nro_cheque:''}`,r.cheque_terceros]);
   const filasMedios=medios.map(([label,val])=>`
     <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #000;font-size:12px">
       <span>${label}</span><span>${fmt(val)}</span>
@@ -1088,7 +1088,7 @@ function imprimirRecibo(id){
   const validadoRec=(r.estado_rendicion||'pendiente')==='validado';
   const saldoRestante=cliRec?Math.round(((cliRec.saldo||0)-(validadoRec?0:r.importe))*100)/100:null;
 
-  const textoCompartir=`Recibo ${nro} — Distribuidora Lila\nCliente: ${r.cliente}\nFecha: ${r.fecha}\nImporte: ${fmt(r.importe)}${saldoRestante!=null?`\nSaldo restante: ${fmt(saldoRestante)}`:''}`;
+  const textoCompartir=`Recibo ${nro} — Distribuidora Lila\nCliente: ${esc(r.cliente)}\nFecha: ${r.fecha}\nImporte: ${fmt(r.importe)}${saldoRestante!=null?`\nSaldo restante: ${fmt(saldoRestante)}`:''}`;
 
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><title>Recibo ${nro}</title>
@@ -1112,9 +1112,9 @@ function imprimirRecibo(id){
   </div>
 
   <div style="font-size:15px;margin-bottom:14px">
-    <b>Cliente:</b> ${r.cliente}${r.cliente_id?' (Cód: '+r.cliente_id+')':''}<br>
-    ${r.vendedor?`<b>Vendedor:</b> ${r.vendedor}<br>`:''}
-    ${r.reparto?`<b>Reparto:</b> ${r.reparto}<br>`:''}
+    <b>Cliente:</b> ${esc(r.cliente)}${esc(r.cliente_id?' (Cód: '+esc(r.cliente_id)+')':'')}<br>
+    ${r.vendedor?`<b>Vendedor:</b> ${esc(r.vendedor)}<br>`:''}
+    ${r.reparto?`<b>Reparto:</b> ${esc(r.reparto)}<br>`:''}
   </div>
 
   <div class="fila-medios">
@@ -1134,7 +1134,7 @@ function imprimirRecibo(id){
     </div>
   </div>
 
-  ${r.observaciones?`<div style="font-size:14px;margin-top:10px">Obs: ${r.observaciones}</div>`:''}
+  ${r.observaciones?`<div style="font-size:14px;margin-top:10px">Obs: ${esc(r.observaciones)}</div>`:''}
 
   <div style="display:flex;justify-content:flex-end;margin-top:16px">
     <table style="font-size:15px;min-width:260px;width:auto">
@@ -1249,10 +1249,10 @@ function renderCC(){
     const venc=c.saldo>0&&dias!==null&&dias>(c.condicion_pago||0)+5;
     const dColor=dias===null?'':venc?'color:var(--D);font-weight:600':dias<=(c.condicion_pago||0)?'color:var(--P)':'color:var(--W)';
     return `<tr style="${venc?'background:var(--DL)':''};cursor:pointer" onclick="histCliente(${c.id})">
-      <td style="font-weight:600">${c.nombre}<div style="font-size:10px;color:var(--txt2)">${c.telefono||''}</div></td>
-      <td>${c.localidad||''}</td>
+      <td style="font-weight:600">${esc(c.nombre)}<div style="font-size:10px;color:var(--txt2)">${esc(c.telefono||'')}</div></td>
+      <td>${esc(c.localidad||'')}</td>
       <td><span class="b bA">${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||'-'}</span></td>
-      <td>${c.vendedor||'—'}</td>
+      <td>${esc(c.vendedor||'—')}</td>
       <td style="color:var(--txt2);font-size:12px">${c.ultimo_remito||'—'}</td>
       <td style="${dColor}">${dias!==null?dias+'d':'—'}</td>
       <td style="${(c.saldo||0)>0?'color:var(--D);font-weight:600':'color:var(--P)'}">${fmt(c.saldo)}</td>
@@ -1316,7 +1316,7 @@ function _ccTarjetasHTML(movs,c){
   const filas=movs.map(m=>{
     const esHaber=m.haber>0;
     const monto=esHaber?'−'+fmt(m.haber):'+'+fmt(m.debe);
-    const sub=[m.fecha,m.forma||'',m.reparto?'Rep: '+m.reparto:''].filter(Boolean).join(' · ');
+    const sub=esc([m.fecha,m.forma||'',m.reparto?'Rep: '+m.reparto:''].filter(Boolean).join(' · '));
     return `<div tabindex="0" onclick="histAbrirDetalle('${m.tipo}',${m.id})"
       onkeydown="histNavFila(event,this,'${m.tipo}',${m.id})"
       onfocus="this.style.outline='2px solid var(--P)'" onblur="this.style.outline=''"
@@ -1332,7 +1332,7 @@ function _ccTarjetasHTML(movs,c){
           <div style="font-size:11px;color:var(--txt2);margin-top:2px">Saldo: <b style="color:${m.saldo>0?'var(--D)':'var(--P)'}">${fmt(m.saldo)}</b></div>
         </div>
       </div>
-      ${m.obs?`<div style="font-size:11px;color:var(--txt2);margin-top:5px;word-break:break-word">${m.obs}</div>`:''}
+      ${m.obs?`<div style="font-size:11px;color:var(--txt2);margin-top:5px;word-break:break-word">${esc(m.obs)}</div>`:''}
     </div>`;
   }).join('');
   return `
@@ -1398,9 +1398,9 @@ function histCliente(id){
   const _anuCC=document.getElementById('m-ver-anular');if(_anuCC)_anuCC.style.display='none';
   document.getElementById('m-ver-body').innerHTML=`
     <div style="background:var(--bg2);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--txt2)">
-      <span>📍 ${c.direccion||'—'}, ${c.localidad||''}</span>
-      <span>📞 ${c.telefono||'—'}</span>
-      <span>Vendedor: <b>${c.vendedor||'—'}</b></span>
+      <span>📍 ${esc(c.direccion||'—')}, ${esc(c.localidad||'')}</span>
+      <span>📞 ${esc(c.telefono||'—')}</span>
+      <span>Vendedor: <b>${esc(c.vendedor||'—')}</b></span>
       <span>Zona: <b>${_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona||'—'}</b></span>
       <span>Cond. pago: <b>${c.condicion_pago?c.condicion_pago+' días':'Contado'}</b></span>
       <span>Dto: <b>${c.descuento||0}%</b></span>
@@ -1435,8 +1435,8 @@ function histCliente(id){
           <td style="padding:8px 10px;border-bottom:0.5px solid var(--brd);text-align:right;color:var(--D)">${m.debe>0?fmt(m.debe):''}</td>
           <td style="padding:8px 10px;border-bottom:0.5px solid var(--brd);text-align:right;color:var(--P)">${m.haber>0?fmt(m.haber):''}</td>
           <td style="padding:8px 10px;border-bottom:0.5px solid var(--brd);text-align:right;font-weight:700;color:${m.saldo>0?'var(--D)':'var(--P)'}">${fmt(m.saldo)}${m.pendienteAprobar?'<span style="font-size:10px;font-weight:400;color:var(--txt2)"> (proy.)</span>':''}</td>
-          <td style="padding:8px 10px;border-bottom:0.5px solid var(--brd);text-align:center;color:var(--txt2)">${m.reparto||'—'}</td>
-          <td style="padding:8px 10px;border-bottom:0.5px solid var(--brd);color:var(--txt2);font-size:12px">${m.obs||''}</td>
+          <td style="padding:8px 10px;border-bottom:0.5px solid var(--brd);text-align:center;color:var(--txt2)">${esc(m.reparto||'—')}</td>
+          <td style="padding:8px 10px;border-bottom:0.5px solid var(--brd);color:var(--txt2);font-size:12px">${esc(m.obs||'')}</td>
         </tr>`).join(''):`<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--txt2)">Sin movimientos registrados en el sistema nuevo.<br><small>El saldo inicial refleja la historia anterior.</small></td></tr>`}
       </tbody>
       ${movs.length?`<tfoot>
@@ -1567,10 +1567,10 @@ async function generarRendicion(){
               const cli=_clientes.find(x=>x.id===c.cliente_id);
               return `<tr>
                 <td style="padding:5px 8px;border-bottom:0.5px solid var(--brd);color:var(--txt2)">${c.fecha}</td>
-                <td style="padding:5px 8px;border-bottom:0.5px solid var(--brd);font-weight:500">${c.cliente}${cli?.codigo?' <span style="color:var(--txt2);font-size:10px">#'+cli.codigo+'</span>':''}</td>
+                <td style="padding:5px 8px;border-bottom:0.5px solid var(--brd);font-weight:500">${esc(c.cliente)}${cli?.codigo?' <span style="color:var(--txt2);font-size:10px">#'+cli.codigo+'</span>':''}</td>
                 <td style="padding:5px 8px;border-bottom:0.5px solid var(--brd);text-align:right;font-weight:600;color:var(--P)">${fmt(c.importe)}</td>
                 <td style="padding:5px 8px;border-bottom:0.5px solid var(--brd);font-size:11px;color:var(--txt2)">${c.forma||'—'}</td>
-                <td style="padding:5px 8px;border-bottom:0.5px solid var(--brd);text-align:center;color:var(--txt2)">${c.reparto||'—'}</td>
+                <td style="padding:5px 8px;border-bottom:0.5px solid var(--brd);text-align:center;color:var(--txt2)">${esc(c.reparto||'—')}</td>
                 <td style="padding:5px 8px;border-bottom:0.5px solid var(--brd);text-align:center">${estBadge}</td>
                 <td style="padding:5px 8px;border-bottom:0.5px solid var(--brd);text-align:center;color:var(--txt2)">___________</td>
               </tr>`;
@@ -1704,7 +1704,7 @@ function poblarSelectorZonas() {
     opt.value = z;
     // Mostrar descripción de la zona si existe
     const zonaObj = _zonas.find(zn => zn.codigo === z);
-    opt.textContent = zonaObj ? `${z} - ${zonaObj.descripcion}` : z;
+    opt.textContent = zonaObj ? `${z} - ${esc(zonaObj.descripcion)}` : z;
     if (z === valorActual) opt.selected = true;
     sel.appendChild(opt);
   });
@@ -1846,9 +1846,9 @@ function renderSaldosZona() {
     html += `
       <tr onclick="histCliente(${c.id})" style="cursor:pointer;" title="Ver cuenta corriente">
         <td style="border:1px solid var(--brd); padding:6px 10px; color:var(--txt2);">${c.codigo || '—'}</td>
-        <td style="border:1px solid var(--brd); padding:6px 10px; font-weight:600;">${c.nombre}</td>
-        <td style="border:1px solid var(--brd); padding:6px 10px; color:var(--txt2);">${c.localidad || '—'}</td>
-        <td style="border:1px solid var(--brd); padding:6px 10px; color:var(--txt2);">${c.vendedor || '—'}</td>
+        <td style="border:1px solid var(--brd); padding:6px 10px; font-weight:600;">${esc(c.nombre)}</td>
+        <td style="border:1px solid var(--brd); padding:6px 10px; color:var(--txt2);">${esc(c.localidad || '—')}</td>
+        <td style="border:1px solid var(--brd); padding:6px 10px; color:var(--txt2);">${esc(c.vendedor || '—')}</td>
         <td style="border:1px solid var(--brd); padding:6px 10px; text-align:center; font-size:12px; color:var(--txt2);">${c.ultimo_remito || '—'}</td>
         <td style="border:1px solid var(--brd); padding:6px 10px; text-align:center; font-weight:600; color:${diasColor};">${dias !== null ? dias + ' d' : '—'}</td>
         <td style="border:1px solid var(--brd); padding:6px 10px; text-align:right; font-weight:700; color:${vencido > 0 ? 'var(--D)' : 'var(--txt2)'};">${vencido > 0 ? fmt(vencido) : '—'}</td>
@@ -1992,8 +1992,8 @@ function buscarClienteCC(){
     <div onclick="cobmIrCC(${c.id})"
       style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg2);border-radius:10px;margin-bottom:6px;cursor:pointer;border:1.5px solid var(--brd);-webkit-tap-highlight-color:transparent">
       <div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nombre}</div>
-        <div style="font-size:11px;color:var(--txt2);margin-top:2px">${c.localidad||''}</div>
+        <div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.nombre)}</div>
+        <div style="font-size:11px;color:var(--txt2);margin-top:2px">${esc(c.localidad||'')}</div>
       </div>
       ${c.saldo?`<div style="font-size:15px;font-weight:700;color:var(--D);flex-shrink:0;margin-left:10px">${fmt(c.saldo)}</div>`:'<div style="font-size:12px;color:var(--P);flex-shrink:0;margin-left:10px">✓ Al día</div>'}
     </div>`).join('');
@@ -2165,10 +2165,10 @@ function cobmRenderMisCobranzas(){
       </div>
       ${cobsDia.map(c=>{
         const cli=_clientes.find(x=>x.id===c.cliente_id);
-        const zona=cli?.localidad?`<span style="font-size:10px;background:var(--bg2);border-radius:4px;padding:1px 5px;margin-left:4px">${cli.localidad}</span>`:'';
+        const zona=cli?.localidad?`<span style="font-size:10px;background:var(--bg2);border-radius:4px;padding:1px 5px;margin-left:4px">${esc(cli.localidad)}</span>`:'';
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fff;border-radius:10px;margin-bottom:5px;border:1px solid var(--brd)">
           <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.cliente||'?'}${zona}</div>
+            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.cliente||'?')}${zona}</div>
             <div style="font-size:11px;color:var(--txt2)">${formaIcon(c.forma)} ${c.forma||''}</div>
           </div>
           <div style="font-size:15px;font-weight:700;color:var(--PD);flex-shrink:0;margin-left:10px">${fmt(c.importe)}</div>
@@ -2239,8 +2239,8 @@ function buscarClienteCobMovil(){
   lista.innerHTML=m.map(c=>`<div onclick="selClienteCobMovil(${c.id})"
     style="display:flex;justify-content:space-between;align-items:center;min-height:56px;padding:10px 14px;border-bottom:1px solid var(--brd);cursor:pointer;-webkit-tap-highlight-color:transparent">
     <div style="flex:1;min-width:0">
-      <div style="font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nombre}</div>
-      <div style="font-size:12px;color:var(--txt2);margin-top:2px">${c.localidad||''}${c.codigo?' · #'+c.codigo:''}</div>
+      <div style="font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.nombre)}</div>
+      <div style="font-size:12px;color:var(--txt2);margin-top:2px">${esc(c.localidad||'')}${c.codigo?' · #'+c.codigo:''}</div>
     </div>
     <div style="text-align:right;flex-shrink:0;margin-left:10px">
       <div style="font-size:17px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
@@ -2258,8 +2258,8 @@ function cobmBuscarPorCod(){
   lista.innerHTML=m.map(c=>`<div onclick="selClienteCobMovil(${c.id})"
     style="display:flex;justify-content:space-between;align-items:center;min-height:56px;padding:10px 14px;border-bottom:1px solid var(--brd);cursor:pointer;-webkit-tap-highlight-color:transparent">
     <div style="flex:1;min-width:0">
-      <div style="font-size:16px;font-weight:700">${c.nombre}</div>
-      <div style="font-size:12px;color:var(--txt2);margin-top:2px">${c.localidad||''}${c.codigo?' · #'+c.codigo:''}</div>
+      <div style="font-size:16px;font-weight:700">${esc(c.nombre)}</div>
+      <div style="font-size:12px;color:var(--txt2);margin-top:2px">${esc(c.localidad||'')}${c.codigo?' · #'+c.codigo:''}</div>
     </div>
     <div style="text-align:right;flex-shrink:0;margin-left:10px">
       <div style="font-size:17px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
@@ -2279,7 +2279,7 @@ function cobmConfirmarCod(){
 function selClienteCobMovil(id){
   const c=_clientes.find(x=>x.id===id);if(!c)return;
   _cobMovilCliId=id;
-  const nEl=document.getElementById('cobm-cli-nombre');if(nEl)nEl.textContent=`[${c.codigo||c.id}] ${c.nombre.toUpperCase()}`;
+  const nEl=document.getElementById('cobm-cli-nombre');if(nEl)nEl.textContent=`[${c.codigo||c.id}] ${esc(c.nombre.toUpperCase())}`;
   const sEl=document.getElementById('cobm-cli-saldo');if(sEl)sEl.textContent=`Saldo: ${fmt(c.saldo||0)}`;
   const pc=document.getElementById('cobm-paso-cliente');if(pc)pc.style.display='none';
   const pcc=document.getElementById('cobm-panel-cc');if(pcc)pcc.style.display='none';
@@ -2487,7 +2487,7 @@ async function initTesoreria(){
   if(sel&&_proveedores.length){
     const cur=sel.value;
     sel.innerHTML='<option value="">Seleccionar...</option>'+
-      _proveedores.map(p=>`<option value="${p.id}">${p.cuit?p.cuit+' — ':''}${p.nombre}</option>`).join('');
+      _proveedores.map(p=>`<option value="${p.id}">${p.cuit?p.cuit+' — ':''}${esc(p.nombre)}</option>`).join('');
     if(cur)sel.value=cur;
   }
   // Defaults de fecha
@@ -2541,13 +2541,13 @@ function renderTesCobros(){
   const PP2=25,pg=_tesoPg.cobros,sl=data.slice((pg-1)*PP2,pg*PP2);
   document.getElementById('tco-tbody').innerHTML=sl.length?sl.map(r=>`<tr>
     <td>${r.fecha}</td>
-    <td style="font-weight:500">${r.cliente||'—'}</td>
+    <td style="font-weight:500">${esc(r.cliente||'—')}</td>
     <td style="font-size:11px">${(r.forma||'').split('+').map(f=>f==='efectivo'?'💵 Ef':f==='transf'?'🏦 Tr':f==='cheque'?'📋 Ch':f).join(' · ')||'—'}</td>
     <td style="color:var(--P)">${(r.efectivo||0)>0?fmt(r.efectivo):'—'}</td>
     <td style="color:var(--A)">${(r.transferencia||0)>0?fmt(r.transferencia):'—'}</td>
     <td style="color:var(--W)">${((r.cheque_terceros||0)+(r.cheque_propio||0))>0?fmt((r.cheque_terceros||0)+(r.cheque_propio||0)):'—'}</td>
     <td style="font-weight:700">${fmt(r.importe||0)}</td>
-    <td style="color:var(--txt2);font-size:12px">${r.vendedor||'—'}</td>
+    <td style="color:var(--txt2);font-size:12px">${esc(r.vendedor||'—')}</td>
     <td><button class="btn sm" onclick="imprimirRecibo(${r.id})" title="Ver / imprimir recibo">🧾</button></td>
   </tr>`).join(''):'<tr><td colspan="9"><div class="empty">Sin cobros para el período seleccionado</div></td></tr>';
   pag('tco-pg',data.length,pg,p=>{_tesoPg.cobros=p;renderTesCobros();});
@@ -2599,8 +2599,8 @@ function renderTesPagos(){
   const PP2=200,pg=_tesoPg.pagos||1,sl=data.slice((pg-1)*PP2,pg*PP2);
   document.getElementById('tpag-tbody').innerHTML=sl.length?sl.map(p=>{const prov=_proveedores.find(x=>x.nombre===p.proveedor);return`<tr>
     <td>${p.fecha}</td>
-    <td style="font-weight:600">${p.proveedor||'—'}${prov?.cuit?`<br><span style="font-size:10px;color:var(--txt2)">${prov.cuit}</span>`:''}</td>
-    <td>${p.concepto||'—'}</td>
+    <td style="font-weight:600">${esc(p.proveedor||'—')}${prov?.cuit?`<br><span style="font-size:10px;color:var(--txt2)">${prov.cuit}</span>`:''}</td>
+    <td>${esc(p.concepto||'—')}</td>
     <td>${p.forma==='efectivo'?'💵 Efectivo':p.forma==='transferencia'?'🏦 Transf.':p.forma==='cheque'?'📋 Cheque':p.forma||'—'}</td>
     <td style="font-weight:700;color:var(--D)">${fmt(p.importe||0)}</td>
     <td><button class="btn sm D" onclick="eliminarPago(${p.id})">🗑</button></td>
@@ -2715,7 +2715,7 @@ function renderTesConcil(){
   const sisDebPend=_pagosProv.filter(p=>p.forma==='transferencia'&&!conciliadosPagIds.has(p.id));
   // Extracto pendiente
   const itemBanc=(m)=>`<tr>
-    <td>${m.fecha}</td><td style="font-size:11px">${m.descripcion||'—'}</td>
+    <td>${m.fecha}</td><td style="font-size:11px">${esc(m.descripcion||'—')}</td>
     <td>${m.tipo==='credito'?'<span class="b bP">⬆ Crédito</span>':'<span class="b bD">⬇ Débito</span>'}</td>
     <td style="font-weight:700">${fmt(m.importe)}</td>
     <td><button class="btn sm D" title="Eliminar" onclick="eliminarMovBanc(${m.id})">🗑</button></td></tr>`;
@@ -2729,7 +2729,7 @@ function renderTesConcil(){
   ].sort((a,b)=>b.fecha.localeCompare(a.fecha));
   const _compThumb=url=>url?`<a href="${url}" target="_blank" title="Ver comprobante"><img src="${url}" style="height:38px;border-radius:4px;cursor:pointer;object-fit:cover;border:1px solid var(--A)" onerror="this.parentNode.innerHTML='📎'"></a>`:'—';
   document.getElementById('conc-sistema-list').innerHTML=allSis.length
-    ?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Descripción</th><th>Tipo</th><th>Importe</th><th>Comprobante</th></tr></thead><tbody>${allSis.map(s=>`<tr><td>${s.fecha}</td><td style="font-size:11px">${s.desc}</td><td>${s.tipo==='credito'?'<span class="b bA">⬆ Cobro Tr.</span>':'<span class="b bD">⬇ Pago Tr.</span>'}</td><td style="font-weight:700">${fmt(s.imp)}</td><td>${_compThumb(s.comp)}</td></tr>`).join('')}</tbody></table></div>`
+    ?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Descripción</th><th>Tipo</th><th>Importe</th><th>Comprobante</th></tr></thead><tbody>${allSis.map(s=>`<tr><td>${s.fecha}</td><td style="font-size:11px">${esc(s.desc)}</td><td>${s.tipo==='credito'?'<span class="b bA">⬆ Cobro Tr.</span>':'<span class="b bD">⬇ Pago Tr.</span>'}</td><td style="font-weight:700">${fmt(s.imp)}</td><td>${_compThumb(s.comp)}</td></tr>`).join('')}</tbody></table></div>`
     :'<div style="font-size:12px;color:var(--P);padding:8px">✅ Sin movimientos pendientes en el sistema</div>';
   // Conciliados
   const cnt=document.getElementById('conc-count');
@@ -2737,9 +2737,9 @@ function renderTesConcil(){
   document.getElementById('conc-conciliados').innerHTML=conciliados.length
     ?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha banco</th><th>Descripción</th><th>Tipo</th><th>Importe</th><th>Origen sistema</th><th>Comp.</th><th></th></tr></thead><tbody>${conciliados.map(m=>{
       let origen='',comp='';
-      if(m.conciliado_tipo==='cobro'){const c=_cobros.find(x=>x.id===m.conciliado_id);origen=c?`Cobro ${c.cliente} (${c.fecha})`:'?';comp=c?.comprobante_url||'';}
-      else if(m.conciliado_tipo==='pago'){const p=_pagosProv.find(x=>x.id===m.conciliado_id);origen=p?`Pago ${p.proveedor} (${p.fecha})`:'?';}
-      return `<tr><td>${m.fecha}</td><td style="font-size:11px">${m.descripcion||'—'}</td>
+      if(m.conciliado_tipo==='cobro'){const c=_cobros.find(x=>x.id===m.conciliado_id);origen=c?`Cobro ${esc(c.cliente)} (${c.fecha})`:'?';comp=c?.comprobante_url||'';}
+      else if(m.conciliado_tipo==='pago'){const p=_pagosProv.find(x=>x.id===m.conciliado_id);origen=p?`Pago ${esc(p.proveedor)} (${p.fecha})`:'?';}
+      return `<tr><td>${m.fecha}</td><td style="font-size:11px">${esc(m.descripcion||'—')}</td>
         <td>${m.tipo==='credito'?'<span class="b bP">⬆</span>':'<span class="b bD">⬇</span>'}</td>
         <td style="font-weight:700">${fmt(m.importe)}</td>
         <td style="font-size:12px;color:var(--P)">${origen}</td>

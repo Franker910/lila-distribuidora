@@ -346,7 +346,7 @@ function renderGerencial() {
   document.getElementById('ger-alertas').innerHTML = alertas.map(c => {
     const col = c.ratio>=2?'#C00000':'#C55A11';
     return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--brd)">
-      <span>${c.nombre.split(' ').slice(0,2).join(' ')}</span>
+      <span>${esc(c.nombre.split(' ').slice(0,2).join(' '))}</span>
       <span style="color:${col};font-weight:600">${c.ratio.toFixed(1)}x</span>
     </div>`;
   }).join('') || '<div style="color:var(--txt2)">Sin alertas</div>';
@@ -355,7 +355,7 @@ function renderGerencial() {
   const topSaldos = clientesArr.filter(c=>c.saldo_jun>0).sort((a,b)=>b.saldo_jun-a.saldo_jun).slice(0,10);
   document.getElementById('ger-top-saldos').innerHTML = topSaldos.map(c => {
     return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--brd)">
-      <span>${c.nombre.split(' ').slice(0,2).join(' ')}</span>
+      <span>${esc(c.nombre.split(' ').slice(0,2).join(' '))}</span>
       <span style="color:var(--txt2)">${fmt(c.saldo_jun)}</span>
     </div>`;
   }).join('');
@@ -363,7 +363,7 @@ function renderGerencial() {
   // Select clientes
   const sel = document.getElementById('ger-sel-cliente');
   sel.innerHTML = clientesArr.slice(0,50).map((c,i) =>
-    `<option value="${i}">${c.nombre} — venta ${fmt(c.total_venta)} · saldo ${fmt(c.saldo_jun)} · ratio ${c.ratio.toFixed(1)}x</option>`
+    `<option value="${i}">${esc(c.nombre)} — venta ${fmt(c.total_venta)} · saldo ${fmt(c.saldo_jun)} · ratio ${c.ratio.toFixed(1)}x</option>`
   ).join('');
   sel._data = clientesArr;
   gerUpdateDetalle();
@@ -456,8 +456,8 @@ function renderDash(){
   document.getElementById('d-deuda').textContent=fmt(deudaTotal);
   document.getElementById('d-venc').textContent=vencidos.length;
   const lr=_remitos.slice(0,6);
-  document.getElementById('d-rem-list').innerHTML=lr.length?lr.map(r=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd);font-size:12px"><span style="font-weight:500">${r.cliente}</span><span style="color:var(--txt2)">${r.fecha}</span><span style="color:var(--P);font-weight:600">${fmt(r.total)}</span></div>`).join(''):'<div class="empty">Sin remitos aún</div>';
-  document.getElementById('d-venc-list').innerHTML=vencidos.length?vencidos.slice(0,5).map(c=>{const d=diasDesde(c.ultimo_remito);return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd);font-size:12px"><span style="font-weight:500">${c.nombre}</span><span class="b bD">${d}d</span><span style="color:var(--D);font-weight:600">${fmt(c.saldo)}</span></div>`;}).join(''):'<div class="empty">✅ Ninguna cuenta vencida</div>';
+  document.getElementById('d-rem-list').innerHTML=lr.length?lr.map(r=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd);font-size:12px"><span style="font-weight:500">${esc(r.cliente)}</span><span style="color:var(--txt2)">${r.fecha}</span><span style="color:var(--P);font-weight:600">${fmt(r.total)}</span></div>`).join(''):'<div class="empty">Sin remitos aún</div>';
+  document.getElementById('d-venc-list').innerHTML=vencidos.length?vencidos.slice(0,5).map(c=>{const d=diasDesde(c.ultimo_remito);return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd);font-size:12px"><span style="font-weight:500">${esc(c.nombre)}</span><span class="b bD">${d}d</span><span style="color:var(--D);font-weight:600">${fmt(c.saldo)}</span></div>`;}).join(''):'<div class="empty">✅ Ninguna cuenta vencida</div>';
   renderDashCharts();
 }
 
@@ -514,7 +514,7 @@ async function informeDeuda(){
   el.innerHTML=`<div style="background:var(--DL);border-radius:8px;padding:8px 12px;margin-bottom:8px;display:flex;justify-content:space-between">
     <span><b>${data.length}</b> clientes</span><span style="font-size:16px;font-weight:700;color:var(--D)">${fmt(totalDeuda)}</span>
   </div>
-  ${data.slice(0,20).map(c=>{const d=diasDesde(c.ultimo_remito);return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--brd);font-size:12px"><span><b>${c.nombre}</b> <span style="color:var(--txt2)">${c.localidad}</span></span><span><span class="b ${d>(c.condicion_pago||0)+5?'bD':'bW'}" style="margin-right:6px">${d}d</span><b style="color:var(--D)">${fmt(c.saldo)}</b></span></div>`;}).join('')}`;
+  ${data.slice(0,20).map(c=>{const d=diasDesde(c.ultimo_remito);return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--brd);font-size:12px"><span><b>${esc(c.nombre)}</b> <span style="color:var(--txt2)">${esc(c.localidad)}</span></span><span><span class="b ${d>(c.condicion_pago||0)+5?'bD':'bW'}" style="margin-right:6px">${d}d</span><b style="color:var(--D)">${fmt(c.saldo)}</b></span></div>`;}).join('')}`;
 }
 
 async function informeInactivos(){
@@ -526,7 +526,7 @@ async function informeInactivos(){
   const el=document.getElementById('inf-inact-res');
   if(!data.length){el.innerHTML='<div style="color:var(--txt2);font-size:12px">Todos los clientes compraron recientemente</div>';return;}
   el.innerHTML=`<div style="background:var(--WL);border-radius:8px;padding:8px 12px;margin-bottom:8px"><b>${data.length}</b> clientes sin compras hace más de ${dias} días</div>
-  ${data.slice(0,20).map(c=>{const d=diasDesde(c.ultimo_remito);return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--brd);font-size:12px"><span><b>${c.nombre}</b> <span style="color:var(--txt2)">${c.localidad} · ${c.vendedor||'—'}</span></span><span class="b bW">${d!==null?d+'d':'nunca'}</span></div>`;}).join('')}`;
+  ${data.slice(0,20).map(c=>{const d=diasDesde(c.ultimo_remito);return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--brd);font-size:12px"><span><b>${esc(c.nombre)}</b> <span style="color:var(--txt2)">${esc(c.localidad)} · ${esc(c.vendedor||'—')}</span></span><span class="b bW">${d!==null?d+'d':'nunca'}</span></div>`;}).join('')}`;
 }
 
 function informeSinCompras(){
@@ -539,7 +539,7 @@ function informeSinCompras(){
   if(!el)return;
   if(!data.length){el.innerHTML='<div style="color:var(--txt2);font-size:12px">Todos los clientes compraron recientemente</div>';return;}
   el.innerHTML=`<div style="background:var(--WL);border-radius:8px;padding:8px 12px;margin-bottom:8px"><b>${data.length}</b> clientes sin compras hace más de ${dias} días</div>
-  ${data.slice(0,50).map(c=>{const d=diasDesde(c.ultimo_remito);return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--brd);font-size:12px"><span><b>${c.nombre}</b> <span style="color:var(--txt2)">${c.localidad||''} · ${c.vendedor||'—'}</span></span><span class="b bW">${d!==null?d+'d':'nunca'}</span></div>`;}).join('')}`;
+  ${data.slice(0,50).map(c=>{const d=diasDesde(c.ultimo_remito);return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--brd);font-size:12px"><span><b>${esc(c.nombre)}</b> <span style="color:var(--txt2)">${esc(c.localidad||'')} · ${esc(c.vendedor||'—')}</span></span><span class="b bW">${d!==null?d+'d':'nunca'}</span></div>`;}).join('')}`;
 }
 
 async function informeProductos(){
@@ -703,8 +703,8 @@ function renderConteo(){
     const pctMerma=diff!==''&&stockSistema>0?((diff/stockSistema)*100).toFixed(1):'';
     const colorDiff=diff===''?'':diff<0?'color:var(--D);font-weight:600':diff>0?'color:var(--A)':'color:var(--P)';
     return `<tr>
-      <td style="font-weight:500">${p.nombre}</td>
-      <td style="font-size:11px;color:var(--txt2)">${p.proveedor_nom||'—'}</td>
+      <td style="font-weight:500">${esc(p.nombre)}</td>
+      <td style="font-size:11px;color:var(--txt2)">${esc(p.proveedor_nom||'—')}</td>
       <td>${p.unidad||''}</td>
       <td style="text-align:right;font-weight:600">${fmtN(stockSistema,2)}</td>
       <td style="text-align:center">
@@ -751,7 +751,7 @@ function verInformeStockAntes(){
     <table class="tbl" style="margin-bottom:12px">
       <thead><tr><th>Producto</th><th>Proveedor</th><th style="text-align:right">Sistema</th><th style="text-align:right">Físico</th><th style="text-align:right">Diferencia</th><th style="text-align:right">% Merma</th></tr></thead>
       <tbody>${mermas.map(p=>`<tr>
-        <td>${p.nombre}</td><td style="font-size:11px;color:var(--txt2)">${p.proveedor_nom||''}</td>
+        <td>${esc(p.nombre)}</td><td style="font-size:11px;color:var(--txt2)">${esc(p.proveedor_nom||'')}</td>
         <td style="text-align:right">${fmtN(p.sistema,2)}</td>
         <td style="text-align:right">${fmtN(p.fisico,2)}</td>
         <td style="text-align:right;color:var(--D);font-weight:600">${fmtN(p.diff,2)}</td>
@@ -762,7 +762,7 @@ function verInformeStockAntes(){
     <table class="tbl">
       <thead><tr><th>Producto</th><th style="text-align:right">Sistema</th><th style="text-align:right">Físico</th><th style="text-align:right">Diferencia</th></tr></thead>
       <tbody>${sobrantes.map(p=>`<tr>
-        <td>${p.nombre}</td>
+        <td>${esc(p.nombre)}</td>
         <td style="text-align:right">${fmtN(p.sistema,2)}</td>
         <td style="text-align:right">${fmtN(p.fisico,2)}</td>
         <td style="text-align:right;color:var(--A);font-weight:600">+${fmtN(p.diff,2)}</td>
@@ -887,7 +887,7 @@ function informeFinanciamiento(){
     const d=(p.plazo_pago_dias||0)-plazoProm;
     const badge=d>0?'<span class="b bP">✅ Nos financia</span>':d<0?'<span class="b bD">⚠️ Financiamos</span>':'<span class="b bW">= Equilibrio</span>';
     return `<tr>
-      <td style="font-weight:600">${p.nombre}</td>
+      <td style="font-weight:600">${esc(p.nombre)}</td>
       <td style="text-align:center">${p.plazo_pago_dias}d</td>
       <td style="text-align:center">${plazoProm}d</td>
       <td style="text-align:center;font-weight:700;color:${d>0?'var(--P)':d<0?'var(--D)':'var(--txt)'}">${d>0?'+':''}${d}d</td>
@@ -1002,7 +1002,7 @@ async function informePrecios(){
         const badge=mReal<0?'<span class="b bD">📉</span>':dif<-5?'<span class="b bD">🔴</span>':dif<0?'<span class="b bW">⚠️</span>':'<span class="b bP">✅</span>';
         const gfUn=cantVendida>0?Math.round((costoTotal-costo)*100)/100:(Math.round(precio*pctTotal*100)/100);
         return `<tr style="${!cubre?'background:var(--DL)':''}">
-          <td style="font-weight:600">${p.nombre}</td>
+          <td style="font-weight:600">${esc(p.nombre)}</td>
           <td>${fmt(costo)}</td>
           <td style="font-weight:600">${fmt(precio)}</td>
           <td style="font-weight:700;color:${mReal<0?'var(--D)':mReal<mObj?'var(--W)':'var(--P)'}">${mReal}%</td>
@@ -1021,7 +1021,7 @@ async function informePrecios(){
       <div style="font-weight:600;font-size:13px;margin-bottom:8px">💡 Productos que necesitan ajuste de precio</div>
       ${rows.filter(r=>r.subirEn>0).map(({p,precio,precioSug,subirEn,mObj})=>`
         <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--brd);font-size:13px">
-          <span><b>${p.nombre}</b></span>
+          <span><b>${esc(p.nombre)}</b></span>
           <span style="color:var(--txt2)">${fmt(precio)} → <b style="color:var(--P)">${fmt(precioSug)}</b> (+${fmt(subirEn)} para recuperar ${mObj}% de margen)</span>
         </div>`).join('')}
     </div>`:''}
@@ -1065,7 +1065,7 @@ function informeDescuentosContado(){
     const bruto=(r.items||[]).reduce((a,it)=>a+it.precio*it.cant,0);
     const desc=bruto-r.total;
     totalDesc+=desc;totalVentas+=bruto;
-    return `<tr><td>${r.fecha}</td><td>${r.cliente}</td><td style="text-align:right">${fmt(bruto)}</td><td style="text-align:right;color:var(--D)">${fmt(desc)}</td><td style="text-align:right;color:var(--txt2)">${bruto>0?(desc/bruto*100).toFixed(1)+'%':'—'}</td></tr>`;
+    return `<tr><td>${r.fecha}</td><td>${esc(r.cliente)}</td><td style="text-align:right">${fmt(bruto)}</td><td style="text-align:right;color:var(--D)">${fmt(desc)}</td><td style="text-align:right;color:var(--txt2)">${bruto>0?(desc/bruto*100).toFixed(1)+'%':'—'}</td></tr>`;
   }).join('');
   res.innerHTML=`<div style="margin-bottom:8px;display:flex;gap:14px"><div><div style="font-size:10px;color:var(--txt2)">Total descuentos</div><div style="font-size:16px;font-weight:700;color:var(--D)">${fmt(totalDesc)}</div></div></div>
   <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Cliente</th><th style="text-align:right">Bruto</th><th style="text-align:right">Descuento</th><th style="text-align:right">%</th></tr></thead><tbody>${filas||'<tr><td colspan="5" style="text-align:center;color:var(--txt2)">Sin datos</td></tr>'}</tbody></table></div>`;
@@ -1141,7 +1141,7 @@ async function informeCMGProductos(){
           const color = x.pct >= 20 ? 'var(--P)' : x.pct >= 10 ? 'var(--W)' : 'var(--D)';
           const pctTotal2 = totalCMG > 0 ? x.cmg/totalCMG*100 : 0;
           return `<tr>
-            <td style="font-weight:500">${x.nom}</td>
+            <td style="font-weight:500">${esc(x.nom)}</td>
             <td style="text-align:right;color:var(--txt2)">${x.cant.toFixed(1)} ${x.unidad}</td>
             <td style="text-align:right">${fmt(x.venta)}</td>
             <td style="text-align:right;color:var(--txt2)">${x.costo > 0 ? fmt(x.costo) : '<span style="color:var(--W)">sin costo</span>'}</td>
@@ -1236,7 +1236,7 @@ async function informeCMGClientes(){
 
   window._cmgcData = arr;
 
-  const simBadge = listaSim ? `<span style="background:var(--PL);color:var(--PD);font-size:11px;border-radius:4px;padding:1px 6px;margin-left:6px">sim: ${listaSim.nombre}</span>` : '';
+  const simBadge = listaSim ? `<span style="background:var(--PL);color:var(--PD);font-size:11px;border-radius:4px;padding:1px 6px;margin-left:6px">sim: ${esc(listaSim.nombre)}</span>` : '';
 
   const rows = arr.map((x, idx) => {
     const color = x.pct >= 20 ? 'var(--P)' : x.pct >= 10 ? 'var(--W)' : 'var(--D)';
@@ -1251,7 +1251,7 @@ async function informeCMGClientes(){
     return `<div class="cmgc-card" style="border:1px solid var(--brd);border-radius:8px;margin-bottom:8px">
       <div onclick="toggleCMGCliente(${idx},this)" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;cursor:pointer;background:var(--bg2);border-radius:8px;user-select:none">
         <div>
-          <span style="font-weight:600;font-size:13px">${x.nom}</span>
+          <span style="font-weight:600;font-size:13px">${esc(x.nom)}</span>
           <span style="font-size:11px;color:var(--txt2);margin-left:8px">${x.remitos} remito(s)</span>
         </div>
         <div style="display:flex;gap:12px;align-items:center;text-align:right;flex-wrap:wrap">
@@ -1672,8 +1672,8 @@ function _impRenderCompSaldos(el, dA, perA, dB, perB) {
       const loc = (rA||rB)?.localidad || '';
       return `<tr style="${d>0?'background:var(--DL)':d<0?'background:var(--PL)':''}">
         <td style="font-size:11px;color:var(--txt2)">${cod}</td>
-        <td style="font-weight:500">${nombre}</td>
-        <td style="font-size:12px;color:var(--txt2)">${loc}</td>
+        <td style="font-weight:500">${esc(nombre)}</td>
+        <td style="font-size:12px;color:var(--txt2)">${esc(loc)}</td>
         <td style="text-align:right">${sA?fmt(sA):'—'}</td>
         <td style="text-align:right">${sB?fmt(sB):'—'}</td>
         <td style="text-align:right;font-weight:600;color:${d<=0?'var(--P)':'var(--D)'}">${d>=0?'+':''}${fmt(d)}</td>
@@ -1719,7 +1719,7 @@ function _impRenderCompResultado(el, dA, perA, dB, perB) {
       const desc = (rA||rB)?.descripcion||'';
       return `<tr style="${dV<0?'background:var(--DL)':dV>0?'background:var(--PL)':''}">
         <td style="font-size:11px;color:var(--txt2)">${cod}</td>
-        <td style="font-weight:500;font-size:12px">${desc}</td>
+        <td style="font-weight:500;font-size:12px">${esc(desc)}</td>
         <td style="text-align:right">${vA?fmt(vA):'—'}</td>
         <td style="text-align:right;font-size:11px;color:var(--txt2)">${rA?_fmtPct(rA.pct_margen):'—'}</td>
         <td style="text-align:right">${vB?fmt(vB):'—'}</td>
@@ -1831,7 +1831,7 @@ async function verVistaCruzada() {
       const rowBg = r.rot >= 9999 || r.rot > 70 ? 'background:var(--DL)' : r.rot === 0 ? 'background:var(--PL)' : '';
       return `<tr style="${rowBg}">
         <td style="font-size:11px;color:var(--txt2)">${r.cod}</td>
-        <td style="font-weight:500">${r.nombre}</td>
+        <td style="font-weight:500">${esc(r.nombre)}</td>
         <td style="text-align:right">${r.vendido ? fmt(r.vendido) : '—'}</td>
         <td style="text-align:right;font-weight:${r.saldo?'600':'400'};color:${r.saldo?'var(--D)':'var(--txt2)'}">${r.saldo ? fmt(r.saldo) : '—'}</td>
         <td style="text-align:right;font-weight:600;color:${color}">${rotStr}</td>

@@ -55,7 +55,6 @@ function poblarZonas(){
 // ─── CLIENTES ───
 function renderClientes(){
   const q=(document.getElementById('cli-q').value||'').toLowerCase();
-  // Poblar dropdowns de autofiltro dinámicamente en el primer render
   poblarSelectValores('cli-f-zona',_clientes.map(c=>c.zona||''),nombreZona);
   poblarSelectValores('cli-f-ven',_clientes.map(c=>(c.vendedor||'').trim()));
   const fNombre=document.getElementById('cli-f-nombre')?.value||'';
@@ -66,7 +65,7 @@ function renderClientes(){
   const fDto=document.getElementById('cli-f-dto')?.value||'';
   const fSaldo=document.getElementById('cli-f-saldo')?.value||'';
   let data=_clientes.filter(c=>
-    (!q||(c.nombre||'').toLowerCase().includes(q)||(c.telefono||'').includes(q)||(c.localidad||'').toLowerCase().includes(q)||(c.codigo||'').toString().includes(q)||(c.cuit||'').includes(q))&&
+    (!q||(c.nombre||'').toLowerCase().includes(q)||(c.telefono||'').includes(q)||(c.localidad||'').toLowerCase().includes(q)||String(c.codigo||'').includes(q)||(c.cuit||'').includes(q))&&
     matchFiltroCol(c.nombre,fNombre)&&
     matchFiltroCol(c.localidad,fLoc)&&
     matchFiltroCol(c.telefono,fTel)&&
@@ -77,20 +76,27 @@ function renderClientes(){
   );
   const tot=data.length,sl=data.slice((_cliPg-1)*PP,_cliPg*PP);
   const tbody=document.getElementById('cli-tbody');
-  tbody.innerHTML=sl.length?sl.map(c=>`<tr>
-   <td style="font-weight:600"><span style="font-size:10px;color:var(--txt2);margin-right:4px">${c.codigo||''}</span>${c.nombre}</td>
-    <td>${c.localidad||'—'}</td>
-    <td>${c.telefono||'—'}</td>
-    <td><span class="b bA">${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||'-'}</span></td>
-    <td>${(c.vendedor||'').trim()||'—'}</td>
-    <td>${c.descuento||0}%</td>
-    <td style="${(c.saldo||0)>0?'color:var(--D);font-weight:600':''}">${fmt(c.saldo)}</td>
-    <td style="display:flex;gap:3px">
-      <button class="btn sm" onclick="editarCliente(${c.id})">✏️</button>
-      <button class="btn P sm" onclick="pedRapido(${c.id})">🛒</button>
-      <button class="btn sm" onclick="histCliente(${c.id})">📋</button>
-    </td>
-  </tr>`).join(''):'<tr><td colspan="8"><div class="empty">Sin clientes</div></td></tr>';
+  tbody.innerHTML=sl.length?sl.map(c=>`
+    <tr>
+      <td style="font-weight:600">
+        <span style="font-size:10px;color:var(--txt2);margin-right:4px">
+          ${c.codigo || c.id}  <!-- SI NO TIENE CÓDIGO, USA EL ID -->
+        </span>
+        ${c.nombre}
+      </td>
+      <td>${c.localidad||'—'}</td>
+      <td>${c.telefono||'—'}</td>
+      <td><span class="b bA">${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||'-'}</span></td>
+      <td>${(c.vendedor||'').trim()||'—'}</td>
+      <td>${c.descuento||0}%</td>
+      <td style="${(c.saldo||0)>0?'color:var(--D);font-weight:600':''}">${fmt(c.saldo)}</td>
+      <td style="display:flex;gap:3px">
+        <button class="btn sm" onclick="editarCliente(${c.id})">✏️</button>
+        <button class="btn P sm" onclick="pedRapido(${c.id})">🛒</button>
+        <button class="btn sm" onclick="histCliente(${c.id})">📋</button>
+      </td>
+    </tr>
+  `).join(''):'<tr><td colspan="8"><div class="empty">Sin clientes</div></td></tr>';
   pag('cli-pg',tot,_cliPg,p=>{_cliPg=p;renderClientes();});
 }
 
@@ -123,10 +129,9 @@ function editarCliente(id){
   document.getElementById('cli-loc').value = c.localidad || '';
   document.getElementById('cli-tel').value = c.telefono || '';
   
-  // Mostrar zona: nombre en el input, código en el hidden
-  const zonaEncontrada = _zonas.find(z => z.codigo === c.zona);
-  document.getElementById('cli-zona').value = zonaEncontrada ? zonaEncontrada.nombre : (c.zona || '');
-  document.getElementById('cli-zona-codigo').value = c.zona || ''; // ⭐ CARGAR CÓDIGO
+  // MOSTRAR EL CÓDIGO DE ZONA (no el nombre)
+  document.getElementById('cli-zona').value = c.zona || '';  // ← AHORA MUESTRA EL CÓDIGO
+  document.getElementById('cli-zona-codigo').value = c.zona || '';
   
   document.getElementById('cli-ven').value = c.vendedor || '';
   document.getElementById('cli-dto').value = c.descuento || 0;
@@ -165,11 +170,11 @@ function buscarZonasParaCliente() {
       style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--brd);font-size:13px;"
       onmouseover="this.style.background='var(--bg2)'" 
       onmouseout="this.style.background=''">
-      <div style="font-weight:600;">${z.nombre}</div>
+      <div style="font-weight:600;">${esc(z.nombre)}</div>
       <div style="font-size:11px;color:var(--txt2);">
         Código: ${z.codigo || '—'} 
-        ${z.descripcion ? '· ' + z.descripcion : ''}
-        ${z.vendedor ? '· Vendedor: ' + z.vendedor : ''}
+        ${esc(z.descripcion ? '· ' + z.descripcion : '')}
+        ${esc(z.vendedor ? '· Vendedor: ' + z.vendedor : '')}
       </div>
     </div>
   `).join('');
@@ -326,8 +331,8 @@ function renderProductos(){
     const esActivo=p.activo!==false;
     return `<tr${esActivo?'':' style="opacity:0.55"'}>
     <td style="color:var(--txt2);font-size:11px">${p.codigo||''}</td>
-    <td style="font-weight:600">${p.nombre}${esActivo?'':' <span class="b" style="background:var(--D30);color:var(--D);font-size:10px">INACTIVO</span>'}</td>
-    <td style="font-size:11px;color:var(--txt2)">${p.proveedor_nom||''}</td>
+    <td style="font-weight:600">${esc(p.nombre)}${esActivo?'':' <span class="b" style="background:var(--D30);color:var(--D);font-size:10px">INACTIVO</span>'}</td>
+    <td style="font-size:11px;color:var(--txt2)">${esc(p.proveedor_nom||'')}</td>
     <td style="font-size:12px;color:var(--txt2)">${p.unidad||'—'}</td>
     <td style="font-size:12px">${fmt(costo)}</td>
     <td style="color:var(--P);font-weight:600">${fmt(precio)}</td>
@@ -387,7 +392,7 @@ function imprimirProductos(){
     const costo=p.costo||0,precio=p.precio||0;
     const margen=costo>0?((precio-costo)/costo*100).toFixed(1)+'%':'—';
     const estado=p.activo===false?'INACTIVO':'Activo';
-    return `<tr><td>${p.codigo||''}</td><td>${p.nombre}</td><td>${p.proveedor_nom||'—'}</td><td>${p.unidad||'—'}</td><td style="text-align:right">${fmt(costo)}</td><td style="text-align:right;font-weight:bold">${fmt(precio)}</td><td style="text-align:right">${margen}</td><td style="text-align:center">${p.stock||0}</td><td>${estado}</td></tr>`;
+    return `<tr><td>${p.codigo||''}</td><td>${esc(p.nombre)}</td><td>${esc(p.proveedor_nom||'—')}</td><td>${p.unidad||'—'}</td><td style="text-align:right">${fmt(costo)}</td><td style="text-align:right;font-weight:bold">${fmt(precio)}</td><td style="text-align:right">${margen}</td><td style="text-align:center">${p.stock||0}</td><td>${estado}</td></tr>`;
   }).join('');
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><title>Listado de Productos</title><style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px}h2{font-size:15px;margin-bottom:6px}.filtros{font-size:11px;color:#555;background:#f5f5f5;border:1px solid #ddd;border-radius:4px;padding:5px 10px;margin-bottom:12px;display:inline-block}table{width:100%;border-collapse:collapse}th,td{padding:5px 8px;border:1px solid #ddd;vertical-align:top}th{background:#f0f0f0;font-size:11px;text-transform:uppercase}tr:nth-child(even){background:#fafafa}@media print{button{display:none}}</style></head><body><h2>🌸 Distribuidora Lila — Listado de Productos (${new Date().toLocaleDateString('es-AR')})</h2><div class="filtros">🔍 Filtros: ${filtrosDesc} &nbsp;·&nbsp; ${data.length} productos</div><br><table><thead><tr><th>Código</th><th>Nombre / Descripción</th><th>Proveedor</th><th>Unidad</th><th style="text-align:right">Costo</th><th style="text-align:right">Precio Vta.</th><th style="text-align:right">Margen</th><th style="text-align:center">Stock</th><th>Estado</th></tr></thead><tbody>${filas}</tbody></table><br><button onclick="window.print()" style="padding:8px 20px;font-size:13px;cursor:pointer">🖨️ Imprimir</button></body></html>`);
@@ -450,7 +455,17 @@ function abrirProducto(){
   document.getElementById('pro-iva').value='21';
   document.getElementById('pro-margen').value='30';
   document.getElementById('pro-precio-sug').textContent='—';
+  
+  //DESHABILITAR EL INPUT PARA QUE NO SE ACTIVE EL BUSCADOR
+  const nomInput = document.getElementById('pro-nom');
+  nomInput.disabled = false;
+  nomInput.placeholder = 'Nombre del producto';
+  nomInput.removeAttribute('oninput');
+  nomInput.removeAttribute('onfocus');
+  
+  //OCULTAR EL DROPDOWN
   document.getElementById('pro-nom-drop').style.display='none';
+  
   _poblarProvHabModal('');
   document.getElementById('m-producto').classList.add('on');
 }
@@ -477,6 +492,14 @@ function editarProducto(id){
   document.getElementById('pro-activo-chk').checked=p.activo!==false;
   _poblarProvHabModal(p.proveedor_nom||'');
   recalcPrecioSugerido();
+  
+  //HABILITAR EL BUSCADOR PARA EDICIÓN
+  const nomInput = document.getElementById('pro-nom');
+  nomInput.disabled = false;
+  nomInput.placeholder = 'Buscar para editar...';
+  nomInput.setAttribute('oninput', 'dropProNombreModal()');
+  nomInput.setAttribute('onfocus', 'dropProNombreModal()');
+  
   document.getElementById('pro-nom-drop').style.display='none';
   document.getElementById('m-producto').classList.add('on');
 }
@@ -549,7 +572,7 @@ function dropProNombreModal(){
   if(q.length<2){drop.style.display='none';return;}
   const m=_productos.filter(p=>String(p.id)!==String(editId)&&(p.nombre||'').toLowerCase().includes(q)).slice(0,8);
   drop.innerHTML=m.length?m.map(p=>`<div onmousedown="editarProducto(${p.id})">
-      <strong>${p.nombre}</strong> <span style="color:var(--txt2);font-size:11px">Cód: ${p.codigo||p.id} · Stock: ${p.stock||0}</span>
+      <strong>${esc(p.nombre)}</strong> <span style="color:var(--txt2);font-size:11px">Cód: ${p.codigo||p.id} · Stock: ${p.stock||0}</span>
     </div>`).join(''):'<div style="color:var(--txt2)">Sin coincidencias</div>';
   drop.style.display='block';
 }
@@ -575,7 +598,14 @@ async function guardarProducto(){
     activo:document.getElementById('pro-activo-chk').checked};
   if(editId){await sb.from('productos').update(obj).eq('id',editId);}
   else{await sb.from('productos').insert(obj);}
-  cerrar('m-producto');await cargarProductos();renderProductos();
+  cerrar('m-producto');
+  await cargarProductos();
+  renderProductos();
+  
+  //LIMPIAR EL ESTADO DEL BUSCADOR
+  document.getElementById('pro-nom').removeAttribute('oninput');
+  document.getElementById('pro-nom').removeAttribute('onfocus');
+  document.getElementById('pro-nom-drop').style.display='none';
 }
 
 let _listasPrecios=[], _listaPreciosItems=[], _clienteListaMap={};
@@ -622,7 +652,7 @@ async function initListasPrecios(){
 }
 
 function _lpPoblarSelects(){
-  const opts=_listasPrecios.map(l=>`<option value="${l.id}">${l.nombre}</option>`).join('');
+  const opts=_listasPrecios.map(l=>`<option value="${l.id}">${esc(l.nombre)}</option>`).join('');
   ['lp-sel-lista','lp-cli-lista-fil','lp-sim-lista','cmgc-lista-sim'].forEach(id=>{
     const el=document.getElementById(id);
     if(!el)return;
@@ -658,7 +688,7 @@ function lpRenderListas(){
   el.innerHTML=_listasPrecios.map(l=>`
     <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--bg2);border:1px solid var(--brd);border-radius:10px;margin-bottom:8px">
       <div>
-        <div style="font-weight:700;font-size:15px">${l.nombre}</div>
+        <div style="font-weight:700;font-size:15px">${esc(l.nombre)}</div>
         <div style="font-size:12px;color:var(--txt2);margin-top:2px">Margen base: <strong>${l.margen_pct||0}%</strong> · ${Object.values(_clienteListaMap).filter(v=>v==l.id).length} cliente(s)</div>
       </div>
       <div style="display:flex;gap:6px">
@@ -731,7 +761,7 @@ function lpFiltrarPrecios(){
       const override=item?.precio_override;
       const final=override!=null?override:precioLista;
       return `<tr style="border-bottom:0.5px solid var(--brd)">
-        <td style="padding:7px 10px;font-weight:500">${p.nombre}</td>
+        <td style="padding:7px 10px;font-weight:500">${esc(p.nombre)}</td>
         <td style="padding:7px 10px;text-align:right;color:var(--txt2)">${fmt(costo)}</td>
         <td style="padding:7px 10px;text-align:right;color:var(--txt2)">${fmt(precioBase)}</td>
         <td style="padding:7px 10px;text-align:right">${fmt(precioLista)}</td>
@@ -783,12 +813,12 @@ function lpRenderClientes(){
     <tbody>${clis.slice(0,100).map(c=>{
       const listaId=_clienteListaMap[c.id]||'';
       return `<tr style="border-bottom:0.5px solid var(--brd)">
-        <td style="padding:7px 10px;font-weight:500">${c.nombre}</td>
+        <td style="padding:7px 10px;font-weight:500">${esc(c.nombre)}</td>
         <td style="padding:7px 10px">
           <select style="width:100%;padding:4px 6px;border:1px solid var(--brd);border-radius:6px;font-size:12px"
             onchange="lpAsignarClienteLista(${c.id},this.value)">
             <option value="">— Sin lista —</option>
-            ${_listasPrecios.map(l=>`<option value="${l.id}"${l.id==listaId?' selected':''}>${l.nombre}</option>`).join('')}
+            ${_listasPrecios.map(l=>`<option value="${l.id}"${l.id==listaId?' selected':''}>${esc(l.nombre)}</option>`).join('')}
           </select>
         </td>
       </tr>`;
@@ -810,7 +840,7 @@ function lpSimDropCli(){
   drop.innerHTML=m.map(c=>`<div onmousedown="lpSimSelCli(${c.id})"
     style="padding:10px 12px;cursor:pointer;border-bottom:0.5px solid var(--brd)"
     onmouseover="this.style.background='var(--PL)'" onmouseout="this.style.background=''">
-    <div style="font-weight:600">${c.nombre}</div>
+    <div style="font-weight:600">${esc(c.nombre)}</div>
     ${_clienteListaMap[c.id]?`<div style="font-size:11px;color:var(--PD)">${_listasPrecios.find(l=>l.id==_clienteListaMap[c.id])?.nombre||''}</div>`:''}
   </div>`).join('');
   drop.style.display=m.length?'block':'none';
@@ -833,7 +863,7 @@ function lpSimDropPro(){
   drop.innerHTML=m.map(p=>`<div onmousedown="lpSimSelPro(${p.id})"
     style="padding:10px 12px;cursor:pointer;border-bottom:0.5px solid var(--brd)"
     onmouseover="this.style.background='var(--PL)'" onmouseout="this.style.background=''">
-    <div style="font-weight:600">${p.nombre}</div>
+    <div style="font-weight:600">${esc(p.nombre)}</div>
     <div style="font-size:11px;color:var(--txt2)">${fmt(p.precio||0)} base · costo ${fmt(p.costo||0)}</div>
   </div>`).join('');
   drop.style.display=m.length?'block':'none';
@@ -885,7 +915,7 @@ function lpSimRender(){
       const totLista=i.cant*i.precioLista;
       const dif=totLista-totBase;
       return `<tr style="border-bottom:0.5px solid var(--brd)">
-        <td style="padding:6px 10px;font-weight:500">${i.nom}</td>
+        <td style="padding:6px 10px;font-weight:500">${esc(i.nom)}</td>
         <td style="padding:6px 10px;text-align:right">${i.cant}</td>
         <td style="padding:6px 10px;text-align:right;color:var(--txt2)">${fmt(i.precioBase)}</td>
         <td style="padding:6px 10px;text-align:right;color:var(--PD);font-weight:600">${fmt(i.precioLista)}</td>
@@ -962,11 +992,11 @@ function renderProveedores(){
   const tbody = document.getElementById('prov-tbody');
   if(!tbody) return;
   tbody.innerHTML = data.length ? data.map(p => `<tr>
-    <td style="font-weight:600">${p.nombre}</td>
+    <td style="font-weight:600">${esc(p.nombre)}</td>
     <td style="color:var(--txt2)">${p.cuit||'—'}</td>
-    <td>${p.contacto||'—'}</td>
-    <td>${p.telefono||'—'}</td>
-    <td>${p.email||'—'}</td>
+    <td>${esc(p.contacto||'—')}</td>
+    <td>${esc(p.telefono||'—')}</td>
+    <td>${esc(p.email||'—')}</td>
     <td>${p.condicion_pago||'—'}</td>
     <td>${p.plazo_pago_dias!=null?`<span class="b bP">${p.plazo_pago_dias}d</span>`:'—'}</td>
     <td style="text-align:right;font-weight:600;color:${p._saldo>0?'var(--D)':'var(--txt2)'};cursor:pointer" onclick="histProveedor(${p.id})" title="Ver cuenta corriente">${fmt(p._saldo)}</td>
@@ -978,15 +1008,14 @@ function renderProveedores(){
 function abrirProveedor(){
   document.getElementById('prov-edit-id').value = '';
   document.getElementById('m-prov-title').textContent = 'Nuevo proveedor';
-  ['prov-nom','prov-cuit','prov-contacto','prov-tel','prov-email','prov-condicion','prov-plazo','prov-obs'].forEach(id => {
+  ['prov-nom','prov-cuit','prov-tel','prov-email','prov-condicion','prov-plazo','prov-obs'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
-  document.getElementById('prov-cond-fiscal').value='factura_todo';
-  document.getElementById('prov-pct-factura').value='';
-  document.getElementById('prov-pct-wrap').style.display='none';
+  // Eliminar referencias a prov-contacto si no existe
+  // document.getElementById('prov-contacto').value = '';
+  document.getElementById('prov-cuenta').value = '';
   document.getElementById('m-proveedor').classList.add('on');
 }
-
 function togglePctFactura(){
   const v=document.getElementById('prov-cond-fiscal').value;
   document.getElementById('prov-pct-wrap').style.display=v==='factura_parcial'?'':'none';
@@ -998,16 +1027,13 @@ function editarProveedor(id){
   document.getElementById('m-prov-title').textContent = 'Editar proveedor';
   document.getElementById('prov-nom').value = p.nombre||'';
   document.getElementById('prov-cuit').value = p.cuit||'';
-  document.getElementById('prov-contacto').value = p.contacto||'';
+  // document.getElementById('prov-contacto').value = p.contacto||''; ← NO EXISTE
   document.getElementById('prov-tel').value = p.telefono||'';
   document.getElementById('prov-email').value = p.email||'';
   document.getElementById('prov-condicion').value = p.condicion_pago||'';
-  document.getElementById('prov-plazo').value = p.plazo_pago_dias!=null?p.plazo_pago_dias:'';
+  document.getElementById('prov-plazo').value = p.plazo_pago_dias != null ? p.plazo_pago_dias : (p.plazo_dias || '');
   document.getElementById('prov-obs').value = p.observaciones||'';
   document.getElementById('prov-cuenta').value = p.cuenta_defecto||'';
-  document.getElementById('prov-cond-fiscal').value = p.condicion_fiscal||'factura_todo';
-  document.getElementById('prov-pct-factura').value = p.pct_factura||'';
-  document.getElementById('prov-pct-wrap').style.display = (p.condicion_fiscal==='factura_parcial')?'':'none';
   document.getElementById('m-proveedor').classList.add('on');
 }
 
@@ -1015,24 +1041,42 @@ async function guardarProveedor(){
   const nom = (document.getElementById('prov-nom').value||'').trim();
   if(!nom){ alert('Ingresá el nombre'); return; }
   const editId = document.getElementById('prov-edit-id').value;
+  
+  // OBJETO CON LOS CAMPOS QUE EXISTEN EN LA TABLA
   const obj = {
     nombre: nom,
     cuit: document.getElementById('prov-cuit').value.trim(),
-    contacto: document.getElementById('prov-contacto').value.trim(),
+    // contacto: document.getElementById('prov-contacto').value.trim(), ← NO EXISTE
     telefono: document.getElementById('prov-tel').value.trim(),
     email: document.getElementById('prov-email').value.trim(),
     condicion_pago: document.getElementById('prov-condicion').value.trim(),
-    plazo_pago_dias: document.getElementById('prov-plazo').value!==''?parseInt(document.getElementById('prov-plazo').value):null,
+    // plazo_pago_dias: ... ← USAR `plazo_dias` O `plazo_pago_dias`
+    plazo_dias: document.getElementById('prov-plazo').value !== '' ? parseInt(document.getElementById('prov-plazo').value) : null,
+    plazo_pago_dias: document.getElementById('prov-plazo').value !== '' ? parseInt(document.getElementById('prov-plazo').value) : null,
     cuenta_defecto: document.getElementById('prov-cuenta').value,
     observaciones: document.getElementById('prov-obs').value.trim(),
-    condicion_fiscal: document.getElementById('prov-cond-fiscal').value,
-    pct_factura: document.getElementById('prov-pct-factura').value!==''?parseFloat(document.getElementById('prov-pct-factura').value):null,
+    // condicion_fiscal: document.getElementById('prov-cond-fiscal').value, ← NO EXISTE
+    // pct_factura: ..., ← NO EXISTE
+    dto_pp: 0, // Descuento pronto pago (opcional)
+    acepta_cheque: 'si', // Opcional
   };
-  if(editId){ await sb.from('proveedores').update(obj).eq('id', editId); }
-  else { await sb.from('proveedores').insert(obj); }
-  cerrar('m-proveedor');
-  await cargarProveedores();
-  renderProveedores();
+  
+  console.log('📤 Enviando a proveedores:', obj);
+  
+  try {
+    if(editId){ 
+      await sb.from('proveedores').update(obj).eq('id', editId); 
+    } else { 
+      await sb.from('proveedores').insert(obj); 
+    }
+    cerrar('m-proveedor');
+    await cargarProveedores();
+    renderProveedores();
+    toast('✅ Proveedor guardado correctamente');
+  } catch (error) {
+    console.error('❌ Error al guardar proveedor:', error);
+    alert('Error al guardar: ' + (error.message || error));
+  }
 }
 
 async function eliminarProveedor(id){
@@ -1069,8 +1113,8 @@ function renderZonas(){
     const clientes = _clientes.filter(c => c.zona === z.codigo).length;
     return `<tr>
       <td style="font-weight:700;color:var(--P)">${z.codigo}</td>
-      <td>${z.descripcion||'—'}</td>
-      <td>${z.vendedor||'—'}</td>
+      <td>${esc(z.descripcion||'—')}</td>
+      <td>${esc(z.vendedor||'—')}</td>
       <td><span class="b bA">${clientes} clientes</span></td>
       <td><button class="btn sm" onclick="editarZona(${z.id})">✏️</button>
           <button class="btn D sm" onclick="eliminarZona(${z.id})">🗑</button></td>

@@ -2944,7 +2944,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="fg"><label>Categoría</label>
           <select id="cmgp-cat" style="width:100%" onchange="poblarSubcats('cmgp-cat','cmgp-subcat')">
             <option value="">Todas</option>
-            ${Object.keys(CATS).map(c=>`<option value="${c}">${c}</option>`).join('')}
+            <option value="Fiambres">Fiambres</option>
+            <option value="Quesos">Quesos</option>
+            <option value="Lácteos">Lácteos</option>
+            <option value="Condimentos">Condimentos</option>
+            <option value="Conservas">Conservas</option>
+            <option value="Snacks">Snacks</option>
+            <option value="Congelados">Congelados</option>
+            <option value="Otros">Otros</option>
           </select>
         </div>
         <div class="fg"><label>Subcategoría</label>
@@ -3004,7 +3011,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="fg"><label>Categoría</label>
           <select id="prec-cat" style="width:100%" onchange="poblarSubcats('prec-cat','prec-subcat')">
             <option value="">Todas</option>
-            ${Object.keys(CATS).map(c=>`<option value="${c}">${c}</option>`).join('')}
+            <option value="Fiambres">Fiambres</option>
+            <option value="Quesos">Quesos</option>
+            <option value="Lácteos">Lácteos</option>
+            <option value="Condimentos">Condimentos</option>
+            <option value="Conservas">Conservas</option>
+            <option value="Snacks">Snacks</option>
+            <option value="Congelados">Congelados</option>
+            <option value="Otros">Otros</option>
           </select>
         </div>
         <div class="fg"><label>Subcategoría</label>
@@ -3490,7 +3504,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="fg"><label>Categoría</label>
       <select id="pro-cat-modal" style="width:100%" onchange="poblarSubcats('pro-cat-modal','pro-subcat-modal')">
         <option value="">— Sin categoría —</option>
-        ${Object.keys(CATS).map(c=>`<option value="${c}">${c}</option>`).join('')}
+        <option value="Fiambres">Fiambres</option>
+        <option value="Quesos">Quesos</option>
+        <option value="Lácteos">Lácteos</option>
+        <option value="Condimentos">Condimentos</option>
+        <option value="Conservas">Conservas</option>
+        <option value="Snacks">Snacks</option>
+        <option value="Congelados">Congelados</option>
+        <option value="Otros">Otros</option>
       </select>
     </div>
     <div class="fg"><label>Subcategoría</label>
@@ -3501,14 +3522,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="fg"><label>Unidad de medida</label>
       <input id="pro-unidad" style="width:100%" placeholder="Kg / Un / Docena" list="pro-unidad-list" autocomplete="off">
       <datalist id="pro-unidad-list">
-        <option value="kg">
-        <option value="un">
-        <option value="docena">
-        <option value="pack">
-        <option value="lt">
-        <option value="gr">
-        <option value="caja">
-        <option value="bandeja">
+        <option value="Kg">
+        <option value="Un">
+        <option value="Docena">
+        <option value="Pack">
+        <option value="Lt">
+        <option value="Gr">
+        <option value="Caja">
+        <option value="Bandeja">
       </datalist>
     </div>
     <div class="fg"><label>Unidad de venta</label>
@@ -4290,18 +4311,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="fr">
       <div class="fg" style="grid-column:1/-1"><label>Nombre / Razón social</label><input id="prov-nom" style="width:100%" placeholder="Nombre del proveedor"></div>
       <div class="fg"><label>CUIT</label><input id="prov-cuit" style="width:100%" placeholder="30-12345678-9"></div>
-      <div class="fg"><label>Contacto</label><input id="prov-contacto" style="width:100%" placeholder="Nombre contacto"></div>
+      <!-- <div class="fg"><label>Contacto</label><input id="prov-contacto" style="width:100%" placeholder="Nombre contacto"></div> -->
       <div class="fg"><label>Teléfono</label><input id="prov-tel" style="width:100%" placeholder="Teléfono"></div>
       <div class="fg"><label>Email</label><input id="prov-email" style="width:100%" placeholder="email@proveedor.com"></div>
       <div class="fg"><label>Condición pago</label><input id="prov-condicion" style="width:100%" placeholder="Ej: 30 días"></div>
       <div class="fg"><label>Plazo de pago (días)</label><input type="number" id="prov-plazo" style="width:100%" placeholder="30" min="0"></div>
-      <div class="fg"><label>Condición fiscal</label>
+      <!-- <div class="fg"><label>Condición fiscal</label>
         <select id="prov-cond-fiscal" style="width:100%" onchange="togglePctFactura()">
           <option value="factura_todo">Factura todo (descuenta IVA)</option>
           <option value="no_factura">No factura (costo sin IVA)</option>
           <option value="factura_parcial">Factura parcial (% que factura)</option>
         </select>
-      </div>
+      </div> -->
       <div class="fg" id="prov-pct-wrap" style="display:none"><label>% que factura</label>
         <input type="number" id="prov-pct-factura" style="width:100%" min="1" max="99" step="1" placeholder="Ej: 50">
       </div>
@@ -4376,13 +4397,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260817-01"></script>
-<script src="js/maestros.js?v=20260817-01"></script>
-<script src="js/ventas.js?v=20260817-01"></script>
-<script src="js/tesoreria.js?v=20260817-01"></script>
-<script src="js/contabilidad.js?v=20260817-01"></script>
-<script src="js/informes.js?v=20260817-01"></script>
-<script src="js/logistica.js?v=20260817-01"></script>
+<script src="js/app.js?v=20260817-02"></script>
+<script src="js/maestros.js?v=20260817-02"></script>
+<script src="js/ventas.js?v=20260817-02"></script>
+<script src="js/tesoreria.js?v=20260817-02"></script>
+<script src="js/contabilidad.js?v=20260817-02"></script>
+<script src="js/informes.js?v=20260817-02"></script>
+<script src="js/logistica.js?v=20260817-02"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

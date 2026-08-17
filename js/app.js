@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260817-01';
+const APP_VERSION = '20260817-02';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -334,6 +334,14 @@ function hoyLocalOffset(dias){
 function fmt(n){return '$'+((Math.round(n||0))||0).toLocaleString('es-AR');}
 
 function fmtN(n,d=2){return (n||0).toFixed(d);}
+
+// Escapa texto antes de insertarlo en innerHTML (evita que un dato cargado
+// por un usuario -nombre de cliente, observación, etc.- se interprete como
+// HTML/JS). Usar en todo ${...} que venga de un campo de texto de la base.
+function esc(v){
+  if(v===null||v===undefined)return '';
+  return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 function cerrar(id){
   const el=document.getElementById(id);
@@ -845,7 +853,7 @@ function go(p) {
   if(p==='vendedor-home'){
     const s=document.getElementById('vh-saludo');
     const f=document.getElementById('vh-fecha');
-    if(s&&usuarioActual)s.textContent='Hola, '+usuarioActual.nombre+'!';
+    if(s&&usuarioActual)s.textContent='Hola, '+esc(usuarioActual.nombre)+'!';
     if(f)f.textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
     renderVendedorHome();
   }
@@ -1121,8 +1129,8 @@ function f3Buscar(){
           style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:6px;cursor:pointer"
           onmouseenter="f3Hover(this)" onclick="f3Seleccionar('cliente',${c.id})">
           <div>
-            <div style="font-size:13px;font-weight:600">${c.nombre}</div>
-            <div style="font-size:11px;color:var(--txt2)">${c.localidad||''} · ${c.telefono||''}</div>
+            <div style="font-size:13px;font-weight:600">${esc(c.nombre)}</div>
+            <div style="font-size:11px;color:var(--txt2)">${esc(c.localidad||'')} · ${esc(c.telefono||'')}</div>
           </div>
           <div style="text-align:right">
             <div style="font-size:13px;font-weight:600;color:var(--D)">${fmt(c.saldo||0)}</div>
@@ -1147,8 +1155,8 @@ function f3Buscar(){
           style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:6px;cursor:pointer"
           onmouseenter="f3Hover(this)" onclick="f3Seleccionar('producto',${p.id})">
           <div>
-            <div style="font-size:13px;font-weight:600">${p.nombre}</div>
-            <div style="font-size:11px;color:var(--txt2)">Cód: ${p.codigo||'-'} · ${p.rubro||''}</div>
+            <div style="font-size:13px;font-weight:600">${esc(p.nombre)}</div>
+            <div style="font-size:11px;color:var(--txt2)">Cód: ${p.codigo||'-'} · ${esc(p.rubro||'')}</div>
           </div>
           <div style="text-align:right">
             <div style="font-size:13px;font-weight:600">${fmt(p.precio||0)}</div>
@@ -1174,7 +1182,7 @@ function f3Buscar(){
           style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:6px;cursor:pointer"
           onmouseenter="f3Hover(this)" onclick="f3Seleccionar('remito',${r.id})">
           <div>
-            <div style="font-size:13px;font-weight:600">R-${String(r.id).padStart(4,'0')} · ${cli?.nombre||'-'}</div>
+            <div style="font-size:13px;font-weight:600">R-${String(r.id).padStart(4,'0')} · ${esc(cli?.nombre||'-')}</div>
             <div style="font-size:11px;color:var(--txt2)">${r.fecha} · ${r.cobrado?'✓ cobrado':'pendiente'}</div>
           </div>
           <div style="font-size:13px;font-weight:600;color:var(--D)">${fmt(r.total||0)}</div>
@@ -1257,7 +1265,7 @@ function _popupDetalleProducto(p){
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9990;display:flex;align-items:center;justify-content:center;padding:16px';
   ov.innerHTML=`<div style="background:var(--bg);border-radius:14px;padding:24px;max-width:460px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.3)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <span style="font-size:16px;font-weight:700">${p.nombre}</span>
+      <span style="font-size:16px;font-weight:700">${esc(p.nombre)}</span>
       <button onclick="document.getElementById('_gl-det-popup').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--txt2);line-height:1">✕</button>
     </div>
     <table style="width:100%;font-size:13px;border-collapse:collapse">
@@ -1266,8 +1274,8 @@ function _popupDetalleProducto(p){
       <tr><td style="color:var(--txt2);padding:5px 0">Precio</td><td style="font-weight:700;color:var(--P);font-size:15px">${fmt(p.precio||0)}</td></tr>
       ${p.precio_kg?`<tr><td style="color:var(--txt2);padding:5px 0">Precio KG</td><td style="font-weight:700">${fmt(p.precio_kg)}</td></tr>`:''}
       ${p.iva?`<tr><td style="color:var(--txt2);padding:5px 0">IVA</td><td>${p.iva}%</td></tr>`:''}
-      ${p.categoria?`<tr><td style="color:var(--txt2);padding:5px 0">Categoría</td><td>${p.categoria}</td></tr>`:''}
-      ${p.proveedor?`<tr><td style="color:var(--txt2);padding:5px 0">Proveedor</td><td>${p.proveedor}</td></tr>`:''}
+      ${p.categoria?`<tr><td style="color:var(--txt2);padding:5px 0">Categoría</td><td>${esc(p.categoria)}</td></tr>`:''}
+      ${p.proveedor?`<tr><td style="color:var(--txt2);padding:5px 0">Proveedor</td><td>${esc(p.proveedor)}</td></tr>`:''}
     </table>
     <div style="text-align:center;margin-top:16px"><button onclick="document.getElementById('_gl-det-popup').remove()" class="btn" style="padding:8px 28px">Cerrar</button></div>
   </div>`;
