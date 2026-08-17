@@ -98,53 +98,166 @@ function abrirCliente(){
   document.getElementById('cli-edit-id').value='';
   document.getElementById('m-cli-title').textContent='Nuevo cliente';
   ['cli-nom','cli-cuit','cli-razon','cli-dir','cli-loc','cli-tel','cli-zona','cli-ven'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('cli-dto').value='0';document.getElementById('cli-saldo').value='0';
-  document.getElementById('cli-cpg').value='0';document.getElementById('cli-lista').value='1';
+  document.getElementById('cli-zona-codigo').value=''; // ⭐ LIMPIAR ZONA OCULTA
+  document.getElementById('cli-dto').value='0';
+  document.getElementById('cli-saldo').value='0';
+  document.getElementById('cli-cpg').value='0';
+  document.getElementById('cli-lista').value='1';
+  document.getElementById('cli-zona-drop').style.display='none'; // ⭐ OCULTAR DROP
   document.getElementById('m-cliente').classList.add('on');
 }
 
 function editarCliente(id){
-  const c=_clientes.find(x=>x.id===id);if(!c)return;
-  document.getElementById('cli-edit-id').value=id;
-  document.getElementById('m-cli-title').textContent='Editar cliente';
-  document.getElementById('cli-nom').value=c.nombre||'';
-  document.getElementById('cli-cuit').value=c.cuit||'';
-  const razon=document.getElementById('cli-razon');if(razon)razon.value=c.razon_social||'';
-  const cat=document.getElementById('cli-cat');if(cat)cat.value=c.categoria||'Cons. Final';
-  document.getElementById('cli-dir').value=c.direccion||'';
-  document.getElementById('cli-loc').value=c.localidad||'';
-  document.getElementById('cli-tel').value=c.telefono||'';
-  document.getElementById('cli-zona').value=c.zona||'';
-  document.getElementById('cli-ven').value=c.vendedor||'';
-  document.getElementById('cli-dto').value=c.descuento||0;
-  document.getElementById('cli-saldo').value=c.saldo||0;
-  document.getElementById('cli-cpg').value=c.condicion_pago||0;
-  document.getElementById('cli-lista').value=c.lista||1;
+  const c = _clientes.find(x => x.id === id);
+  if(!c) return;
+  
+  document.getElementById('cli-edit-id').value = id;
+  document.getElementById('m-cli-title').textContent = 'Editar cliente';
+  document.getElementById('cli-nom').value = c.nombre || '';
+  document.getElementById('cli-cuit').value = c.cuit || '';
+  const razon = document.getElementById('cli-razon');
+  if(razon) razon.value = c['razon social'] || '';
+  const cat = document.getElementById('cli-cat');
+  if(cat) cat.value = c.categoria || 'Cons. Final';
+  document.getElementById('cli-dir').value = c.direccion || '';
+  document.getElementById('cli-loc').value = c.localidad || '';
+  document.getElementById('cli-tel').value = c.telefono || '';
+  
+  // Mostrar zona: nombre en el input, código en el hidden
+  const zonaEncontrada = _zonas.find(z => z.codigo === c.zona);
+  document.getElementById('cli-zona').value = zonaEncontrada ? zonaEncontrada.nombre : (c.zona || '');
+  document.getElementById('cli-zona-codigo').value = c.zona || ''; // ⭐ CARGAR CÓDIGO
+  
+  document.getElementById('cli-ven').value = c.vendedor || '';
+  document.getElementById('cli-dto').value = c.descuento || 0;
+  document.getElementById('cli-saldo').value = c.saldo || 0;
+  document.getElementById('cli-cpg').value = c.condicion_pago || 0;
+  document.getElementById('cli-lista').value = c.lista || 1;
   document.getElementById('m-cliente').classList.add('on');
 }
 
+function buscarZonasParaCliente() {
+  const input = document.getElementById('cli-zona');
+  const drop = document.getElementById('cli-zona-drop');
+  const q = (input.value || '').toLowerCase().trim();
+  
+  if (!_zonas || !_zonas.length) {
+    drop.innerHTML = `<div style="padding:10px 12px;color:var(--txt2);font-size:13px;">Cargando zonas...</div>`;
+    drop.style.display = 'block';
+    return;
+  }
+  
+  // Si el input está vacío, mostrar todas las zonas
+  const zonasFiltradas = _zonas.filter(z => 
+    (z.nombre || '').toLowerCase().includes(q) ||
+    (z.codigo || '').toLowerCase().includes(q) ||
+    (z.descripcion || '').toLowerCase().includes(q)
+  );
+  
+  if (!zonasFiltradas.length) {
+    drop.innerHTML = `<div style="padding:10px 12px;color:var(--txt2);font-size:13px;">Sin resultados</div>`;
+    drop.style.display = 'block';
+    return;
+  }
+  
+  drop.innerHTML = zonasFiltradas.map(z => `
+    <div onclick="seleccionarZonaParaCliente('${z.codigo}', '${z.nombre.replace(/'/g, "\\'")}')"
+      style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--brd);font-size:13px;"
+      onmouseover="this.style.background='var(--bg2)'" 
+      onmouseout="this.style.background=''">
+      <div style="font-weight:600;">${z.nombre}</div>
+      <div style="font-size:11px;color:var(--txt2);">
+        Código: ${z.codigo || '—'} 
+        ${z.descripcion ? '· ' + z.descripcion : ''}
+        ${z.vendedor ? '· Vendedor: ' + z.vendedor : ''}
+      </div>
+    </div>
+  `).join('');
+  
+  drop.style.display = 'block';
+}
+
+function seleccionarZonaParaCliente(codigo, nombre) {
+  // MOSTRAR EL CÓDIGO en el campo (para que el usuario vea lo que se va a guardar)
+  document.getElementById('cli-zona').value = codigo;  // ← CAMBIAR A codigo
+  document.getElementById('cli-zona-codigo').value = codigo;
+  document.getElementById('cli-zona-drop').style.display = 'none';
+  console.log('✅ Zona seleccionada:', codigo, '-', nombre);
+}
+
+// Cerrar el dropdown al hacer clic fuera
+document.addEventListener('click', function(e) {
+  const drop = document.getElementById('cli-zona-drop');
+  const input = document.getElementById('cli-zona');
+  if (drop && input && !e.target.closest('#cli-zona') && !e.target.closest('#cli-zona-drop')) {
+    drop.style.display = 'none';
+  }
+});
+
 async function guardarCliente(){
-  const nom=(document.getElementById('cli-nom').value||'').trim().toUpperCase();
-  if(!nom){alert('Ingresá el nombre');return;}
-  const editId=document.getElementById('cli-edit-id').value;
-  const razonEl=document.getElementById('cli-razon');
-  const catEl=document.getElementById('cli-cat');
-  const obj={nombre:nom,cuit:document.getElementById('cli-cuit').value.trim(),
-    razon_social:(razonEl?.value||'').trim()||nom,
-    categoria:catEl?.value||'Cons. Final',
-    direccion:document.getElementById('cli-dir').value.trim(),
-    localidad:document.getElementById('cli-loc').value.trim().toUpperCase(),
-    telefono:document.getElementById('cli-tel').value.trim(),
-    zona:document.getElementById('cli-zona').value.trim(),
-    vendedor:document.getElementById('cli-ven').value.trim(),
-    descuento:parseFloat(document.getElementById('cli-dto').value)||0,
-    saldo:parseFloat(document.getElementById('cli-saldo').value)||0,
-    condicion_pago:parseInt(document.getElementById('cli-cpg').value)||0,
-    lista:parseInt(document.getElementById('cli-lista').value)||1};
-  if(editId){await sb.from('clientes').update(obj).eq('id',editId);}
-  else{await sb.from('clientes').insert(obj);}
-  cerrar('m-cliente');await cargarClientes();renderClientes();renderCC();poblarZonas();
-  setTimeout(()=>{const q=document.getElementById('cli-q');if(q&&document.getElementById('p-clientes')?.classList.contains('on'))q.focus();},50);
+  const nom = (document.getElementById('cli-nom').value||'').trim().toUpperCase();
+  if(!nom){ alert('Ingresá el nombre'); return; }
+  
+  const editId = document.getElementById('cli-edit-id').value;
+  
+  // OBTENER EL CÓDIGO DE ZONA (desde el campo oculto)
+  let zonaCodigo = document.getElementById('cli-zona-codigo').value;
+  
+  // Si no hay código en el hidden, intentar buscar por nombre
+  if (!zonaCodigo) {
+    const zonaNombre = document.getElementById('cli-zona').value.trim();
+    const zonaEncontrada = _zonas.find(z => 
+      z.nombre === zonaNombre || 
+      z.codigo === zonaNombre ||
+      z.descripcion === zonaNombre
+    );
+    if (zonaEncontrada) zonaCodigo = zonaEncontrada.codigo;
+  }
+  
+  // Si aún no hay código, usar el valor del input como fallback
+  if (!zonaCodigo) {
+    zonaCodigo = document.getElementById('cli-zona').value.trim();
+  }
+  
+  console.log('🔑 Código de zona a guardar:', zonaCodigo);
+  
+  const obj = {
+    nombre: nom,
+    cuit: document.getElementById('cli-cuit').value.trim(),
+    'razon social': (document.getElementById('cli-razon')?.value||'').trim() || nom,
+    categoria: document.getElementById('cli-cat')?.value || 'Cons. Final',
+    direccion: document.getElementById('cli-dir').value.trim(),
+    localidad: document.getElementById('cli-loc').value.trim().toUpperCase(),
+    telefono: document.getElementById('cli-tel').value.trim(),
+    zona: zonaCodigo, // ⭐ USAR EL CÓDIGO, NO EL NOMBRE
+    vendedor: document.getElementById('cli-ven').value.trim(),
+    descuento: parseFloat(document.getElementById('cli-dto').value) || 0,
+    saldo: parseFloat(document.getElementById('cli-saldo').value) || 0,
+    condicion_pago: parseInt(document.getElementById('cli-cpg').value) || 0,
+    lista: parseInt(document.getElementById('cli-lista').value) || 1
+  };
+  
+  console.log('📤 Enviando a clientes:', obj);
+  
+  try {
+    if(editId){
+      await sb.from('clientes').update(obj).eq('id', editId);
+    } else {
+      await sb.from('clientes').insert(obj);
+    }
+    cerrar('m-cliente');
+    await cargarClientes();
+    renderClientes();
+    renderCC();
+    poblarZonas();
+    setTimeout(()=>{
+      const q = document.getElementById('cli-q');
+      if(q && document.getElementById('p-clientes')?.classList.contains('on')) q.focus();
+    }, 50);
+  } catch (error) {
+    console.error('❌ Error al guardar cliente:', error);
+    alert('Error al guardar: ' + (error.message || error));
+  }
 }
 
 function limpiarFiltrosClientes() {
