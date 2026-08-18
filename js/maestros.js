@@ -200,55 +200,41 @@ document.addEventListener('click', function(e) {
 });
 
 async function guardarCliente(){
-  const nom = (document.getElementById('cli-nom').value||'').trim().toUpperCase();
-  if(!nom){ alert('Ingresá el nombre'); return; }
+  const nom=(document.getElementById('cli-nom').value||'').trim().toUpperCase();
+  if(!nom){alert('Ingresá el nombre');return;}
+  const editId=document.getElementById('cli-edit-id').value;
   
-  const editId = document.getElementById('cli-edit-id').value;
-  
-  // OBTENER EL CÓDIGO DE ZONA (desde el campo oculto)
+  //  OBTENER EL CÓDIGO DE ZONA
   let zonaCodigo = document.getElementById('cli-zona-codigo').value;
-  
-  // Si no hay código en el hidden, intentar buscar por nombre
   if (!zonaCodigo) {
     const zonaNombre = document.getElementById('cli-zona').value.trim();
-    const zonaEncontrada = _zonas.find(z => 
-      z.nombre === zonaNombre || 
-      z.codigo === zonaNombre ||
-      z.descripcion === zonaNombre
-    );
+    const zonaEncontrada = _zonas.find(z => z.nombre === zonaNombre || z.codigo === zonaNombre);
     if (zonaEncontrada) zonaCodigo = zonaEncontrada.codigo;
   }
   
-  // Si aún no hay código, usar el valor del input como fallback
-  if (!zonaCodigo) {
-    zonaCodigo = document.getElementById('cli-zona').value.trim();
-  }
-  
-  console.log('🔑 Código de zona a guardar:', zonaCodigo);
-  
-  const obj = {
-    nombre: nom,
-    cuit: document.getElementById('cli-cuit').value.trim(),
-    'razon social': (document.getElementById('cli-razon')?.value||'').trim() || nom,
-    categoria: document.getElementById('cli-cat')?.value || 'Cons. Final',
-    direccion: document.getElementById('cli-dir').value.trim(),
-    localidad: document.getElementById('cli-loc').value.trim().toUpperCase(),
-    telefono: document.getElementById('cli-tel').value.trim(),
-    zona: zonaCodigo, // ⭐ USAR EL CÓDIGO, NO EL NOMBRE
-    vendedor: document.getElementById('cli-ven').value.trim(),
-    descuento: parseFloat(document.getElementById('cli-dto').value) || 0,
-    saldo: parseFloat(document.getElementById('cli-saldo').value) || 0,
-    condicion_pago: parseInt(document.getElementById('cli-cpg').value) || 0,
-    lista: parseInt(document.getElementById('cli-lista').value) || 1
+  const obj={
+    nombre:nom,
+    cuit:document.getElementById('cli-cuit').value.trim(),
+    razon_social:(document.getElementById('cli-razon')?.value||'').trim()||nom,
+    categoria:document.getElementById('cli-cat')?.value||'Cons. Final',
+    direccion:document.getElementById('cli-dir').value.trim(),
+    localidad:document.getElementById('cli-loc').value.trim().toUpperCase(),
+    telefono:document.getElementById('cli-tel').value.trim(),
+    zona:zonaCodigo,
+    vendedor:document.getElementById('cli-ven').value.trim(),
+    descuento:parseFloat(document.getElementById('cli-dto').value)||0,
+    saldo:parseFloat(document.getElementById('cli-saldo').value)||0,
+    condicion_pago:parseInt(document.getElementById('cli-cpg').value)||0,
+    lista:parseInt(document.getElementById('cli-lista').value)||1
   };
-  
-  console.log('📤 Enviando a clientes:', obj);
   
   try {
     if(editId){
       await sb.from('clientes').update(obj).eq('id', editId);
+      toast('✅ Cliente actualizado correctamente');
     } else {
       await sb.from('clientes').insert(obj);
+      toast('✅ Cliente creado correctamente');
     }
     cerrar('m-cliente');
     await cargarClientes();
@@ -256,12 +242,12 @@ async function guardarCliente(){
     renderCC();
     poblarZonas();
     setTimeout(()=>{
-      const q = document.getElementById('cli-q');
+      const q=document.getElementById('cli-q');
       if(q && document.getElementById('p-clientes')?.classList.contains('on')) q.focus();
     }, 50);
   } catch (error) {
     console.error('❌ Error al guardar cliente:', error);
-    alert('Error al guardar: ' + (error.message || error));
+    toast('❌ Error al guardar: ' + (error.message || error), 'err');
   }
 }
 
@@ -445,25 +431,34 @@ function _poblarProvHabModal(valorActual){
 function abrirProducto(){
   document.getElementById('pro-edit-id').value='';
   document.getElementById('m-pro-title').textContent='Nuevo producto';
-  ['pro-cod','pro-nom','pro-unidad','pro-unidad-venta'].forEach(id=>document.getElementById(id).value='');
+  
+  // SOLO CAMPOS QUE EXISTEN
+  document.getElementById('pro-cod').value='';
+  document.getElementById('pro-nom').value='';
+  document.getElementById('pro-unidad').value='';
+  // document.getElementById('pro-unidad-venta').value=''; ← NO EXISTE
   document.getElementById('pro-cat-modal').value='';
   document.getElementById('pro-subcat-modal').innerHTML='<option value="">— Sin subcategoría —</option>';
   document.getElementById('pro-subcat-modal').disabled=true;
-  document.getElementById('pro-activo-chk').checked=true;
-  ['pro-costo','pro-precio','pro-stock','pro-dto','pro-punto-pedido'].forEach(id=>document.getElementById(id).value='0');
-  document.getElementById('pro-multiplo').value='1';
+  // document.getElementById('pro-activo-chk').checked=true; ← NO EXISTE
+  document.getElementById('pro-costo').value='0';
+  document.getElementById('pro-precio').value='0';
+  document.getElementById('pro-stock').value='0';
+  document.getElementById('pro-dto').value='0';
+  // document.getElementById('pro-punto-pedido').value='0'; ← NO EXISTE
+  // document.getElementById('pro-multiplo').value='1'; ← NO EXISTE
   document.getElementById('pro-iva').value='21';
   document.getElementById('pro-margen').value='30';
   document.getElementById('pro-precio-sug').textContent='—';
   
-  //DESHABILITAR EL INPUT PARA QUE NO SE ACTIVE EL BUSCADOR
+  // DESHABILITAR EL INPUT PARA QUE NO SE ACTIVE EL BUSCADOR
   const nomInput = document.getElementById('pro-nom');
   nomInput.disabled = false;
   nomInput.placeholder = 'Nombre del producto';
   nomInput.removeAttribute('oninput');
   nomInput.removeAttribute('onfocus');
   
-  //OCULTAR EL DROPDOWN
+  // OCULTAR EL DROPDOWN
   document.getElementById('pro-nom-drop').style.display='none';
   
   _poblarProvHabModal('');
@@ -471,29 +466,29 @@ function abrirProducto(){
 }
 
 function editarProducto(id){
-  const p=_productos.find(x=>x.id===id);if(!p)return;
-  document.getElementById('pro-edit-id').value=id;
-  document.getElementById('m-pro-title').textContent='Editar producto';
-  document.getElementById('pro-cod').value=p.codigo||'';
-  document.getElementById('pro-nom').value=p.nombre||'';
-  document.getElementById('pro-costo').value=p.costo||0;
-  document.getElementById('pro-precio').value=p.precio||0;
-  document.getElementById('pro-iva').value=p.iva||21;
-  document.getElementById('pro-unidad').value=p.unidad||'';
-  document.getElementById('pro-unidad-venta').value=p.unidad_venta||'';
-  document.getElementById('pro-multiplo').value=p.multiplo_venta||1;
-  document.getElementById('pro-punto-pedido').value=p.punto_pedido||0;
-  document.getElementById('pro-stock').value=p.stock||0;
-  document.getElementById('pro-dto').value=p.descuento||0;
-  document.getElementById('pro-cat-modal').value=p.rubro||'';
+  const p = _productos.find(x => x.id === id); if(!p) return;
+  document.getElementById('pro-edit-id').value = id;
+  document.getElementById('m-pro-title').textContent = 'Editar producto';
+  document.getElementById('pro-cod').value = p.codigo||'';
+  document.getElementById('pro-nom').value = p.nombre||'';
+  document.getElementById('pro-costo').value = p.costo||0;
+  document.getElementById('pro-precio').value = p.precio||0;
+  document.getElementById('pro-iva').value = p.iva||21;
+  document.getElementById('pro-unidad').value = p.unidad||'';
+  // document.getElementById('pro-unidad-venta').value = p.unidad_venta||''; ← NO EXISTE
+  // document.getElementById('pro-multiplo').value = p.multiplo_venta||1; ← NO EXISTE
+  // document.getElementById('pro-punto-pedido').value = p.punto_pedido||0; ← NO EXISTE
+  document.getElementById('pro-stock').value = p.stock||0;
+  document.getElementById('pro-dto').value = p.descuento||0;
+  document.getElementById('pro-cat-modal').value = p.rubro||'';
   poblarSubcats('pro-cat-modal','pro-subcat-modal');
-  document.getElementById('pro-subcat-modal').value=p.linea||'';
-  document.getElementById('pro-margen').value=p.margen_objetivo||30;
-  document.getElementById('pro-activo-chk').checked=p.activo!==false;
+  document.getElementById('pro-subcat-modal').value = p.linea||'';
+  document.getElementById('pro-margen').value = p.margen_objetivo||30;
+  // document.getElementById('pro-activo-chk').checked = p.activo !== false; ← NO EXISTE
   _poblarProvHabModal(p.proveedor_nom||'');
   recalcPrecioSugerido();
   
-  //HABILITAR EL BUSCADOR PARA EDICIÓN
+  // HABILITAR EL BUSCADOR PARA EDICIÓN
   const nomInput = document.getElementById('pro-nom');
   nomInput.disabled = false;
   nomInput.placeholder = 'Buscar para editar...';
@@ -578,34 +573,42 @@ function dropProNombreModal(){
 }
 
 async function guardarProducto(){
-  const nom=(document.getElementById('pro-nom').value||'').trim().toUpperCase();
-  if(!nom){alert('Ingresá el nombre');return;}
-  const editId=document.getElementById('pro-edit-id').value;
-  const obj={codigo:document.getElementById('pro-cod').value.trim(),nombre:nom,
-    costo:parseFloat(document.getElementById('pro-costo').value)||0,
-    precio:parseFloat(document.getElementById('pro-precio').value)||0,
-    iva:parseFloat(document.getElementById('pro-iva').value)||21,
-    unidad:document.getElementById('pro-unidad').value.trim(),
-    unidad_venta:document.getElementById('pro-unidad-venta').value.trim(),
-    multiplo_venta:parseFloat(document.getElementById('pro-multiplo').value)||1,
-    punto_pedido:parseFloat(document.getElementById('pro-punto-pedido').value)||0,
-    proveedor_nom:document.getElementById('pro-provhab').value||'',
-    stock:parseFloat(document.getElementById('pro-stock').value)||0,
-    descuento:parseFloat(document.getElementById('pro-dto').value)||0,
-    rubro:document.getElementById('pro-cat-modal').value,
-    linea:document.getElementById('pro-subcat-modal').value,
-    margen_objetivo:parseFloat(document.getElementById('pro-margen').value)||0,
-    activo:document.getElementById('pro-activo-chk').checked};
-  if(editId){await sb.from('productos').update(obj).eq('id',editId);}
-  else{await sb.from('productos').insert(obj);}
-  cerrar('m-producto');
-  await cargarProductos();
-  renderProductos();
+  const nom = (document.getElementById('pro-nom').value||'').trim().toUpperCase();
+  if(!nom){ alert('Ingresá el nombre'); return; }
+  const editId = document.getElementById('pro-edit-id').value;
   
-  //LIMPIAR EL ESTADO DEL BUSCADOR
-  document.getElementById('pro-nom').removeAttribute('oninput');
-  document.getElementById('pro-nom').removeAttribute('onfocus');
-  document.getElementById('pro-nom-drop').style.display='none';
+  // SOLO LOS CAMPOS QUE EXISTEN EN LA TABLA
+  const obj = {
+    codigo: document.getElementById('pro-cod').value.trim(),
+    nombre: nom,
+    costo: parseFloat(document.getElementById('pro-costo').value) || 0,
+    precio: parseFloat(document.getElementById('pro-precio').value) || 0,
+    iva: parseFloat(document.getElementById('pro-iva').value) || 21,
+    unidad: document.getElementById('pro-unidad').value.trim(),
+    linea: document.getElementById('pro-subcat-modal').value,
+    stock: parseFloat(document.getElementById('pro-stock').value) || 0,
+    descuento: parseFloat(document.getElementById('pro-dto').value) || 0,
+    rubro: document.getElementById('pro-cat-modal').value,
+    proveedor_nom: document.getElementById('pro-provhab').value || '',
+    margen_objetivo: parseFloat(document.getElementById('pro-margen').value) || 0,
+  };
+  
+  console.log('📤 Enviando a productos:', obj);
+  
+  try {
+    if(editId){ 
+      await sb.from('productos').update(obj).eq('id', editId); 
+    } else { 
+      await sb.from('productos').insert(obj); 
+    }
+    cerrar('m-producto');
+    await cargarProductos();
+    renderProductos();
+    toast('✅ Producto guardado correctamente');
+  } catch (error) {
+    console.error('❌ Error al guardar producto:', error);
+    alert('Error al guardar: ' + (error.message || error));
+  }
 }
 
 let _listasPrecios=[], _listaPreciosItems=[], _clienteListaMap={};
