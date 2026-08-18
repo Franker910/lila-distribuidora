@@ -121,16 +121,18 @@ function editarCliente(id){
   document.getElementById('m-cli-title').textContent = 'Editar cliente';
   document.getElementById('cli-nom').value = c.nombre || '';
   document.getElementById('cli-cuit').value = c.cuit || '';
+  
   const razon = document.getElementById('cli-razon');
   if(razon) razon.value = c['razon social'] || '';
+  
   const cat = document.getElementById('cli-cat');
   if(cat) cat.value = c.categoria || 'Cons. Final';
   document.getElementById('cli-dir').value = c.direccion || '';
   document.getElementById('cli-loc').value = c.localidad || '';
   document.getElementById('cli-tel').value = c.telefono || '';
   
-  // MOSTRAR EL CÓDIGO DE ZONA (no el nombre)
-  document.getElementById('cli-zona').value = c.zona || '';  // ← AHORA MUESTRA EL CÓDIGO
+  const zonaEncontrada = _zonas.find(z => z.codigo === c.zona);
+  document.getElementById('cli-zona').value = zonaEncontrada ? zonaEncontrada.nombre : (c.zona || '');
   document.getElementById('cli-zona-codigo').value = c.zona || '';
   
   document.getElementById('cli-ven').value = c.vendedor || '';
@@ -200,11 +202,11 @@ document.addEventListener('click', function(e) {
 });
 
 async function guardarCliente(){
-  const nom=(document.getElementById('cli-nom').value||'').trim().toUpperCase();
-  if(!nom){alert('Ingresá el nombre');return;}
-  const editId=document.getElementById('cli-edit-id').value;
+  const nom = (document.getElementById('cli-nom').value||'').trim().toUpperCase();
+  if(!nom){ alert('Ingresá el nombre'); return; }
+  const editId = document.getElementById('cli-edit-id').value;
   
-  //  OBTENER EL CÓDIGO DE ZONA
+  // OBTENER EL CÓDIGO DE ZONA
   let zonaCodigo = document.getElementById('cli-zona-codigo').value;
   if (!zonaCodigo) {
     const zonaNombre = document.getElementById('cli-zona').value.trim();
@@ -212,21 +214,24 @@ async function guardarCliente(){
     if (zonaEncontrada) zonaCodigo = zonaEncontrada.codigo;
   }
   
-  const obj={
-    nombre:nom,
-    cuit:document.getElementById('cli-cuit').value.trim(),
-    razon_social:(document.getElementById('cli-razon')?.value||'').trim()||nom,
-    categoria:document.getElementById('cli-cat')?.value||'Cons. Final',
-    direccion:document.getElementById('cli-dir').value.trim(),
-    localidad:document.getElementById('cli-loc').value.trim().toUpperCase(),
-    telefono:document.getElementById('cli-tel').value.trim(),
-    zona:zonaCodigo,
-    vendedor:document.getElementById('cli-ven').value.trim(),
-    descuento:parseFloat(document.getElementById('cli-dto').value)||0,
-    saldo:parseFloat(document.getElementById('cli-saldo').value)||0,
-    condicion_pago:parseInt(document.getElementById('cli-cpg').value)||0,
-    lista:parseInt(document.getElementById('cli-lista').value)||1
+  //
+  const obj = {
+    nombre: nom,
+    cuit: document.getElementById('cli-cuit').value.trim(),
+    'razon social': (document.getElementById('cli-razon')?.value||'').trim() || nom,
+    categoria: document.getElementById('cli-cat')?.value || 'Cons. Final',
+    direccion: document.getElementById('cli-dir').value.trim(),
+    localidad: document.getElementById('cli-loc').value.trim().toUpperCase(),
+    telefono: document.getElementById('cli-tel').value.trim(),
+    zona: zonaCodigo,
+    vendedor: document.getElementById('cli-ven').value.trim(),
+    descuento: parseFloat(document.getElementById('cli-dto').value) || 0,
+    saldo: parseFloat(document.getElementById('cli-saldo').value) || 0,
+    condicion_pago: parseInt(document.getElementById('cli-cpg').value) || 0,
+    lista: parseInt(document.getElementById('cli-lista').value) || 1
   };
+  
+  console.log('📤 Enviando a clientes:', obj);
   
   try {
     if(editId){
@@ -242,7 +247,7 @@ async function guardarCliente(){
     renderCC();
     poblarZonas();
     setTimeout(()=>{
-      const q=document.getElementById('cli-q');
+      const q = document.getElementById('cli-q');
       if(q && document.getElementById('p-clientes')?.classList.contains('on')) q.focus();
     }, 50);
   } catch (error) {

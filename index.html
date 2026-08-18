@@ -1481,13 +1481,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <!-- COBRANZA -->
-<div class="panel" id="p-cobranza">
-
+<div class="panel" id="p-cobranza" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">
+  
   <!-- VISTA VENDEDOR (mobile, simple) -->
-  <div id="cob-movil" style="display:none;max-width:520px">
-
-    <!-- Header -->
-    <div style="background:var(--PD);color:#fff;padding:12px 14px;position:sticky;top:0;z-index:10;margin:-10px -10px 12px -10px;border-radius:8px 8px 0 0">
+  <div id="cob-movil" style="display:none; flex-direction:column; height:100%; overflow:hidden; max-width:520px; width:100%; margin:0 auto;">
+    
+    <!-- HEADER FIJO -->
+    <div style="background:var(--PD);color:#fff;padding:12px 14px;position:sticky;top:0;z-index:10;flex-shrink:0;border-radius:8px 8px 0 0;">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
           <div style="font-size:11px;opacity:0.8">REGISTRAR COBRO</div>
@@ -1501,36 +1501,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
 
-    <!-- Acciones principales -->
-    <div id="cobm-acciones" style="margin-bottom:16px">
-      <button onclick="cobmAbrirCC()"
-        style="width:100%;padding:16px;margin-bottom:10px;background:#1a6fa8;color:#fff;border:none;border-radius:16px;font-size:15px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 3px 10px rgba(26,111,168,.25)">
-        📋 Cuenta corriente
-      </button>
-      <button onclick="cobmAbrirMisCobranzas()"
-        style="width:100%;padding:16px;background:#7c3aed;color:#fff;border:none;border-radius:16px;font-size:15px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 3px 10px rgba(124,58,237,.25)">
-        📊 Mis cobranzas
-      </button>
-    </div>
+    <!-- CONTENEDOR SCROLLABLE -->
+    <div style="flex:1; overflow-y:auto; min-height:0; padding:12px;">
 
-
-    <!-- Sub-panel: Cuenta corriente -->
-    <div id="cobm-panel-cc" style="display:none;margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-        <button onclick="cobmVolverAcciones()"
-          style="padding:12px 16px;background:var(--bg2);border:1.5px solid var(--brd);border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;min-height:48px;white-space:nowrap;-webkit-tap-highlight-color:transparent">
-          ← Volver
+      <!-- Acciones principales -->
+      <div id="cobm-acciones" style="margin-bottom:16px">
+        <button onclick="cobmAbrirCC()"
+          style="width:100%;padding:16px;margin-bottom:10px;background:#1a6fa8;color:#fff;border:none;border-radius:16px;font-size:15px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 3px 10px rgba(26,111,168,.25)">
+          📋 Cuenta corriente
         </button>
-        <div style="font-size:13px;font-weight:700;color:var(--txt)">Cuenta corriente</div>
+        <button onclick="cobmAbrirMisCobranzas()"
+          style="width:100%;padding:16px;background:#7c3aed;color:#fff;border:none;border-radius:16px;font-size:15px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 3px 10px rgba(124,58,237,.25)">
+          📊 Mis cobranzas
+        </button>
       </div>
-      <input id="cobm-cc-q" type="text" inputmode="text" placeholder="🔍 Buscá por nombre o código..." autocomplete="off"
-        oninput="buscarClienteCC()"
-        style="width:100%;height:46px;font-size:16px;border:2px solid #1a6fa8;border-radius:10px;padding:0 12px;box-sizing:border-box">
-      <select id="cobm-cc-zon" onchange="buscarClienteCC()" style="width:100%;height:40px;border:1.5px solid var(--brd);border-radius:8px;font-size:14px;padding:0 10px;font-family:inherit;margin-top:8px">
-        <option value="">Todas las zonas</option>
-      </select>
-      <div id="cobm-cc-lista" style="margin-top:8px"></div>
-    </div>
+
+
+      <!-- Sub-panel: Cuenta corriente -->
+      <div id="cobm-panel-cc" style="display:none;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <button onclick="cobmVolverAcciones()"
+            style="padding:12px 16px;background:var(--bg2);border:1.5px solid var(--brd);border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;min-height:48px;white-space:nowrap;-webkit-tap-highlight-color:transparent">
+            ← Volver
+          </button>
+          <div style="font-size:13px;font-weight:700;color:var(--txt)">Cuenta corriente</div>
+        </div>
+        <input id="cobm-cc-q" type="text" inputmode="text" placeholder="🔍 Buscá por nombre o código..." autocomplete="off"
+          oninput="buscarClienteCC()"
+          style="width:100%;height:46px;font-size:16px;border:2px solid #1a6fa8;border-radius:10px;padding:0 12px;box-sizing:border-box">
+        <select id="cobm-cc-zon" onchange="buscarClienteCC()" style="width:100%;height:40px;border:1.5px solid var(--brd);border-radius:8px;font-size:14px;padding:0 10px;font-family:inherit;margin-top:8px">
+          <option value="">Todas las zonas</option>
+        </select>
+        <div id="cobm-cc-lista" style="margin-top:8px"></div>
+      </div>
 
     <!-- Sub-panel: Mis cobranzas -->
     <div id="cobm-panel-miscobranzas" style="display:none;margin-bottom:14px">
@@ -1565,30 +1568,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="cobm-mc-lista"></div>
     </div>
 
-    <!-- Paso 1: Cliente -->
-    <div id="cobm-paso-cliente">
-      <div id="cobm-ruta-badge" style="display:none;font-size:12px;font-weight:600;color:var(--P);background:var(--PL);border-radius:8px;padding:6px 10px;margin-bottom:10px"></div>
-      <!-- Búsqueda por código (teclado numérico) -->
-      <div style="display:flex;gap:8px;margin-bottom:10px">
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <label style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px">Cód.</label>
-          <input id="cobm-cli-cod" inputmode="numeric" pattern="[0-9]*" placeholder="00" autocomplete="off"
-            style="width:72px;height:46px;font-size:20px;font-weight:700;text-align:center;border:2px solid var(--brd);border-radius:8px;padding:0 6px"
-            oninput="cobmBuscarPorCod()"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();cobmConfirmarCod();}">
+      <!-- Paso 1: Cliente -->
+      <div id="cobm-paso-cliente">
+        <div id="cobm-ruta-badge" style="display:none;font-size:12px;font-weight:600;color:var(--P);background:var(--PL);border-radius:8px;padding:6px 10px;margin-bottom:10px"></div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px">Cód.</label>
+            <input id="cobm-cli-cod" inputmode="numeric" pattern="[0-9]*" placeholder="00" autocomplete="off"
+              style="width:72px;height:46px;font-size:20px;font-weight:700;text-align:center;border:2px solid var(--brd);border-radius:8px;padding:0 6px"
+              oninput="cobmBuscarPorCod()" onkeydown="if(event.key==='Enter'){event.preventDefault();cobmConfirmarCod();}">
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <label style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px">Nombre</label>
+            <input id="cobm-cli-q" placeholder="🔍 Buscar cliente..." autocomplete="off"
+              style="width:100%;height:46px;font-size:16px;border:2px solid var(--brd);border-radius:8px;padding:0 12px;box-sizing:border-box"
+              oninput="buscarClienteCobMovil()">
+          </div>
         </div>
-        <div style="flex:1;display:flex;flex-direction:column;gap:3px">
-          <label style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px">Nombre</label>
-          <input id="cobm-cli-q" placeholder="🔍 Buscar cliente..." autocomplete="off"
-            style="width:100%;height:46px;font-size:16px;border:2px solid var(--brd);border-radius:8px;padding:0 12px;box-sizing:border-box"
-            oninput="buscarClienteCobMovil()">
-        </div>
+        <select id="cobm-cli-zon" onchange="buscarClienteCobMovil()" style="width:100%;height:40px;border:1.5px solid var(--brd);border-radius:8px;font-size:14px;padding:0 10px;font-family:inherit;margin-bottom:10px">
+          <option value="">Todas las zonas</option>
+        </select>
+        <div id="cobm-cli-lista" style="max-height:420px;overflow-y:auto;border-radius:10px;border:1.5px solid var(--brd);background:#fff;display:none"></div>
       </div>
-      <select id="cobm-cli-zon" onchange="buscarClienteCobMovil()" style="width:100%;height:40px;border:1.5px solid var(--brd);border-radius:8px;font-size:14px;padding:0 10px;font-family:inherit;margin-bottom:10px">
-        <option value="">Todas las zonas</option>
-      </select>
-      <div id="cobm-cli-lista" style="max-height:420px;overflow-y:auto;border-radius:10px;border:1.5px solid var(--brd);background:#fff;display:none"></div>
-    </div>
 
     <!-- Paso 2: Forma + Importe -->
     <div id="cobm-paso-cobro" style="display:none">
@@ -4443,13 +4444,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260818-01"></script>
-<script src="js/maestros.js?v=20260818-01"></script>
-<script src="js/ventas.js?v=20260818-01"></script>
-<script src="js/tesoreria.js?v=20260818-01"></script>
-<script src="js/contabilidad.js?v=20260818-01"></script>
-<script src="js/informes.js?v=20260818-01"></script>
-<script src="js/logistica.js?v=20260818-01"></script>
+<script src="js/app.js?v=20260818-02"></script>
+<script src="js/maestros.js?v=20260818-02"></script>
+<script src="js/ventas.js?v=20260818-02"></script>
+<script src="js/tesoreria.js?v=20260818-02"></script>
+<script src="js/contabilidad.js?v=20260818-02"></script>
+<script src="js/informes.js?v=20260818-02"></script>
+<script src="js/logistica.js?v=20260818-02"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

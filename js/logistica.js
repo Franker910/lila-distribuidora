@@ -91,10 +91,25 @@ async function guardarCarga(){
   const fecha=document.getElementById('car-fecha')?.value||hoyLocal();
   const nombre=document.getElementById('car-nombre')?.value.trim()||ven||'';
   ocultarNuevaCarga();
-  const {data:carga,error}=await sb.from('cargas').insert({fecha,vendedor:ven,pedidos:pedIds,total:tot,estado:'armando',nombre}).select().single();
+  
+  const {data:carga,error}=await sb.from('cargas').insert({
+    fecha,vendedor:ven,pedidos:pedIds,total:tot,estado:'armando',nombre
+  }).select().single();
   if(error){alert('Error: '+error.message);return;}
-  for(const pid of pedIds){await sb.from('pedidos').update({estado:'en_carga',carga_id:carga.id}).eq('id',pid);}
-  cerrar('m-carga');await Promise.all([cargarCargas(),cargarPedidos()]);renderCargas();renderPedidos();renderDash();
+  
+  //ACTUALIZAR PEDIDOS CON carga_id (número entero)
+  for(const pid of pedIds){
+    await sb.from('pedidos').update({ 
+      estado: 'en_carga',
+      carga_id: carga.id   // carga.id es INTEGER
+    }).eq('id', pid);
+  }
+  
+  cerrar('m-carga');
+  await Promise.all([cargarCargas(),cargarPedidos()]);
+  renderCargas();
+  renderPedidos();
+  renderDash();
 }
 
 function renderCargas(){
@@ -312,9 +327,11 @@ async function emitirRemitos(cargaId){
   const peds=_pedidos.filter(p=>(cg.pedidos||[]).includes(p.id)&&p.estado!=='remitado'&&!p.remito_id);
   if(!peds.length){toast('Todos los pedidos de esta carga ya tienen remito.');return;}
   const hoy=hoyLocal();
-  // Acumular totales por cliente antes de actualizar para evitar sobrescritura con múltiples pedidos del mismo cliente
+  
+  // Acumular totales por cliente
   const acumCliente={};
   for(const p of peds){acumCliente[p.cliente_id]=(acumCliente[p.cliente_id]||{total:0,comprado:0,fecha:hoy});acumCliente[p.cliente_id].total+=p.total;acumCliente[p.cliente_id].comprado+=p.total;}
+  
   for(const p of peds){
     const c=_clientes.find(x=>x.id===p.cliente_id);
     const {data:rem}=await sb.from('remitos').insert({
@@ -323,7 +340,13 @@ async function emitirRemitos(cargaId){
       items:p.items,total:p.total,cobrado:false,
       direccion:c?.direccion||c?.domicilio||'',telefono:c?.telefono||''
     }).select().single();
-    await sb.from('pedidos').update({estado:'remitado',remito_id:rem.id}).eq('id',p.id);
+    
+    //Actualizar pedido (sin carga_id, solo estado y remito_id)
+    await sb.from('pedidos').update({
+      estado:'remitado',
+      remito_id:rem.id
+    }).eq('id',p.id);
+    
     await descontarStock(p.items||[]);
     // Asiento contable
     const totDesc=(p.items||[]).reduce((a,it)=>{const bruto=it.precio*it.cant;return a+(bruto-bruto*(1-(it.dto||0)/100));},0);
