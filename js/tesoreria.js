@@ -2229,23 +2229,50 @@ function buscarClienteCobMovil(){
   const zonaFil=document.getElementById('cobm-cli-zon')?.value||'';
   const lista=document.getElementById('cobm-cli-lista');
   if(q.length<1&&!zonaFil){lista.style.display='none';lista.innerHTML='';return;}
+  
   const pool=_cobmCliPool();
   const m=pool.filter(c=>
     ((c.nombre||'').toLowerCase().includes(q)||String(c.codigo||c.id).includes(q))
     &&(!zonaFil||c.zona===zonaFil)
   ).slice(0,10);
-  lista.style.display=m.length?'block':'none';
-  if(!m.length){lista.innerHTML='<div style="padding:14px;font-size:14px;color:var(--txt2)">Sin resultados</div>';return;}
+  
+  if(!m.length){
+    lista.style.display='block';
+    lista.innerHTML='<div style="padding:14px;font-size:14px;color:var(--txt2)">Sin resultados</div>';
+    posicionarDropdownCobMovil();
+    return;
+  }
+  
+  lista.style.display='block';
   lista.innerHTML=m.map(c=>`<div onclick="selClienteCobMovil(${c.id})"
     style="display:flex;justify-content:space-between;align-items:center;min-height:56px;padding:10px 14px;border-bottom:1px solid var(--brd);cursor:pointer;-webkit-tap-highlight-color:transparent">
     <div style="flex:1;min-width:0">
-      <div style="font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.nombre)}</div>
-      <div style="font-size:12px;color:var(--txt2);margin-top:2px">${esc(c.localidad||'')}${c.codigo?' · #'+c.codigo:''}</div>
+      <div style="font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nombre}</div>
+      <div style="font-size:12px;color:var(--txt2);margin-top:2px">${c.localidad||''}${c.codigo?' · #'+c.codigo:''}</div>
     </div>
     <div style="text-align:right;flex-shrink:0;margin-left:10px">
       <div style="font-size:17px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
     </div>
   </div>`).join('');
+  
+  posicionarDropdownCobMovil();
+}
+
+function posicionarDropdownCobMovil() {
+  const input = document.getElementById('cobm-cli-q');
+  const lista = document.getElementById('cobm-cli-lista');
+  if (!input || !lista) return;
+  
+  const rect = input.getBoundingClientRect();
+  const espacioAbajo = window.innerHeight - rect.bottom - 10;
+  const alturaMax = Math.min(300, Math.max(150, espacioAbajo));
+  
+  lista.style.position = 'fixed';
+  lista.style.top = (rect.bottom + window.scrollY) + 'px';
+  lista.style.left = (rect.left + window.scrollX) + 'px';
+  lista.style.width = (rect.width) + 'px';
+  lista.style.maxHeight = alturaMax + 'px';
+  lista.style.zIndex = '99999';
 }
 
 function cobmBuscarPorCod(){
