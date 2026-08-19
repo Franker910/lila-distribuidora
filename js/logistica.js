@@ -1055,6 +1055,8 @@ function _renderRutaBadge(cantClientesRuta){
   else partes.push('⚠️ Sin reparto emitido hoy — el cobro no quedará vinculado a una carga');
   badge.innerHTML=partes.join(' · ');
   badge.style.display='block';
+
+  mostrarClientesDeRutaHoy();
 }
 
 function elegirCargaActiva(cargaId){

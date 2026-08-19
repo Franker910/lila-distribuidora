@@ -2249,6 +2249,12 @@ function limpiarCobMovil(){
   if(pmc) pmc.style.display='none';
   
   setTimeout(()=>document.getElementById('cobm-cli-q')?.focus(),100);
+
+  const clientesRuta = document.getElementById('cobm-clientes-ruta-hoy');
+  if (clientesRuta) {
+    clientesRuta.innerHTML = '';
+    clientesRuta.style.display = 'none';
+  }
 }
 
 function _cobmCliPool(){
@@ -2350,7 +2356,6 @@ function mostrarSugerenciasZonas() {
       </div>
     `;
     contenedor.style.display = 'block';
-    posicionarSugerenciasZonas();
     return;
   }
   
@@ -2373,49 +2378,8 @@ function mostrarSugerenciasZonas() {
   `).join('');
   
   contenedor.style.display = 'block';
-  posicionarSugerenciasZonas();
 }
 
-function posicionarSugerenciasZonas() {
-  const input = document.getElementById('cobm-zona-input');
-  const contenedor = document.getElementById('cobm-zona-sugerencias');
-  if (!input || !contenedor || contenedor.style.display === 'none') return;
-  
-  const rect = input.getBoundingClientRect();
-  const viewportHeight = window.innerHeight;
-  const viewportWidth = window.innerWidth;
-  
-  const espacioAbajo = viewportHeight - rect.bottom - 10;
-  const espacioArriba = rect.top - 10;
-  const alturaMax = Math.min(260, Math.max(150, Math.max(espacioAbajo, espacioArriba) - 20));
-  
-  const usarArriba = espacioAbajo < 160 && espacioArriba > espacioAbajo;
-  
-  contenedor.style.position = 'fixed';
-  contenedor.style.top = usarArriba ? 'auto' : (rect.bottom + 6) + 'px';
-  contenedor.style.bottom = usarArriba ? (viewportHeight - rect.top + 8) + 'px' : 'auto';
-  contenedor.style.left = Math.max(10, rect.left) + 'px';
-  contenedor.style.width = Math.min(rect.width, viewportWidth - 20) + 'px';
-  contenedor.style.maxHeight = alturaMax + 'px';
-  contenedor.style.overflowY = 'auto';
-  contenedor.style.zIndex = '99999';
-  contenedor.style.background = '#fff';
-  contenedor.style.border = '2px solid var(--P)';
-  contenedor.style.borderRadius = '12px';
-  contenedor.style.boxShadow = '0 8px 32px rgba(0,0,0,0.18)';
-  contenedor.style.display = 'block';
-  contenedor.style.padding = '4px 0';
-  contenedor.style.WebkitOverflowScrolling = 'touch';
-  
-  // Ajustar laterales
-  const dropRect = contenedor.getBoundingClientRect();
-  if (dropRect.right > viewportWidth - 8) {
-    contenedor.style.left = Math.max(8, viewportWidth - dropRect.width - 8) + 'px';
-  }
-  if (dropRect.left < 8) {
-    contenedor.style.left = '8px';
-  }
-}
 
 function seleccionarZonaCob(codigoZona) {
   const input = document.getElementById('cobm-zona-input');
@@ -2551,34 +2515,26 @@ function posicionarDropdownCobMovil() {
   const lista = document.getElementById('cobm-cli-lista');
   if (!input || !lista || lista.style.display === 'none') return;
   
-  // Usar requestAnimationFrame para asegurar que el DOM esté listo
   requestAnimationFrame(() => {
     const rect = input.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
     
-    // Calcular espacio disponible abajo y arriba
     const espacioAbajo = viewportHeight - rect.bottom - 10;
     const espacioArriba = rect.top - 10;
-    
-    // Altura máxima: al menos 150px, máximo 300px, ajustado al espacio disponible
-    let alturaMax = Math.min(300, Math.max(150, Math.max(espacioAbajo, espacioArriba) - 20));
-    
-    // Calcular posición
-    let topPos, bottomPos;
     const usarArriba = espacioAbajo < 180 && espacioArriba > espacioAbajo;
+    const espacioDisponible = usarArriba ? espacioArriba : espacioAbajo;
+    let alturaMax = Math.min(300, Math.max(80, espacioDisponible - 20));
     
+    let topPos, bottomPos;
     if (usarArriba) {
-      // Poner arriba del input
       topPos = 'auto';
       bottomPos = (viewportHeight - rect.top + 8) + 'px';
     } else {
-      // Poner abajo del input
       topPos = (rect.bottom + 6) + 'px';
       bottomPos = 'auto';
     }
     
-    // Aplicar estilos
     lista.style.position = 'fixed';
     lista.style.top = topPos;
     lista.style.bottom = bottomPos;
@@ -2596,7 +2552,6 @@ function posicionarDropdownCobMovil() {
     lista.style.padding = '4px 0';
     lista.style.WebkitOverflowScrolling = 'touch';
     
-    // Ajustar si se pasa de los bordes laterales
     const dropRect = lista.getBoundingClientRect();
     if (dropRect.right > viewportWidth - 8) {
       lista.style.left = Math.max(8, viewportWidth - dropRect.width - 8) + 'px';
@@ -2605,7 +2560,6 @@ function posicionarDropdownCobMovil() {
       lista.style.left = '8px';
     }
     
-    // Asegurar que el dropdown no tape completamente la pantalla
     if (dropRect.height > viewportHeight * 0.7) {
       lista.style.maxHeight = Math.floor(viewportHeight * 0.6) + 'px';
     }
@@ -2938,6 +2892,56 @@ function _renderComisionCard(){
         </div>
       </div>
     </div>`;
+}
+
+// ─── MOSTRAR CLIENTES DE LA RUTA DEL DÍA EN COBRANZA ─────────────────────
+
+function mostrarClientesDeRutaHoy() {
+  const contenedor = document.getElementById('cobm-clientes-ruta-hoy');
+  if (!contenedor) return;
+  
+  // Verificar si hay clientes en la ruta de hoy
+  if (!_hrClientesHoy || !_hrClientesHoy.length) {
+    contenedor.innerHTML = '';
+    contenedor.style.display = 'none';
+    return;
+  }
+  
+  // Obtener los datos completos de los clientes de la ruta
+  const clientesRuta = _clientes.filter(c => _hrClientesHoy.includes(c.id) && c.activo !== false);
+  
+  if (!clientesRuta.length) {
+    contenedor.innerHTML = '';
+    contenedor.style.display = 'none';
+    return;
+  }
+  
+  // Ordenar por nombre
+  clientesRuta.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+  
+  // Mostrar los clientes como tarjetas
+  contenedor.innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 8px 0;padding-top:8px;border-top:1.5px solid var(--brd);">
+      📋 Clientes de tu ruta de hoy (${clientesRuta.length})
+    </div>
+    ${clientesRuta.map(c => `
+      <div onclick="selClienteCobMovil(${c.id})"
+        style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--PL);border-radius:10px;margin-bottom:6px;border:1.5px solid var(--P);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all 0.15s;"
+        onmouseover="this.style.borderColor='var(--PD)';this.style.background='#d4f0e0'" 
+        onmouseout="this.style.borderColor='var(--P)';this.style.background='var(--PL)'">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.nombre)}</div>
+          <div style="font-size:12px;color:var(--txt2);margin-top:2px">${esc(c.localidad||'')} ${c.codigo ? '· #' + c.codigo : ''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:10px">
+          <div style="font-size:16px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
+          <div style="font-size:10px;color:var(--P);font-weight:600;">💰 Cobrar →</div>
+        </div>
+      </div>
+    `).join('')}
+  `;
+  
+  contenedor.style.display = 'block';
 }
 
 // ─── TESORERÍA ───────────────────────────────────────────────
