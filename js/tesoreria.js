@@ -2334,7 +2334,6 @@ function initBuscadorZonasCob() {
 }
 
 function mostrarSugerenciasZonas() {
-  const input = document.getElementById('cobm-zona-input');
   const contenedor = document.getElementById('cobm-zona-sugerencias');
   const termino = _cobZonaInput.toLowerCase();
   
@@ -2343,7 +2342,6 @@ function mostrarSugerenciasZonas() {
     return;
   }
   
-  // Buscar zonas que coincidan
   const coincidencias = _cobZonasCache.filter(z => 
     z.descripcion.toLowerCase().includes(termino) || 
     z.codigo.toLowerCase().includes(termino)
@@ -2352,14 +2350,13 @@ function mostrarSugerenciasZonas() {
   if (!coincidencias.length) {
     contenedor.innerHTML = `
       <div style="padding:12px 14px;color:var(--txt2);font-size:13px;text-align:center;">
-        ❌ No se encontraron zonas con "${termino}"
+        ❌ No se encontraron zonas con "${esc(termino)}"
       </div>
     `;
     contenedor.style.display = 'block';
     return;
   }
   
-  // Mostrar hasta 8 zonas
   const mostrar = coincidencias.slice(0, 8);
   contenedor.innerHTML = mostrar.map(z => `
     <div class="zona-sug-item" 
@@ -2369,7 +2366,7 @@ function mostrarSugerenciasZonas() {
          onmouseout="this.style.background='transparent'">
       <div>
         <div style="font-weight:600;font-size:14px;">${esc(z.descripcion)}</div>
-        <div style="font-size:11px;color:var(--txt2);">${z.codigo} · ${z.clientes.length} cliente${z.clientes.length !== 1 ? 's' : ''}</div>
+        <div style="font-size:11px;color:var(--txt2);">${esc(z.codigo)} · ${z.clientes.length} cliente${z.clientes.length !== 1 ? 's' : ''}</div>
       </div>
       <div style="font-size:12px;color:var(--P);background:var(--PL);padding:2px 10px;border-radius:12px;">
         ${z.clientes.filter(c => (c.saldo||0) > 0).length} con deuda
