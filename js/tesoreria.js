@@ -2179,30 +2179,75 @@ function cobmRenderMisCobranzas(){
 }
 
 function limpiarCobMovil(){
-  _cobMovilCliId=null;_cobMovilForma=null;
-  const qEl=document.getElementById('cobm-cli-q');if(qEl)qEl.value='';
-  const codEl=document.getElementById('cobm-cli-cod');if(codEl){codEl.value='';codEl.style.borderColor='';}
-  const lEl=document.getElementById('cobm-cli-lista');if(lEl){lEl.innerHTML='';lEl.style.display='none';}
-  const nEl=document.getElementById('cobm-cli-nombre');if(nEl)nEl.textContent='Seleccioná un cliente';
-  const sEl=document.getElementById('cobm-cli-saldo');if(sEl)sEl.textContent='';
-  const bcc=document.getElementById('cobm-btn-cc');if(bcc)bcc.style.display='none';
-  const pc=document.getElementById('cobm-paso-cliente');if(pc)pc.style.display='block';
-  const pp=document.getElementById('cobm-paso-cobro');if(pp)pp.style.display='none';
+  _cobMovilCliId=null;
+  _cobMovilForma=null;
+  
+  cerrarDropdownCobMovil();
+  
+  const qEl=document.getElementById('cobm-cli-q');
+  if(qEl) qEl.value='';
+  
+  const codEl=document.getElementById('cobm-cli-cod');
+  if(codEl){ codEl.value=''; codEl.style.borderColor=''; }
+  
+  const nEl=document.getElementById('cobm-cli-nombre');
+  if(nEl) nEl.textContent='Seleccioná un cliente';
+  
+  const sEl=document.getElementById('cobm-cli-saldo');
+  if(sEl) sEl.textContent='';
+  
+  const bcc=document.getElementById('cobm-btn-cc');
+  if(bcc) bcc.style.display='none';
+  
+  const pc=document.getElementById('cobm-paso-cliente');
+  if(pc) pc.style.display='block';
+  
+  const pp=document.getElementById('cobm-paso-cobro');
+  if(pp) pp.style.display='none';
+  
   poblarSelectZona('cobm-cli-zon');
-  const imp=document.getElementById('cobm-importe');if(imp)imp.value='';
-  const obs=document.getElementById('cobm-obs');if(obs)obs.value='';
-  const fw=document.getElementById('cobm-facturas-wrap');if(fw)fw.style.display='none';
-  const rw=document.getElementById('cobm-resto-wrap');if(rw)rw.style.display='none';
-  const cw=document.getElementById('cobm-comp-wrap');if(cw)cw.style.display='none';
+  
+  const imp=document.getElementById('cobm-importe');
+  if(imp) imp.value='';
+  
+  const obs=document.getElementById('cobm-obs');
+  if(obs) obs.value='';
+  
+  const fw=document.getElementById('cobm-facturas-wrap');
+  if(fw) fw.style.display='none';
+  
+  const rw=document.getElementById('cobm-resto-wrap');
+  if(rw) rw.style.display='none';
+  
+  const cw=document.getElementById('cobm-comp-wrap');
+  if(cw) cw.style.display='none';
+  
   clearComprobanteMov();
-  const tn=document.getElementById('cobm-transf-nombre');if(tn)tn.value='';
-  const chw=document.getElementById('cobm-cheque-wrap');if(chw)chw.style.display='none';
-  const nc=document.getElementById('cobm-nrocheque');if(nc)nc.value='';
-  ['cobm-btn-ef','cobm-btn-tr','cobm-btn-ch'].forEach(id=>{const b=document.getElementById(id);if(b){b.style.background='#fff';b.style.borderColor='var(--brd)';b.style.color='';}});
-  // Volver a pantalla principal de cobranza (botones)
-  const acc=document.getElementById('cobm-acciones');if(acc)acc.style.display='block';
-  const pcc=document.getElementById('cobm-panel-cc');if(pcc)pcc.style.display='none';
-  const pmc=document.getElementById('cobm-panel-miscobranzas');if(pmc)pmc.style.display='none';
+  
+  const tn=document.getElementById('cobm-transf-nombre');
+  if(tn) tn.value='';
+  
+  const chw=document.getElementById('cobm-cheque-wrap');
+  if(chw) chw.style.display='none';
+  
+  const nc=document.getElementById('cobm-nrocheque');
+  if(nc) nc.value='';
+  
+  ['cobm-btn-ef','cobm-btn-tr','cobm-btn-ch'].forEach(id=>{
+    const b=document.getElementById(id);
+    if(b){ b.style.background='#fff'; b.style.borderColor='var(--brd)'; b.style.color=''; }
+  });
+  
+  // Volver a pantalla principal de cobranza
+  const acc=document.getElementById('cobm-acciones');
+  if(acc) acc.style.display='block';
+  
+  const pcc=document.getElementById('cobm-panel-cc');
+  if(pcc) pcc.style.display='none';
+  
+  const pmc=document.getElementById('cobm-panel-miscobranzas');
+  if(pmc) pmc.style.display='none';
+  
   setTimeout(()=>document.getElementById('cobm-cli-q')?.focus(),100);
 }
 
@@ -2224,75 +2269,457 @@ function _cobmCliPool(){
   return _clientes.filter(c=>rutaSet.has(c.id));
 }
 
+// ─── COBRANZA MÓVIL ──────
+
+// Variables globales para el buscador de zonas
+let _cobZonaInput = '';
+let _cobZonasCache = [];
+
+// Inicializar buscador de zonas
+function initBuscadorZonasCob() {
+  const input = document.getElementById('cobm-zona-input');
+  if (!input) return;
+  
+  // Cargar zonas únicas de los clientes
+  const zonasUnicas = [...new Set(_clientes.map(c => c.zona).filter(Boolean))];
+  _cobZonasCache = zonasUnicas.map(z => {
+    const zonaObj = _zonas.find(zn => zn.codigo === z);
+    return {
+      codigo: z,
+      descripcion: zonaObj?.descripcion || z,
+      clientes: _clientes.filter(c => c.zona === z)
+    };
+  }).sort((a,b) => a.descripcion.localeCompare(b.descripcion));
+  
+  // Eventos del input
+  input.addEventListener('input', function() {
+    _cobZonaInput = this.value.trim();
+    mostrarSugerenciasZonas();
+  });
+  
+  input.addEventListener('focus', function() {
+    if (this.value.trim() || _cobZonaInput) {
+      mostrarSugerenciasZonas();
+    }
+  });
+  
+  input.addEventListener('blur', function() {
+    setTimeout(() => {
+      document.getElementById('cobm-zona-sugerencias').style.display = 'none';
+    }, 200);
+  });
+  
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const sugerencias = document.getElementById('cobm-zona-sugerencias');
+      const items = sugerencias.querySelectorAll('.zona-sug-item');
+      if (items.length === 1) {
+        items[0].click();
+      } else if (items.length > 1) {
+        // Seleccionar la primera
+        items[0].click();
+      }
+    }
+    if (e.key === 'Escape') {
+      document.getElementById('cobm-zona-sugerencias').style.display = 'none';
+    }
+  });
+}
+
+function mostrarSugerenciasZonas() {
+  const input = document.getElementById('cobm-zona-input');
+  const contenedor = document.getElementById('cobm-zona-sugerencias');
+  const termino = _cobZonaInput.toLowerCase();
+  
+  if (!termino || termino.length < 1) {
+    contenedor.style.display = 'none';
+    return;
+  }
+  
+  // Buscar zonas que coincidan
+  const coincidencias = _cobZonasCache.filter(z => 
+    z.descripcion.toLowerCase().includes(termino) || 
+    z.codigo.toLowerCase().includes(termino)
+  );
+  
+  if (!coincidencias.length) {
+    contenedor.innerHTML = `
+      <div style="padding:12px 14px;color:var(--txt2);font-size:13px;text-align:center;">
+        ❌ No se encontraron zonas con "${termino}"
+      </div>
+    `;
+    contenedor.style.display = 'block';
+    posicionarSugerenciasZonas();
+    return;
+  }
+  
+  // Mostrar hasta 8 zonas
+  const mostrar = coincidencias.slice(0, 8);
+  contenedor.innerHTML = mostrar.map(z => `
+    <div class="zona-sug-item" 
+         onclick="seleccionarZonaCob('${z.codigo}')"
+         style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background 0.15s;"
+         onmouseover="this.style.background='var(--bg2)'" 
+         onmouseout="this.style.background='transparent'">
+      <div>
+        <div style="font-weight:600;font-size:14px;">${esc(z.descripcion)}</div>
+        <div style="font-size:11px;color:var(--txt2);">${z.codigo} · ${z.clientes.length} cliente${z.clientes.length !== 1 ? 's' : ''}</div>
+      </div>
+      <div style="font-size:12px;color:var(--P);background:var(--PL);padding:2px 10px;border-radius:12px;">
+        ${z.clientes.filter(c => (c.saldo||0) > 0).length} con deuda
+      </div>
+    </div>
+  `).join('');
+  
+  contenedor.style.display = 'block';
+  posicionarSugerenciasZonas();
+}
+
+function posicionarSugerenciasZonas() {
+  const input = document.getElementById('cobm-zona-input');
+  const contenedor = document.getElementById('cobm-zona-sugerencias');
+  if (!input || !contenedor || contenedor.style.display === 'none') return;
+  
+  const rect = input.getBoundingClientRect();
+  const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
+  
+  const espacioAbajo = viewportHeight - rect.bottom - 10;
+  const espacioArriba = rect.top - 10;
+  const alturaMax = Math.min(260, Math.max(150, Math.max(espacioAbajo, espacioArriba) - 20));
+  
+  const usarArriba = espacioAbajo < 160 && espacioArriba > espacioAbajo;
+  
+  contenedor.style.position = 'fixed';
+  contenedor.style.top = usarArriba ? 'auto' : (rect.bottom + 6) + 'px';
+  contenedor.style.bottom = usarArriba ? (viewportHeight - rect.top + 8) + 'px' : 'auto';
+  contenedor.style.left = Math.max(10, rect.left) + 'px';
+  contenedor.style.width = Math.min(rect.width, viewportWidth - 20) + 'px';
+  contenedor.style.maxHeight = alturaMax + 'px';
+  contenedor.style.overflowY = 'auto';
+  contenedor.style.zIndex = '99999';
+  contenedor.style.background = '#fff';
+  contenedor.style.border = '2px solid var(--P)';
+  contenedor.style.borderRadius = '12px';
+  contenedor.style.boxShadow = '0 8px 32px rgba(0,0,0,0.18)';
+  contenedor.style.display = 'block';
+  contenedor.style.padding = '4px 0';
+  contenedor.style.WebkitOverflowScrolling = 'touch';
+  
+  // Ajustar laterales
+  const dropRect = contenedor.getBoundingClientRect();
+  if (dropRect.right > viewportWidth - 8) {
+    contenedor.style.left = Math.max(8, viewportWidth - dropRect.width - 8) + 'px';
+  }
+  if (dropRect.left < 8) {
+    contenedor.style.left = '8px';
+  }
+}
+
+function seleccionarZonaCob(codigoZona) {
+  const input = document.getElementById('cobm-zona-input');
+  const contenedor = document.getElementById('cobm-zona-sugerencias');
+  
+  // Mostrar la zona seleccionada
+  const zona = _cobZonasCache.find(z => z.codigo === codigoZona);
+  if (zona) {
+    input.value = `${zona.descripcion} (${zona.codigo})`;
+  }
+  
+  // Ocultar sugerencias
+  contenedor.style.display = 'none';
+  
+  // Filtrar clientes por esta zona y mostrarlos como cards
+  mostrarClientesPorZona(codigoZona);
+}
+
+function mostrarClientesPorZona(codigoZona) {
+  const contenedor = document.getElementById('cobm-clientes-por-zona');
+  if (!contenedor) return;
+  
+  const clientes = _clientes.filter(c => c.zona === codigoZona && c.activo !== false);
+  
+  if (!clientes.length) {
+    contenedor.innerHTML = `
+      <div style="padding:20px;text-align:center;color:var(--txt2);font-size:14px;">
+        No hay clientes en esta zona
+      </div>
+    `;
+    contenedor.style.display = 'block';
+    return;
+  }
+  
+  // Ordenar por nombre
+  clientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+  
+  // Mostrar como tarjetas
+  contenedor.innerHTML = clientes.map(c => `
+    <div onclick="selClienteCobMovil(${c.id})"
+      style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#fff;border-radius:10px;margin-bottom:6px;border:1.5px solid var(--brd);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all 0.15s;"
+      onmouseover="this.style.borderColor='var(--P)';this.style.background='var(--bg2)'" 
+      onmouseout="this.style.borderColor='var(--brd)';this.style.background='#fff'">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.nombre)}</div>
+        <div style="font-size:12px;color:var(--txt2);margin-top:2px">${esc(c.localidad||'')} ${c.codigo ? '· #' + c.codigo : ''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;margin-left:10px">
+        <div style="font-size:16px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
+        <div style="font-size:10px;color:var(--txt2);">
+          ${c.ultimo_remito ? (Math.floor((new Date() - new Date(c.ultimo_remito)) / 864e5)) + 'd' : '—'}
+        </div>
+      </div>
+    </div>
+  `).join('');
+  
+  // Ocultar el paso de cliente (el input de zona) y mostrar los clientes
+  const pasoCliente = document.getElementById('cobm-paso-cliente');
+  if (pasoCliente) pasoCliente.style.display = 'none';
+  
+  contenedor.style.display = 'block';
+}
+
+function limpiarBuscadorZonas() {
+  const input = document.getElementById('cobm-zona-input');
+  if (input) input.value = '';
+  
+  const sugerencias = document.getElementById('cobm-zona-sugerencias');
+  if (sugerencias) sugerencias.style.display = 'none';
+  
+  const clientesPorZona = document.getElementById('cobm-clientes-por-zona');
+  if (clientesPorZona) {
+    clientesPorZona.innerHTML = '';
+    clientesPorZona.style.display = 'none';
+  }
+  
+  const pasoCliente = document.getElementById('cobm-paso-cliente');
+  if (pasoCliente) pasoCliente.style.display = 'block';
+  
+  _cobZonaInput = '';
+}
+
 function buscarClienteCobMovil(){
-  const q=(document.getElementById('cobm-cli-q').value||'').toLowerCase();
+  const q=(document.getElementById('cobm-cli-q').value||'').toLowerCase().trim();
   const zonaFil=document.getElementById('cobm-cli-zon')?.value||'';
   const lista=document.getElementById('cobm-cli-lista');
-  if(q.length<1&&!zonaFil){lista.style.display='none';lista.innerHTML='';return;}
+  if(!lista) return;
+  
+  // Si no hay búsqueda ni zona, ocultar
+  if(q.length<1 && !zonaFil){
+    lista.style.display='none';
+    lista.innerHTML='';
+    return;
+  }
   
   const pool=_cobmCliPool();
-  const m=pool.filter(c=>
-    ((c.nombre||'').toLowerCase().includes(q)||String(c.codigo||c.id).includes(q))
-    &&(!zonaFil||c.zona===zonaFil)
-  ).slice(0,10);
+  const m=pool.filter(c=>{
+    const matchNombre=(c.nombre||'').toLowerCase().includes(q);
+    const matchCodigo=String(c.codigo||c.id).includes(q);
+    const matchZona=!zonaFil || c.zona===zonaFil;
+    return (matchNombre || matchCodigo) && matchZona;
+  }).slice(0,12); // Limitar a 12 resultados para no saturar
   
   if(!m.length){
     lista.style.display='block';
-    lista.innerHTML='<div style="padding:14px;font-size:14px;color:var(--txt2)">Sin resultados</div>';
+    lista.innerHTML='<div style="padding:14px;font-size:14px;color:var(--txt2);text-align:center">❌ Sin resultados</div>';
     posicionarDropdownCobMovil();
     return;
   }
   
   lista.style.display='block';
-  lista.innerHTML=m.map(c=>`<div onclick="selClienteCobMovil(${c.id})"
-    style="display:flex;justify-content:space-between;align-items:center;min-height:56px;padding:10px 14px;border-bottom:1px solid var(--brd);cursor:pointer;-webkit-tap-highlight-color:transparent">
-    <div style="flex:1;min-width:0">
-      <div style="font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nombre}</div>
-      <div style="font-size:12px;color:var(--txt2);margin-top:2px">${c.localidad||''}${c.codigo?' · #'+c.codigo:''}</div>
+  lista.innerHTML=m.map(c=>`
+    <div onclick="selClienteCobMovil(${c.id})"
+      style="display:flex;justify-content:space-between;align-items:center;min-height:56px;padding:10px 14px;border-bottom:1px solid var(--brd);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background 0.15s;"
+      onmouseover="this.style.background='var(--bg2)'" 
+      onmouseout="this.style.background='transparent'">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.nombre)}</div>
+        <div style="font-size:12px;color:var(--txt2);margin-top:2px">${esc(c.localidad||'')}${c.codigo?' · #'+c.codigo:''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;margin-left:10px">
+        <div style="font-size:16px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
+      </div>
     </div>
-    <div style="text-align:right;flex-shrink:0;margin-left:10px">
-      <div style="font-size:17px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
-    </div>
-  </div>`).join('');
+  `).join('');
   
   posicionarDropdownCobMovil();
 }
 
+//Posicionamiento inteligente del dropdown
 function posicionarDropdownCobMovil() {
   const input = document.getElementById('cobm-cli-q');
   const lista = document.getElementById('cobm-cli-lista');
-  if (!input || !lista) return;
+  if (!input || !lista || lista.style.display === 'none') return;
   
-  const rect = input.getBoundingClientRect();
-  const espacioAbajo = window.innerHeight - rect.bottom - 10;
-  const alturaMax = Math.min(300, Math.max(150, espacioAbajo));
-  
-  lista.style.position = 'fixed';
-  lista.style.top = (rect.bottom + window.scrollY) + 'px';
-  lista.style.left = (rect.left + window.scrollX) + 'px';
-  lista.style.width = (rect.width) + 'px';
-  lista.style.maxHeight = alturaMax + 'px';
-  lista.style.zIndex = '99999';
+  // Usar requestAnimationFrame para asegurar que el DOM esté listo
+  requestAnimationFrame(() => {
+    const rect = input.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    
+    // Calcular espacio disponible abajo y arriba
+    const espacioAbajo = viewportHeight - rect.bottom - 10;
+    const espacioArriba = rect.top - 10;
+    
+    // Altura máxima: al menos 150px, máximo 300px, ajustado al espacio disponible
+    let alturaMax = Math.min(300, Math.max(150, Math.max(espacioAbajo, espacioArriba) - 20));
+    
+    // Calcular posición
+    let topPos, bottomPos;
+    const usarArriba = espacioAbajo < 180 && espacioArriba > espacioAbajo;
+    
+    if (usarArriba) {
+      // Poner arriba del input
+      topPos = 'auto';
+      bottomPos = (viewportHeight - rect.top + 8) + 'px';
+    } else {
+      // Poner abajo del input
+      topPos = (rect.bottom + 6) + 'px';
+      bottomPos = 'auto';
+    }
+    
+    // Aplicar estilos
+    lista.style.position = 'fixed';
+    lista.style.top = topPos;
+    lista.style.bottom = bottomPos;
+    lista.style.left = Math.max(10, rect.left) + 'px';
+    lista.style.width = Math.min(rect.width, viewportWidth - 20) + 'px';
+    lista.style.maxHeight = alturaMax + 'px';
+    lista.style.overflowY = 'auto';
+    lista.style.overflowX = 'hidden';
+    lista.style.zIndex = '99999';
+    lista.style.background = '#fff';
+    lista.style.border = '2px solid var(--P)';
+    lista.style.borderRadius = '12px';
+    lista.style.boxShadow = '0 8px 32px rgba(0,0,0,0.18)';
+    lista.style.display = 'block';
+    lista.style.padding = '4px 0';
+    lista.style.WebkitOverflowScrolling = 'touch';
+    
+    // Ajustar si se pasa de los bordes laterales
+    const dropRect = lista.getBoundingClientRect();
+    if (dropRect.right > viewportWidth - 8) {
+      lista.style.left = Math.max(8, viewportWidth - dropRect.width - 8) + 'px';
+    }
+    if (dropRect.left < 8) {
+      lista.style.left = '8px';
+    }
+    
+    // Asegurar que el dropdown no tape completamente la pantalla
+    if (dropRect.height > viewportHeight * 0.7) {
+      lista.style.maxHeight = Math.floor(viewportHeight * 0.6) + 'px';
+    }
+  });
 }
 
+// Buscar por código (con posicionamiento mejorado)
 function cobmBuscarPorCod(){
   const cod=(document.getElementById('cobm-cli-cod')?.value||'').trim();
-  if(!cod){document.getElementById('cobm-cli-lista').style.display='none';return;}
+  const lista=document.getElementById('cobm-cli-lista');
+  if(!cod){
+    lista.style.display='none';
+    lista.innerHTML='';
+    return;
+  }
+  
   const pool=_cobmCliPool();
   const m=pool.filter(c=>String(c.codigo||c.id)===cod).slice(0,10);
-  const lista=document.getElementById('cobm-cli-lista');
-  lista.style.display=m.length?'block':'none';
-  lista.innerHTML=m.map(c=>`<div onclick="selClienteCobMovil(${c.id})"
-    style="display:flex;justify-content:space-between;align-items:center;min-height:56px;padding:10px 14px;border-bottom:1px solid var(--brd);cursor:pointer;-webkit-tap-highlight-color:transparent">
-    <div style="flex:1;min-width:0">
-      <div style="font-size:16px;font-weight:700">${esc(c.nombre)}</div>
-      <div style="font-size:12px;color:var(--txt2);margin-top:2px">${esc(c.localidad||'')}${c.codigo?' · #'+c.codigo:''}</div>
+  
+  if(!m.length){
+    lista.style.display='block';
+    lista.innerHTML='<div style="padding:14px;text-align:center;color:var(--txt2)">❌ Cliente no encontrado</div>';
+    posicionarDropdownCobMovil();
+    return;
+  }
+  
+  lista.style.display='block';
+  lista.innerHTML=m.map(c=>`
+    <div onclick="selClienteCobMovil(${c.id})"
+      style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--brd);cursor:pointer;-webkit-tap-highlight-color:transparent"
+      onmouseover="this.style.background='var(--bg2)'" 
+      onmouseout="this.style.background='transparent'">
+      <div>
+        <div style="font-size:16px;font-weight:700">${esc(c.nombre)}</div>
+        <div style="font-size:12px;color:var(--txt2)">${esc(c.localidad||'')}</div>
+      </div>
+      <div style="font-size:16px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
     </div>
-    <div style="text-align:right;flex-shrink:0;margin-left:10px">
-      <div style="font-size:17px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
-    </div>
-  </div>`).join('');
+  `).join('');
+  
+  posicionarDropdownCobMovil();
 }
+
+//Cerrar dropdown al hacer scroll o tocar fuera
+function cerrarDropdownCobMovil() {
+  const lista = document.getElementById('cobm-cli-lista');
+  if (lista) {
+    lista.style.display = 'none';
+    lista.innerHTML = '';
+  }
+}
+
+//Inicializar los event listeners para cerrar el dropdown
+function initDropdownCobMovil() {
+  // Cerrar al hacer scroll (con debounce para no cerrar mientras se escribe)
+  let scrollTimeout;
+  document.addEventListener('scroll', function() {
+    const lista = document.getElementById('cobm-cli-lista');
+    if (lista && lista.style.display === 'block') {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        cerrarDropdownCobMovil();
+      }, 150);
+    }
+  }, { passive: true });
+  
+  // Cerrar al tocar fuera del dropdown y del input
+  document.addEventListener('touchstart', function(e) {
+    const lista = document.getElementById('cobm-cli-lista');
+    const input = document.getElementById('cobm-cli-q');
+    const codInput = document.getElementById('cobm-cli-cod');
+    if (lista && lista.style.display === 'block') {
+      const target = e.target;
+      if (!lista.contains(target) && target !== input && target !== codInput) {
+        cerrarDropdownCobMovil();
+      }
+    }
+  }, { passive: true });
+  
+  // Cerrar al hacer clic fuera
+  document.addEventListener('click', function(e) {
+    const lista = document.getElementById('cobm-cli-lista');
+    const input = document.getElementById('cobm-cli-q');
+    const codInput = document.getElementById('cobm-cli-cod');
+    if (lista && lista.style.display === 'block') {
+      if (!lista.contains(e.target) && e.target !== input && e.target !== codInput) {
+        cerrarDropdownCobMovil();
+      }
+    }
+  });
+  
+  // Re-posicionar al rotar o redimensionar
+  let resizeTimeout;
+  window.addEventListener('resize', function() {
+    const lista = document.getElementById('cobm-cli-lista');
+    if (lista && lista.style.display === 'block') {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        posicionarDropdownCobMovil();
+      }, 100);
+    }
+  }, { passive: true });
+  
+  // Re-posicionar al abrir el teclado en móvil
+  window.addEventListener('focusin', function(e) {
+    const lista = document.getElementById('cobm-cli-lista');
+    if (lista && lista.style.display === 'block' && 
+        (e.target === document.getElementById('cobm-cli-q') || 
+         e.target === document.getElementById('cobm-cli-cod'))) {
+      setTimeout(posicionarDropdownCobMovil, 300);
+    }
+  });
+}
+
 
 function cobmConfirmarCod(){
   const cod=(document.getElementById('cobm-cli-cod')?.value||'').trim();
@@ -2304,31 +2731,67 @@ function cobmConfirmarCod(){
 }
 
 function selClienteCobMovil(id){
-  const c=_clientes.find(x=>x.id===id);if(!c)return;
+  const c=_clientes.find(x=>x.id===id);
+  if(!c) return;
+  
   _cobMovilCliId=id;
-  const nEl=document.getElementById('cobm-cli-nombre');if(nEl)nEl.textContent=`[${c.codigo||c.id}] ${esc(c.nombre.toUpperCase())}`;
-  const sEl=document.getElementById('cobm-cli-saldo');if(sEl)sEl.textContent=`Saldo: ${fmt(c.saldo||0)}`;
-  const pc=document.getElementById('cobm-paso-cliente');if(pc)pc.style.display='none';
-  const pcc=document.getElementById('cobm-panel-cc');if(pcc)pcc.style.display='none';
-  const pmc=document.getElementById('cobm-panel-miscobranzas');if(pmc)pmc.style.display='none';
-  const pa=document.getElementById('cobm-acciones');if(pa)pa.style.display='none';
-  const bcc=document.getElementById('cobm-btn-cc');if(bcc)bcc.style.display='block';
-  const pp=document.getElementById('cobm-paso-cobro');if(pp)pp.style.display='block';
+  const qEl=document.getElementById('cobm-cli-q');
+  if(qEl) qEl.value=c.nombre;
+  
+  const codEl=document.getElementById('cobm-cli-cod');
+  if(codEl) codEl.value=c.codigo||c.id||'';
+  
+  const nEl=document.getElementById('cobm-cli-nombre');
+  if(nEl) nEl.textContent=`[${c.codigo||c.id}] ${esc(c.nombre.toUpperCase())}`;
+  
+  const sEl=document.getElementById('cobm-cli-saldo');
+  if(sEl) sEl.textContent=`Saldo: ${fmt(c.saldo||0)}`;
+  
+  // Cerrar dropdown
+  cerrarDropdownCobMovil();
+  
+  // Mostrar paso de cobro
+  const pc=document.getElementById('cobm-paso-cliente');
+  if(pc) pc.style.display='none';
+  
+  const pcc=document.getElementById('cobm-panel-cc');
+  if(pcc) pcc.style.display='none';
+  
+  const pmc=document.getElementById('cobm-panel-miscobranzas');
+  if(pmc) pmc.style.display='none';
+  
+  const pa=document.getElementById('cobm-acciones');
+  if(pa) pa.style.display='none';
+  
+  const bcc=document.getElementById('cobm-btn-cc');
+  if(bcc) bcc.style.display='block';
+  
+  const pp=document.getElementById('cobm-paso-cobro');
+  if(pp) pp.style.display='block';
+  
+  // Cargar facturas pendientes
   const remsPend=_remitos.filter(r=>String(r.cliente_id)===String(id)&&!r.cobrado).sort((a,b)=>a.fecha.localeCompare(b.fecha));
   const wrap=document.getElementById('cobm-facturas-wrap');
   const lista=document.getElementById('cobm-facturas');
-  if(remsPend.length&&wrap&&lista){
+  if(remsPend.length && wrap && lista){
     wrap.style.display='block';
-    lista.innerHTML=remsPend.map(r=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--brd)">
-      <div style="flex:1;cursor:pointer" onclick="verRemitoEnCobro(${r.id})"><div style="font-size:14px;font-weight:600;text-decoration:underline;color:var(--P)">R-${String(r.id).padStart(4,'0')}</div>
-      <div style="font-size:11px;color:var(--txt2)">${r.fecha} · Saldo: ${fmt(r.saldo_pendiente||r.total)}</div></div>
-      <input type="number" id="cobm-imp-${r.id}" value="0" min="0" step="0.01"
-        style="width:120px;padding:8px;border:2px solid var(--brd);border-radius:8px;font-size:16px;font-weight:700;text-align:right"
-        oninput="calcCobMovil()" onfocus="this.select()" ondblclick="cobmImputarTodo(${r.id},${r.saldo_pendiente||r.total})"
-        onkeydown="if(event.key==='Home'){event.preventDefault();verRemitoEnCobro(${r.id})}"
-        title="Doble toque = todo · Inicio = ver factura">
-    </div>`).join('');
+    lista.innerHTML=remsPend.map(r=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--brd)">
+        <div style="flex:1;cursor:pointer" onclick="verRemitoEnCobro(${r.id})">
+          <div style="font-size:14px;font-weight:600;text-decoration:underline;color:var(--P)">R-${String(r.id).padStart(4,'0')}</div>
+          <div style="font-size:11px;color:var(--txt2)">${r.fecha} · Saldo: ${fmt(r.saldo_pendiente||r.total)}</div>
+        </div>
+        <input type="number" id="cobm-imp-${r.id}" value="0" min="0" step="0.01"
+          style="width:120px;padding:8px;border:2px solid var(--brd);border-radius:8px;font-size:16px;font-weight:700;text-align:right"
+          oninput="calcCobMovil()" onfocus="this.select()" ondblclick="cobmImputarTodo(${r.id},${r.saldo_pendiente||r.total})"
+          onkeydown="if(event.key==='Home'){event.preventDefault();verRemitoEnCobro(${r.id})}"
+          title="Doble toque = todo · Inicio = ver factura">
+      </div>
+    `).join('');
+  } else if(wrap) {
+    wrap.style.display='none';
   }
+  
   setTimeout(()=>document.getElementById('cobm-importe')?.focus(),100);
 }
 
@@ -2526,6 +2989,14 @@ async function initTesoreria(){
   if(tcoFh&&!tcoFh.value)tcoFh.value=hoy;
   if(tcoFd&&!tcoFd.value){const d=new Date();tcoFd.value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;}
   tesoTab(_tesoTabActual);
+
+  initDropdownCobMovil();
+    // Inicializar buscador de zonas para cobranza móvil
+  setTimeout(() => {
+    if (document.getElementById('cobm-zona-input')) {
+      initBuscadorZonasCob();
+    }
+  }, 500);
 }
 
 function tesoTab(tab){
