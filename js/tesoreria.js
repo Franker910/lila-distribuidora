@@ -2255,6 +2255,10 @@ function limpiarCobMovil(){
     clientesRuta.innerHTML = '';
     clientesRuta.style.display = 'none';
   }
+
+  // Ocultar el footer flotante
+  const footer = document.getElementById('cobm-fixed-footer');
+  if (footer) footer.style.display = 'none';
 }
 
 function _cobmCliPool(){
@@ -2747,6 +2751,10 @@ function selClienteCobMovil(id){
   }
   
   setTimeout(()=>document.getElementById('cobm-importe')?.focus(),100);
+
+  // Mostrar el footer flotante cuando se muestra el paso de cobro
+  const footer = document.getElementById('cobm-fixed-footer');
+  if (footer) footer.style.display = 'block';
 }
 
 // Ver la cuenta corriente del cliente que se está cobrando, sin perder
@@ -2896,25 +2904,61 @@ function _renderComisionCard(){
 
 // ─── MOSTRAR CLIENTES DE LA RUTA DEL DÍA EN COBRANZA ─────────────────────
 
-function mostrarClientesDeRutaHoy() {
+async function mostrarClientesDeRutaHoy() {
+  console.log('🔍 mostrarClientesDeRutaHoy() - INICIO');
+  
   const contenedor = document.getElementById('cobm-clientes-ruta-hoy');
-  if (!contenedor) return;
+  if (!contenedor) {
+    console.warn('❌ Contenedor cobm-clientes-ruta-hoy NO ENCONTRADO');
+    return;
+  }
+  
+  console.log('✅ Contenedor encontrado:', contenedor);
+  console.log('📊 _hrClientesHoy:', _hrClientesHoy);
+  console.log('📊 _clientes.length:', _clientes.length);
   
   // Verificar si hay clientes en la ruta de hoy
   if (!_hrClientesHoy || !_hrClientesHoy.length) {
+    console.log('⚠️ No hay clientes en la ruta de hoy');
     contenedor.innerHTML = '';
     contenedor.style.display = 'none';
     return;
   }
   
-  // Obtener los datos completos de los clientes de la ruta
-  const clientesRuta = _clientes.filter(c => _hrClientesHoy.includes(c.id) && c.activo !== false);
+  // SI EL CLIENTE NO ESTÁ EN _clientes, CARGARLO DESDE SUPABASE
+  let clientesRuta = _clientes.filter(c => _hrClientesHoy.includes(c.id) && c.activo !== false);
   
   if (!clientesRuta.length) {
-    contenedor.innerHTML = '';
-    contenedor.style.display = 'none';
+    console.log('⚠️ Clientes no encontrados en _clientes, buscando en Supabase...');
+    
+    // Buscar los clientes faltantes directamente
+    for (const id of _hrClientesHoy) {
+      const { data, error } = await sb.from('clientes').select('*').eq('id', id).single();
+      if (data && !error) {
+        console.log('✅ Cliente encontrado en Supabase:', data.nombre);
+        // Agregar al array de clientes global
+        _clientes.push(data);
+        clientesRuta.push(data);
+      } else {
+        console.warn('❌ Cliente ID', id, 'no encontrado en Supabase');
+      }
+    }
+  }
+  
+  console.log('👥 clientesRuta encontrados:', clientesRuta.length);
+  
+  if (!clientesRuta.length) {
+    console.log('⚠️ No se encontraron clientes');
+    contenedor.innerHTML = `
+      <div style="padding:12px;text-align:center;color:var(--txt2);font-size:13px;background:var(--bg2);border-radius:8px;margin-top:4px;">
+        ⚠️ El cliente de tu ruta no se encuentra en la base de datos.
+      </div>
+    `;
+    contenedor.style.display = 'block';
     return;
   }
+  
+  console.log('✅ Clientes encontrados, mostrando...');
   
   // Ordenar por nombre
   clientesRuta.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
@@ -2942,6 +2986,7 @@ function mostrarClientesDeRutaHoy() {
   `;
   
   contenedor.style.display = 'block';
+  console.log('✅ Clientes mostrados correctamente');
 }
 
 // ─── TESORERÍA ───────────────────────────────────────────────

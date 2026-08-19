@@ -642,6 +642,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 }
 </style>
 </head>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
 <body>
 
 <!-- LOGIN -->
@@ -1008,6 +1009,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
 
   </div><!-- fin scrollable -->
+  <!-- BOTÓN FLOTANTE FIJO (siempre visible) -->
+<div id="cobm-fixed-footer" style="display:none; position:sticky; bottom:0; background:var(--bg); padding:10px 14px; border-top:2px solid var(--P); z-index:50; box-shadow:0 -4px 12px rgba(0,0,0,0.08);">
+  <button id="cobm-btn-guardar-flotante" onclick="guardarCobMovil()"
+    style="width:100%;padding:16px;background:var(--P);color:#fff;border:none;border-radius:12px;font-size:18px;font-weight:700;cursor:pointer;min-height:56px;">
+    ✓ Confirmar cobro
+  </button>
+</div>
 
   <!-- CARRITO FLOTANTE -->
   <div id="pm-carrito-bar" style="display:none;position:sticky;bottom:0;background:var(--PD);color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;z-index:10;">
@@ -1493,7 +1501,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="panel" id="p-cobranza" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">
   
   <!-- VISTA VENDEDOR (mobile, simple) -->
-  <div id="cob-movil" style="display:none; flex-direction:column; height:100%; overflow:hidden; max-width:520px; width:100%; margin:0 auto; position:relative;">
+  <div id="cob-movil" style="display:none; flex-direction:column; height:100%; overflow-y:auto; max-width:520px; width:100%; margin:0 auto; position:relative;">
     
     <!-- HEADER FIJO -->
     <div style="background:var(--PD);color:#fff;padding:12px 14px;position:sticky;top:0;z-index:10;flex-shrink:0;border-radius:8px 8px 0 0;">
@@ -4421,13 +4429,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260819-02"></script>
-<script src="js/maestros.js?v=20260819-02"></script>
-<script src="js/ventas.js?v=20260819-02"></script>
-<script src="js/tesoreria.js?v=20260819-02"></script>
-<script src="js/contabilidad.js?v=20260819-02"></script>
-<script src="js/informes.js?v=20260819-02"></script>
-<script src="js/logistica.js?v=20260819-02"></script>
+<script src="js/app.js?v=20260819-03"></script>
+<script src="js/maestros.js?v=20260819-03"></script>
+<script src="js/ventas.js?v=20260819-03"></script>
+<script src="js/tesoreria.js?v=20260819-03"></script>
+<script src="js/contabilidad.js?v=20260819-03"></script>
+<script src="js/informes.js?v=20260819-03"></script>
+<script src="js/logistica.js?v=20260819-03"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

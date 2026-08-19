@@ -1037,6 +1037,8 @@ async function cargarHojaRutaRepartidor(){
 let _cargasHoyCandidatas=[];
 
 function _renderRutaBadge(cantClientesRuta){
+  console.log('🔍 _renderRutaBadge() - INICIO, cantClientesRuta:', cantClientesRuta);
+  
   const badge=document.getElementById('cobm-ruta-badge');
   if(!badge)return;
   const rutaTxt=cantClientesRuta?`📍 Ruta del día: ${cantClientesRuta} cliente${cantClientesRuta>1?'s':''}`:'⚠️ Sin hoja de ruta hoy — mostrando todos tus clientes';
@@ -1056,7 +1058,13 @@ function _renderRutaBadge(cantClientesRuta){
   badge.innerHTML=partes.join(' · ');
   badge.style.display='block';
 
-  mostrarClientesDeRutaHoy();
+  console.log('✅ _renderRutaBadge() - llamando a mostrarClientesDeRutaHoy()');
+  // Verificar que la función existe antes de llamarla
+  if (typeof mostrarClientesDeRutaHoy === 'function') {
+    mostrarClientesDeRutaHoy();
+  } else {
+    console.warn('❌ mostrarClientesDeRutaHoy NO está definida');
+  }
 }
 
 function elegirCargaActiva(cargaId){
