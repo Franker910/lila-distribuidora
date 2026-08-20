@@ -455,9 +455,29 @@ function renderDash(){
   document.getElementById('d-venta').textContent=fmt(ventaHoy);
   document.getElementById('d-deuda').textContent=fmt(deudaTotal);
   document.getElementById('d-venc').textContent=vencidos.length;
+  
+  // ─── ÚLTIMOS REMITOS (con fechas alineadas) ───
   const lr=_remitos.slice(0,6);
-  document.getElementById('d-rem-list').innerHTML=lr.length?lr.map(r=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd);font-size:12px"><span style="font-weight:500">${esc(r.cliente)}</span><span style="color:var(--txt2)">${r.fecha}</span><span style="color:var(--P);font-weight:600">${fmt(r.total)}</span></div>`).join(''):'<div class="empty">Sin remitos aún</div>';
-  document.getElementById('d-venc-list').innerHTML=vencidos.length?vencidos.slice(0,5).map(c=>{const d=diasDesde(c.ultimo_remito);return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd);font-size:12px"><span style="font-weight:500">${esc(c.nombre)}</span><span class="b bD">${d}d</span><span style="color:var(--D);font-weight:600">${fmt(c.saldo)}</span></div>`;}).join(''):'<div class="empty">✅ Ninguna cuenta vencida</div>';
+  document.getElementById('d-rem-list').innerHTML=lr.length?lr.map(r => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--brd);font-size:12px;gap:8px;">
+      <span style="font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.cliente)}</span>
+      <span style="color:var(--txt2);flex-shrink:0;text-align:right;min-width:80px;">${r.fecha}</span>
+      <span style="color:var(--P);font-weight:600;flex-shrink:0;text-align:right;min-width:70px;">${fmt(r.total)}</span>
+    </div>
+  `).join(''):'<div class="empty">Sin remitos aún</div>';
+  
+  // ─── CUENTAS VENCIDAS (con días alineados) ───
+  document.getElementById('d-venc-list').innerHTML=vencidos.length?vencidos.slice(0,5).map(c => {
+    const d=diasDesde(c.ultimo_remito);
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--brd);font-size:12px;gap:8px;">
+        <span style="font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.nombre)}</span>
+        <span class="b bD" style="flex-shrink:0;text-align:center;min-width:40px;">${d}d</span>
+        <span style="color:var(--D);font-weight:600;flex-shrink:0;text-align:right;min-width:70px;">${fmt(c.saldo)}</span>
+      </div>
+    `;
+  }).join(''):'<div class="empty">✅ Ninguna cuenta vencida</div>';
+  
   renderDashCharts();
 }
 
@@ -2450,4 +2470,209 @@ async function informeHistoricoChart(anioFiltro) {
       </details>
     `;
   }
+}
+
+// ─── SISTEMA DE COMISIONES ─────────────────────────────────────────────
+
+function calcularComisiones() {
+  console.log('▶ Calculando comisiones...');
+  
+  // 1. Obtener parámetros
+  const comisionCobranza = parseFloat(document.getElementById('com-cob')?.value) || 1.0;
+  const comisionBase1 = parseFloat(document.getElementById('com-base1')?.value) || 1.2;
+  const comisionBase2 = parseFloat(document.getElementById('com-base2')?.value) || 1.5;
+  const comisionBase3 = parseFloat(document.getElementById('com-base3')?.value) || 1.8;
+  const comisionBase4 = parseFloat(document.getElementById('com-base4')?.value) || 2.2;
+  const bonusMix = parseFloat(document.getElementById('com-bonus')?.value) || 0.5;
+  const margenMin = parseFloat(document.getElementById('com-margen-min')?.value) || 17;
+  
+  // 2. Obtener período (mes actual)
+  const hoy = hoyLocal();
+  const mesActual = hoy.substring(0, 7); // "2026-08"
+  const desde = mesActual + '-01';
+  const hasta = hoy;
+  
+  console.log('Período:', desde, '→', hasta);
+  
+  // 3. Filtrar cobros validados del mes
+  const cobrosMes = _cobros.filter(c => 
+    c.estado_rendicion === 'validado' &&
+    c.fecha >= desde &&
+    c.fecha <= hasta
+  );
+  
+  console.log('Cobros del mes:', cobrosMes.length);
+  
+  // 4. Agrupar por vendedor
+  const porVendedor = {};
+  cobrosMes.forEach(c => {
+    const vendedor = c.vendedor || 'Sin asignar';
+    if (!porVendedor[vendedor]) {
+      porVendedor[vendedor] = { 
+        cobrado: 0, 
+        ventas: 0, 
+        count: 0,
+        remitos: []
+      };
+    }
+    porVendedor[vendedor].cobrado += c.importe || 0;
+    porVendedor[vendedor].count++;
+  });
+  
+  // 5. Agregar ventas (remitos) del mes
+  const remitosMes = _remitos.filter(r => 
+    r.fecha >= desde &&
+    r.fecha <= hasta &&
+    !r.anulado
+  );
+  
+  remitosMes.forEach(r => {
+    const vendedor = r.vendedor || 'Sin asignar';
+    if (porVendedor[vendedor]) {
+      porVendedor[vendedor].ventas += r.total || 0;
+      porVendedor[vendedor].remitos.push(r);
+    } else {
+      // Si el vendedor no tiene cobros pero tiene ventas
+      if (!porVendedor[vendedor]) {
+        porVendedor[vendedor] = { 
+          cobrado: 0, 
+          ventas: 0, 
+          count: 0,
+          remitos: []
+        };
+      }
+      porVendedor[vendedor].ventas += r.total || 0;
+      porVendedor[vendedor].remitos.push(r);
+    }
+  });
+  
+  console.log('Por vendedor:', Object.keys(porVendedor));
+  
+  // 6. Calcular comisiones para cada vendedor
+  const resultados = Object.keys(porVendedor).map(vendedor => {
+    const data = porVendedor[vendedor];
+    const ventas = data.ventas || 0;
+    const cobrado = data.cobrado || 0;
+    
+    // Calcular comisión base según tramos
+    let comisionBase = 0;
+    if (ventas > 0) {
+      if (ventas <= 5000000) {
+        comisionBase = ventas * (comisionBase1 / 100);
+      } else if (ventas <= 15000000) {
+        comisionBase = ventas * (comisionBase2 / 100);
+      } else if (ventas <= 30000000) {
+        comisionBase = ventas * (comisionBase3 / 100);
+      } else {
+        comisionBase = ventas * (comisionBase4 / 100);
+      }
+    }
+    
+    // Comisión por cobranza
+    const comisionCobranzaCalculada = cobrado * (comisionCobranza / 100);
+    
+    // Calcular margen promedio de los remitos para el bonus
+    let margenPromedio = 0;
+    if (data.remitos && data.remitos.length > 0) {
+      let totalMargen = 0;
+      let totalVentas = 0;
+      data.remitos.forEach(r => {
+        // Calcular margen de cada remito
+        const items = r.items || [];
+        let margenRemito = 0;
+        let ventaRemito = r.total || 0;
+        items.forEach(it => {
+          const costo = it.costo || 0;
+          const precio = it.precio || 0;
+          const cant = it.cant || 0;
+          if (precio > 0) {
+            margenRemito += (precio - costo) * cant;
+          }
+        });
+        totalMargen += margenRemito;
+        totalVentas += ventaRemito;
+      });
+      margenPromedio = totalVentas > 0 ? (totalMargen / totalVentas) * 100 : 0;
+    }
+    
+    // Bonus por alto margen
+    let bonus = 0;
+    if (margenPromedio >= margenMin && ventas > 0) {
+      bonus = ventas * (bonusMix / 100);
+    }
+    
+    // Total comisión
+    const total = comisionBase + comisionCobranzaCalculada + bonus;
+    
+    // Porcentaje de cobranza
+    const pctCobrado = ventas > 0 ? (cobrado / ventas) * 100 : 0;
+    
+    return {
+      vendedor,
+      ventas,
+      cobrado,
+      pctCobrado,
+      comisionBase,
+      comisionCobranza: comisionCobranzaCalculada,
+      bonus,
+      total,
+      margenPromedio,
+      count: data.count
+    };
+  });
+  
+  // 7. Ordenar por total comisión (mayor a menor)
+  resultados.sort((a, b) => b.total - a.total);
+  
+  // 8. Mostrar resultados en la tabla
+  const tbody = document.getElementById('com-tbody');
+  if (!resultados.length || resultados.every(r => r.ventas === 0 && r.cobrado === 0)) {
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty">⚠️ No hay datos de ventas o cobros en el mes actual</div></td></tr>';
+    document.getElementById('com-resultados').style.display = 'block';
+    return;
+  }
+  
+  tbody.innerHTML = resultados.map(r => {
+    const estadoBadge = r.cobrado > 0 && r.ventas > 0 && r.pctCobrado >= 80 
+      ? '<span class="b bP">✅ Óptimo</span>'
+      : r.cobrado > 0 && r.pctCobrado >= 50 
+      ? '<span class="b bW">⏳ Regular</span>'
+      : r.cobrado > 0 
+      ? '<span class="b bA">📊 En curso</span>'
+      : '<span class="b" style="background:var(--bg2)">⏸ Sin actividad</span>';
+    
+    return `
+      <tr>
+        <td><strong>${esc(r.vendedor)}</strong></td>
+        <td style="text-align:right">${fmt(r.ventas)}</td>
+        <td style="text-align:right;color:var(--P)">${fmt(r.cobrado)}</td>
+        <td style="text-align:center">${r.pctCobrado.toFixed(1)}%</td>
+        <td style="text-align:right">${fmt(r.comisionBase)}</td>
+        <td style="text-align:right;color:var(--P)">${fmt(r.comisionCobranza)}</td>
+        <td style="text-align:right">${fmt(r.bonus)}</td>
+        <td style="text-align:right;font-weight:700;color:var(--PD)">${fmt(r.total)}</td>
+        <td>${estadoBadge}</td>
+      </tr>
+    `;
+  }).join('');
+  
+  // 9. Actualizar KPIs
+  const totalCobrado = resultados.reduce((a, r) => a + r.cobrado, 0);
+  const totalVentas = resultados.reduce((a, r) => a + r.ventas, 0);
+  const totalComision = resultados.reduce((a, r) => a + r.total, 0);
+  const totalVendedores = resultados.filter(r => r.ventas > 0 || r.cobrado > 0).length;
+  
+  const kpis = document.getElementById('com-kpis');
+  if (kpis) {
+    kpis.innerHTML = `
+      <div class="stat"><div class="n">${fmt(totalVentas)}</div><div class="l">💰 Total ventas</div></div>
+      <div class="stat"><div class="n" style="color:var(--P)">${fmt(totalCobrado)}</div><div class="l">💵 Total cobrado</div></div>
+      <div class="stat"><div class="n" style="color:var(--PD)">${fmt(totalComision)}</div><div class="l">📊 Total comisiones</div></div>
+      <div class="stat"><div class="n">${totalVendedores}</div><div class="l">👤 Vendedores activos</div></div>
+    `;
+  }
+  
+  // 10. Mostrar el panel de resultados
+  document.getElementById('com-resultados').style.display = 'block';
+  console.log('✅ Comisiones calculadas correctamente');
 }

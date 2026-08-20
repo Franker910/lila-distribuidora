@@ -701,22 +701,31 @@ function selProRR(id){
 // Navegación Código→Cant/Peso→Precio→Dto de la fila de carga. Al completar la
 // última celda, confirma el ítem y deja lista una fila nueva vacía (sin botón Agregar).
 function _rrStagingKeydown(e,campo){
-  if(e.key!=='Enter'&&e.key!=='Tab')return;
-  e.preventDefault();
-  if(campo==='peso'){
-    const peso=parseFloat(e.target.value)||0;
-    if(peso<=0){
-      e.target.style.borderColor='var(--D)';e.target.style.background='#fdecea';
-      e.target.focus();e.target.select();
-      return;
-    }
+  // Enter en CUALQUIER campo agrega el producto
+  if(e.key==='Enter'){
+    e.preventDefault();
+    _rrCommitStaging();
+    return;
   }
-  const esPeso=_rrProTemp&&['kg','kilo','kilos','k','kilogramo','kilogramos'].includes((_rrProTemp.unidad||'').toLowerCase().trim());
-  const orden=esPeso?['peso','precio','dto']:['cant','precio','dto'];
-  const idx=orden.indexOf(campo);
-  if(idx<0||idx>=orden.length-1){_rrCommitStaging();return;}
-  const f=document.getElementById('rr-'+orden[idx+1]);
-  if(f){f.focus();f.select();}
+  
+  // Tab sigue navegando entre campos
+  if(e.key==='Tab'){
+    e.preventDefault();
+    if(campo==='peso'){
+      const peso=parseFloat(e.target.value)||0;
+      if(peso<=0){
+        e.target.style.borderColor='var(--D)';e.target.style.background='#fdecea';
+        e.target.focus();e.target.select();
+        return;
+      }
+    }
+    const esPeso=_rrProTemp&&['kg','kilo','kilos','k','kilogramo','kilogramos'].includes((_rrProTemp.unidad||'').toLowerCase().trim());
+    const orden=esPeso?['peso','precio','dto']:['cant','precio','dto'];
+    const idx=orden.indexOf(campo);
+    if(idx<0||idx>=orden.length-1){_rrCommitStaging();return;}
+    const f=document.getElementById('rr-'+orden[idx+1]);
+    if(f){f.focus();f.select();}
+  }
 }
 
 function updStagingRR(campo,v,inputEl){
@@ -758,6 +767,11 @@ function _rrCommitStaging(){
   setTimeout(()=>{const f=document.getElementById('rr-cod');if(f)f.focus();},80);
 }
 
+// Alias para el botón "+" - llama a _rrCommitStaging
+function agregarItemRR() {
+  _rrCommitStaging();
+}
+
 function _rrStagingRowHTML(){
   const p=_rrProTemp;
   const unidad=p?(p.unidad||'').toLowerCase().trim():'';
@@ -784,7 +798,13 @@ function _rrStagingRowHTML(){
     <input type="text" inputmode="decimal" id="rr-precio" value="${_rrStagingVals.precio}" oninput="updStagingRR('precio',this.value,this)" onkeydown="_rrStagingKeydown(event,'precio')" style="width:88px;text-align:right">
     <input type="text" inputmode="decimal" id="rr-dto" value="${_rrStagingVals.dto}" oninput="updStagingRR('dto',this.value,this)" onkeydown="_rrStagingKeydown(event,'dto')" style="width:42px;text-align:center">
     <span class="ptot">${neto>0?fmt(neto):'—'}</span>
-    <span style="width:32px"></span>
+    <span style="width:42px;flex-shrink:0;">
+      <button onclick="agregarItemRR()" 
+        style="background:var(--P);color:#fff;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:13px;font-weight:700;width:100%;min-height:32px;"
+        title="Agregar producto (Enter)">
+        +
+      </button>
+    </span> 
   </div>`;
 }
 
