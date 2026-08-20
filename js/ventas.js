@@ -2200,3 +2200,78 @@ function limpiarFiltrosRemitos() {
   document.getElementById('rem-f-total').value = '';
   renderRemitos();
 }
+
+// ─── CERRAR PEDIDO Y VOLVER AL ORIGEN ─────────────────────────────────
+
+function cerrarPedidoYVolver() {
+  // Cerrar el modal
+  cerrar('m-pedido');
+  
+  // Verificar el origen
+  const origen = sessionStorage.getItem('origenPedido');
+  
+  if (origen === 'clientes') {
+    // Limpiar el origen
+    sessionStorage.removeItem('origenPedido');
+    // Volver a la pestaña de clientes
+    go('clientes');
+    setTimeout(() => renderClientes(), 100);
+  } else {
+    // Comportamiento por defecto: ir a pedidos
+    go('pedidos');
+    setTimeout(() => renderPedidos(), 100);
+  }
+}
+
+// ─── GUARDAR PEDIDO Y VOLVER AL ORIGEN ────────────────────────────────
+
+async function guardarPedidoYVolver() {
+  // Validar cliente
+  const cid = document.getElementById('np-cli-id').value;
+  if (!cid) { alert('Seleccioná un cliente'); return; }
+  if (!_items.length) { alert('Agregá al menos un producto'); return; }
+  
+  const c = _clientes.find(x => x.id == cid);
+  let tot = 0;
+  _items.forEach(it => { tot += it.precio * it.cant * (1 - it.dto / 100); });
+  
+  const { error } = await sb.from('pedidos').insert({
+    cliente_id: parseInt(cid),
+    cliente: c?.nombre || '?',
+    localidad: c?.localidad || '',
+    zona: c?.zona || '',
+    vendedor: document.getElementById('np-ven').value || c?.vendedor || '',
+    fecha: document.getElementById('np-fecha').value || hoyLocal(),
+    observaciones: document.getElementById('np-obs').value || '',
+    visita: document.getElementById('np-visita').value || null,
+    items: _items,
+    total: Math.round(tot * 100) / 100,
+    estado: 'pendiente'
+  });
+  
+  if (error) {
+    alert('Error: ' + error.message);
+    return;
+  }
+  
+  // Cerrar modal
+  cerrar('m-pedido');
+  
+  // Verificar el origen
+  const origen = sessionStorage.getItem('origenPedido');
+  
+  if (origen === 'clientes') {
+    sessionStorage.removeItem('origenPedido');
+    go('clientes');
+    setTimeout(() => {
+      renderClientes();
+      toast('✅ Pedido creado desde Clientes');
+    }, 100);
+  } else {
+    await cargarPedidos();
+    renderPedidos();
+    renderDash();
+    go('pedidos');
+    toast('✅ Pedido creado');
+  }
+}

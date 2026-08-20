@@ -57,6 +57,8 @@ function renderClientes(){
   const q=(document.getElementById('cli-q').value||'').toLowerCase();
   poblarSelectValores('cli-f-zona',_clientes.map(c=>c.zona||''),nombreZona);
   poblarSelectValores('cli-f-ven',_clientes.map(c=>(c.vendedor||'').trim()));
+  
+  // Filtros de texto
   const fNombre=document.getElementById('cli-f-nombre')?.value||'';
   const fLoc=document.getElementById('cli-f-loc')?.value||'';
   const fTel=document.getElementById('cli-f-tel')?.value||'';
@@ -64,23 +66,49 @@ function renderClientes(){
   const fVen=document.getElementById('cli-f-ven')?.value||'';
   const fDto=document.getElementById('cli-f-dto')?.value||'';
   const fSaldo=document.getElementById('cli-f-saldo')?.value||'';
-  let data=_clientes.filter(c=>
-    (!q||(c.nombre||'').toLowerCase().includes(q)||(c.telefono||'').includes(q)||(c.localidad||'').toLowerCase().includes(q)||String(c.codigo||'').includes(q)||(c.cuit||'').includes(q))&&
-    matchFiltroCol(c.nombre,fNombre)&&
-    matchFiltroCol(c.localidad,fLoc)&&
-    matchFiltroCol(c.telefono,fTel)&&
-    (!fZona||c.zona===fZona)&&
-    (!fVen||(c.vendedor||'').trim()===fVen)&&
-    matchFiltroCol(c.descuento,fDto)&&
-    matchFiltroCol(c.saldo,fSaldo)
-  );
+  
+  // NUEVO: Filtro de estado (activo/inactivo/todos)
+  const fActivo = document.getElementById('cli-f-activo')?.value || 'activos';
+  
+  let data=_clientes.filter(c=> {
+    // Filtro de búsqueda general
+    const okQ = (!q||(c.nombre||'').toLowerCase().includes(q)||
+      (c.telefono||'').includes(q)||
+      (c.localidad||'').toLowerCase().includes(q)||
+      String(c.codigo||'').includes(q)||
+      (c.cuit||'').includes(q));
+    
+    // Filtros de columna
+    const okCols = matchFiltroCol(c.nombre,fNombre) &&
+      matchFiltroCol(c.localidad,fLoc) &&
+      matchFiltroCol(c.telefono,fTel) &&
+      (!fZona||c.zona===fZona) &&
+      (!fVen||(c.vendedor||'').trim()===fVen) &&
+      matchFiltroCol(c.descuento,fDto) &&
+      matchFiltroCol(c.saldo,fSaldo);
+    
+    // Filtro de estado (activo/inactivo/todos)
+    let okEstado = true;
+    if (fActivo === 'activos') okEstado = c.activo !== false;
+    else if (fActivo === 'inactivos') okEstado = c.activo === false;
+    
+    return okQ && okCols && okEstado;
+  });
+  
   const tot=data.length,sl=data.slice((_cliPg-1)*PP,_cliPg*PP);
   const tbody=document.getElementById('cli-tbody');
-  tbody.innerHTML=sl.length?sl.map(c=>`
-    <tr>
+  
+  tbody.innerHTML=sl.length?sl.map(c=>{
+    const activo = c.activo !== false;
+    const estadoBadge = activo 
+      ? '<span class="b bP">✅ Activo</span>' 
+      : '<span class="b bD">⛔ Inactivo</span>';
+    
+    return `
+    <tr style="${!activo ? 'opacity:0.7;' : ''}">
       <td style="font-weight:600">
         <span style="font-size:10px;color:var(--txt2);margin-right:4px">
-          ${c.codigo || c.id}  <!-- SI NO TIENE CÓDIGO, USA EL ID -->
+          ${c.codigo || c.id}
         </span>
         ${c.nombre}
       </td>
@@ -90,16 +118,20 @@ function renderClientes(){
       <td>${(c.vendedor||'').trim()||'—'}</td>
       <td>${c.descuento||0}%</td>
       <td style="${(c.saldo||0)>0?'color:var(--D);font-weight:600':''}">${fmt(c.saldo)}</td>
-      <td style="display:flex;gap:3px">
+      <td>${estadoBadge}</td>
+      <td style="display:flex;gap:3px;flex-wrap:wrap;">
+        <button class="btn ${activo ? 'W' : 'P'} sm" onclick="toggleActivoCliente(${c.id}, ${activo})" title="${activo ? 'Desactivar' : 'Activar'}">
+          ${activo ? '🔴' : '🟢'}
+        </button>
         <button class="btn sm" onclick="editarCliente(${c.id})">✏️</button>
         <button class="btn P sm" onclick="pedRapido(${c.id})">🛒</button>
         <button class="btn sm" onclick="histCliente(${c.id})">📋</button>
       </td>
     </tr>
-  `).join(''):'<tr><td colspan="8"><div class="empty">Sin clientes</div></td></tr>';
+  `}).join(''):'<tr><td colspan="9"><div class="empty">Sin clientes</div></td></tr>';
+  
   pag('cli-pg',tot,_cliPg,p=>{_cliPg=p;renderClientes();});
 }
-
 function abrirCliente(){
   document.getElementById('cli-edit-id').value='';
   document.getElementById('m-cli-title').textContent='Nuevo cliente';
@@ -257,6 +289,7 @@ async function guardarCliente(){
 }
 
 function limpiarFiltrosClientes() {
+  document.getElementById('cli-q').value = '';
   document.getElementById('cli-f-nombre').value = '';
   document.getElementById('cli-f-loc').value = '';
   document.getElementById('cli-f-tel').value = '';
@@ -264,10 +297,29 @@ function limpiarFiltrosClientes() {
   document.getElementById('cli-f-ven').value = '';
   document.getElementById('cli-f-dto').value = '';
   document.getElementById('cli-f-saldo').value = '';
+  document.getElementById('cli-f-activo').value = 'activos';
+  _cliPg = 1;
   renderClientes();
 }
 
-function pedRapido(id){go('pedidos');abrirPedido();setTimeout(()=>selCli(id),100);}
+function pedRapido(id){
+  // Guardar el origen para volver después
+  sessionStorage.setItem('origenPedido', 'clientes');
+  
+  // Ir a pedidos y abrir el modal
+  go('pedidos');
+  abrirPedido();
+  
+  // Seleccionar el cliente automáticamente
+  setTimeout(() => {
+    selCli(id);
+    // Poner foco en el campo de producto
+    setTimeout(() => {
+      const proQ = document.getElementById('np-pro-q');
+      if (proQ) proQ.focus();
+    }, 200);
+  }, 150);
+}
 
 // ─── PRODUCTOS ───
 // Autofiltro por columna de la grilla de Productos (compartido entre la vista y el export)
@@ -1207,4 +1259,57 @@ async function sincronizarZonasDesdeLocalidades() {
   renderZonas();
   if (errs) toast(`⚠️ ${ok2} creadas, ${errs} errores — revisá consola`, 'err');
   else toast(`✅ ${ok2} zona(s) creada(s): ${nuevas.slice(0,3).join(', ')}${nuevas.length>3?'…':''}`);
+}
+
+// ─── ACTIVAR / DESACTIVAR CLIENTE ─────────────────────────────────────
+
+async function toggleActivoCliente(id, activo) {
+  const cliente = _clientes.find(c => c.id === id);
+  if (!cliente) {
+    toast('❌ Cliente no encontrado', 'err');
+    return;
+  }
+  
+  const nuevoEstado = !activo;
+  const accionTexto = nuevoEstado ? 'activar' : 'desactivar';
+  const accionMostrar = nuevoEstado ? 'ACTIVAR' : 'DESACTIVAR';
+  
+  // Verificar si tiene movimientos antes de desactivar
+  if (!nuevoEstado) { // Solo cuando se desactiva
+    const remitos = _remitos.filter(r => r.cliente_id === id);
+    const cobros = _cobros.filter(c => c.cliente_id === id);
+    const pedidos = _pedidos.filter(p => p.cliente_id === id);
+    const tieneMovimientos = remitos.length + cobros.length + pedidos.length;
+    
+    let mensaje = `⚠️ ¿DESACTIVAR el cliente "${cliente.nombre}"?`;
+    if (tieneMovimientos > 0) {
+      mensaje += `\n\n📊 Tiene:\n• ${remitos.length} remito(s)\n• ${cobros.length} cobro(s)\n• ${pedidos.length} pedido(s)\n\nEl cliente quedará OCULTO pero su historial se conservará.`;
+    } else {
+      mensaje += `\n\nEl cliente no tiene movimientos asociados.`;
+    }
+    if (!confirm(mensaje)) return;
+  } else {
+    if (!confirm(`✅ ¿ACTIVAR el cliente "${cliente.nombre}"?`)) return;
+  }
+  
+  try {
+    const { error } = await sb
+      .from('clientes')
+      .update({ activo: nuevoEstado })
+      .eq('id', id);
+    
+    if (error) throw error;
+    
+    // Actualizar en memoria
+    const clienteLocal = _clientes.find(c => c.id === id);
+    if (clienteLocal) clienteLocal.activo = nuevoEstado;
+    
+    // Recargar y renderizar
+    await cargarClientes();
+    renderClientes();
+    
+    toast(`✅ Cliente ${accionTexto}ado correctamente`);
+  } catch (error) {
+    toast('❌ Error al ' + accionTexto + ': ' + error.message, 'err', 5000);
+  }
 }
