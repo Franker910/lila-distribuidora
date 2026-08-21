@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="Lila">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
-<!-- v20260723000000 --><title>Distribuidora Lila — Sistema de Gestión</title>
+<title>Distribuidora Lila — Sistema de Gestión</title>
 
 <!-- ── SERVICE WORKER: registrar ANTES del login para interceptar desde la primera carga ── -->
 <script>
@@ -795,7 +795,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <div class="sidebar-group" id="sg-config">
-    <button class="sidebar-group-btn" onclick="toggleSidebar('config')">⚙️ Config <span id="sc-config">▶</span></button>
+    <button class="sidebar-group-btn" onclick="toggleSidebar('config')">⚙️ Configuración <span id="sc-config">▶</span></button>
     <div class="sidebar-items">
       <button class="sidebar-item" onclick="alert('Próximamente')">👤 Usuarios</button>
     </div>
@@ -2228,8 +2228,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <!-- NOTAS DE CREDITO -->
-<div class="panel" id="p-nc">
-  <div class="sech">
+<div class="panel" id="p-nc" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">
+  <div class="sech" style="flex-shrink:0;">
     <h2>📋 NC / ND — Notas de crédito y débito</h2>
     <div style="display:flex;gap:6px">
       <button class="btn P" onclick="abrirNC()">+ Nota de crédito</button>
@@ -2243,6 +2243,113 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <thead><tr><th>Nro</th><th>Fecha</th><th>Cliente</th><th>Motivo</th><th>Importe</th><th>Observaciones</th><th></th></tr></thead>
     <tbody id="nc-tbody"></tbody>
   </table></div>
+</div>
+
+
+<!-- NOTAS DE CREDITO - MÓVIL (para repartidores) -->
+<div class="panel" id="p-nc-movil" style="display:none; flex-direction:column; height:100%; width:100%; max-width:520px; overflow:hidden; padding:0; margin:0 auto; background:var(--bg);">
+  
+  <!-- HEADER -->
+  <div style="flex-shrink:0; background:var(--PD); color:#fff; padding:12px 14px; display:flex; align-items:center; gap:10px;">
+    <button onclick="go('vendedor-home')" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:10px;padding:10px 14px;font-size:16px;font-weight:600;cursor:pointer;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center;">←</button>
+    <div>
+      <div style="font-size:11px;opacity:0.8;">REGISTRAR DEVOLUCIÓN</div>
+      <div style="font-size:16px;font-weight:700;">📋 Nota de crédito</div>
+    </div>
+  </div>
+
+  <!-- CONTENIDO SCROLLABLE -->
+  <div style="flex:1; overflow-y:auto; min-height:0; padding:14px;">
+
+    <!-- CLIENTE -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">👤 Cliente</div>
+      <div style="display:flex;gap:8px;">
+        <input id="ncm-cli-cod" inputmode="numeric" pattern="[0-9]*" placeholder="Cód." autocomplete="off"
+          style="width:72px;height:46px;font-size:20px;font-weight:700;text-align:center;border:2px solid var(--brd);border-radius:8px;padding:0 6px;"
+          oninput="ncmBuscarPorCod()" onkeydown="if(event.key==='Enter'){event.preventDefault();ncmConfirmarCod();}">
+        <input id="ncm-cli-q" placeholder="🔍 Buscar cliente..." autocomplete="off"
+          style="flex:1;height:46px;font-size:16px;border:2px solid var(--brd);border-radius:8px;padding:0 12px;box-sizing:border-box;"
+          oninput="buscarClienteNCM()">
+      </div>
+      <input type="hidden" id="ncm-cli-id">
+      <div id="ncm-cli-lista" style="display:none;position:fixed;z-index:99999;background:#fff;border:2px solid var(--P);border-radius:12px;max-height:260px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:4px 0;"></div>
+      
+      <!-- Info cliente seleccionado -->
+      <div id="ncm-cli-info" style="display:none;margin-top:8px;padding:10px 14px;background:var(--PL);border-radius:8px;font-size:13px;">
+        <div id="ncm-cli-nombre" style="font-weight:700;"></div>
+        <div id="ncm-cli-detalle" style="font-size:12px;color:var(--txt2);margin-top:2px;"></div>
+        <div id="ncm-cli-saldo" style="font-size:14px;font-weight:700;margin-top:4px;"></div>
+      </div>
+    </div>
+
+    <!-- PRODUCTO A DEVOLVER -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📦 Producto a devolver</div>
+      
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input id="ncm-pro-cod" inputmode="numeric" pattern="[0-9]*" placeholder="Cód." autocomplete="off"
+          style="width:72px;height:46px;font-size:20px;font-weight:700;text-align:center;border:2px solid var(--brd);border-radius:8px;padding:0 6px;"
+          oninput="ncmBuscarProPorCod()" onkeydown="if(event.key==='Enter'){event.preventDefault();ncmConfirmarProCod();}">
+        <input id="ncm-pro-q" placeholder="🔍 Buscar producto..." autocomplete="off"
+          style="flex:1;height:46px;font-size:16px;border:2px solid var(--brd);border-radius:8px;padding:0 12px;box-sizing:border-box;"
+          oninput="buscarProductoNCM()">
+      </div>
+      <div id="ncm-pro-lista" style="display:none;position:fixed;z-index:99999;background:#fff;border:2px solid var(--P);border-radius:12px;max-height:260px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:4px 0;"></div>
+
+      <!-- Cantidad y precio -->
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <div style="flex:1;">
+          <label style="font-size:11px;color:var(--txt2);font-weight:600;">Cantidad</label>
+          <input id="ncm-cant" type="number" value="1" min="0.01" step="0.5"
+            style="width:100%;height:44px;border:2px solid var(--brd);border-radius:8px;padding:0 10px;font-size:16px;font-weight:600;text-align:center;">
+        </div>
+        <div style="flex:2;">
+          <label style="font-size:11px;color:var(--txt2);font-weight:600;">Precio unitario</label>
+          <div style="display:flex;gap:4px;">
+            <input id="ncm-precio" type="number" value="0" step="0.01"
+              style="flex:1;height:44px;border:2px solid var(--brd);border-radius:8px;padding:0 10px;font-size:16px;font-weight:600;text-align:right;">
+            <button onclick="agregarItemNCM()" 
+              style="height:44px;padding:0 16px;background:var(--P);color:#fff;border:none;border-radius:8px;font-size:18px;font-weight:700;cursor:pointer;min-width:44px;">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LISTA DE PRODUCTOS AGREGADOS -->
+    <div id="ncm-items-lista" style="margin-bottom:14px;"></div>
+
+    <!-- MOTIVO -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📝 Motivo</div>
+      <select id="ncm-motivo" style="width:100%;height:44px;border:2px solid var(--brd);border-radius:8px;padding:0 12px;font-size:14px;font-family:inherit;">
+        <option value="devolucion">Devolución de mercadería</option>
+        <option value="descuento">Descuento / Bonificación</option>
+        <option value="anulacion">Anulación de factura</option>
+        <option value="error">Error de precio</option>
+      </select>
+    </div>
+
+    <!-- OBSERVACIONES -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📝 Observaciones</div>
+      <input id="ncm-obs" placeholder="Opcional" 
+        style="width:100%;height:44px;border:2px solid var(--brd);border-radius:8px;padding:0 12px;font-size:14px;box-sizing:border-box;">
+    </div>
+
+  </div>
+
+  <!-- FOOTER FIJO -->
+  <div style="flex-shrink:0; border-top:2px solid var(--P); padding:12px 14px; background:var(--bg);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <span style="font-size:13px;font-weight:600;color:var(--txt2);">Total a devolver</span>
+      <span id="ncm-total" style="font-size:22px;font-weight:700;color:var(--P);">$0</span>
+    </div>
+    <button onclick="emitirNCMovil()" 
+      style="width:100%;padding:16px;background:var(--P);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;min-height:52px;">
+      ✓ Emitir nota de crédito
+    </button>
+  </div>
 </div>
 
 <!-- RENDICION -->
@@ -4091,9 +4198,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div><!-- fin scroll -->
 </div>
 
-<!-- MAESTRO PROVEEDORES -->
-<div class="panel" id="p-maestro-proveedores">
-  <div class="sech">
+<!-- MAESTROS PROVEEDORES -->
+<div class="panel" id="p-maestro-proveedores" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">
+  <div class="sech" style="flex-shrink:0;">
     <h2>🏭 Proveedores</h2>
     <button class="btn P" onclick="abrirProveedor()">+ Nuevo</button>
   </div>
@@ -4136,8 +4243,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <!-- MAESTRO ZONAS -->
-<div class="panel" id="p-zonas">
-  <div class="sech">
+<div class="panel" id="p-zonas" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">
+  <div class="sech" style="flex-shrink:0;">
     <h2>🗺 Zonas</h2>
     <div style="display:flex;gap:6px">
       <button class="btn P" onclick="abrirZona()">+ Nueva</button>
@@ -4165,8 +4272,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </button>
     <h2 style="margin:0; flex:1; font-size:18px;">🗺 Hoja de ruta</h2>
   </div>
-
-  <!-- ⭐ ELIMINAR LOS TABS - ya no son necesarios -->
 
   <!-- CONTENEDOR SCROLLABLE -->
   <div style="flex:1; overflow-y:auto; min-height:0; padding-right:4px;">
@@ -4486,13 +4591,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260821-01"></script>
-<script src="js/maestros.js?v=20260821-01"></script>
-<script src="js/ventas.js?v=20260821-01"></script>
-<script src="js/tesoreria.js?v=20260821-01"></script>
-<script src="js/contabilidad.js?v=20260821-01"></script>
-<script src="js/informes.js?v=20260821-01"></script>
-<script src="js/logistica.js?v=20260821-01"></script>
+<script src="js/app.js?v=20260821-02"></script>
+<script src="js/maestros.js?v=20260821-02"></script>
+<script src="js/ventas.js?v=20260821-02"></script>
+<script src="js/tesoreria.js?v=20260821-02"></script>
+<script src="js/contabilidad.js?v=20260821-02"></script>
+<script src="js/informes.js?v=20260821-02"></script>
+<script src="js/logistica.js?v=20260821-02"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

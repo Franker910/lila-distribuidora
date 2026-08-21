@@ -1479,7 +1479,7 @@ function renderVendedorHome(){
     window._vhBloquesOriginal = bloques.innerHTML;
   }
   
-  // ⭐ Si es repartidor → NO mostrar comisión
+  // Si es repartidor → NO mostrar comisión
   if (usuarioActual?.rol === 'repartidor') {
     if (bloques) {
       bloques.innerHTML = `
@@ -1502,7 +1502,7 @@ function renderVendedorHome(){
         </div>
         <div style="background:#fff;border-radius:20px;padding:16px;box-shadow:0 2px 16px rgba(0,0,0,.07)">
           <div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-left:2px">📦 Devoluciones</div>
-          <button onclick="go('nc')"
+          <button onclick="abrirNCMovil()"
             style="display:flex;align-items:center;gap:16px;width:100%;padding:20px 22px;background:var(--W);color:#fff;border:none;border-radius:14px;font-size:19px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 3px 10px rgba(234,88,12,.25)">
             <span style="font-size:28px;line-height:1">📋</span><span>Registrar devolución</span>
           </button>
@@ -2274,4 +2274,398 @@ async function guardarPedidoYVolver() {
     go('pedidos');
     toast('✅ Pedido creado');
   }
+}
+
+// ─── NOTA DE CRÉDITO - MÓVIL ──────────────────────────────────────────────
+
+let _ncmItems = [];
+let _ncmProTemp = null;
+let _ncmCliTemp = null;
+
+// ─── ABRIR NOTA DE CRÉDITO MÓVIL ──────────────────────────────────────
+
+function abrirNCMovil() {
+  go('nc-movil');
+  _ncmItems = [];
+  _ncmProTemp = null;
+  _ncmCliTemp = null;
+  
+  // Limpiar campos
+  document.getElementById('ncm-cli-q').value = '';
+  document.getElementById('ncm-cli-cod').value = '';
+  document.getElementById('ncm-cli-id').value = '';
+  document.getElementById('ncm-cli-info').style.display = 'none';
+  document.getElementById('ncm-pro-q').value = '';
+  document.getElementById('ncm-pro-cod').value = '';
+  document.getElementById('ncm-cant').value = '1';
+  document.getElementById('ncm-precio').value = '0';
+  document.getElementById('ncm-obs').value = '';
+  document.getElementById('ncm-motivo').value = 'devolucion';
+  
+  // Ocultar dropdowns
+  document.getElementById('ncm-cli-lista').style.display = 'none';
+  document.getElementById('ncm-pro-lista').style.display = 'none';
+  
+  renderItemsNCM();
+  actualizarTotalNCM();
+  
+  setTimeout(() => document.getElementById('ncm-cli-q').focus(), 100);
+}
+
+// ─── BUSCADOR DE CLIENTES ──────────────────────────────────────────────
+
+function buscarClienteNCM() {
+  const q = document.getElementById('ncm-cli-q').value.toLowerCase().trim();
+  const lista = document.getElementById('ncm-cli-lista');
+  
+  if (q.length < 1) {
+    lista.style.display = 'none';
+    lista.innerHTML = '';
+    return;
+  }
+  
+  const res = _clientes.filter(c => 
+    (c.nombre || '').toLowerCase().includes(q) || 
+    String(c.codigo || c.id).includes(q)
+  ).slice(0, 12);
+  
+  if (!res.length) {
+    lista.style.display = 'block';
+    lista.innerHTML = '<div style="padding:14px;color:var(--txt2);text-align:center;">❌ Sin resultados</div>';
+    posicionarDropdownNCM('ncm-cli-q', 'ncm-cli-lista');
+    return;
+  }
+  
+  lista.innerHTML = res.map(c => `
+    <div onclick="seleccionarClienteNCM(${c.id})"
+      style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--brd);cursor:pointer;"
+      onmouseover="this.style.background='var(--bg2)'" 
+      onmouseout="this.style.background='transparent'">
+      <div>
+        <div style="font-weight:600;font-size:14px;">${esc(c.nombre)}</div>
+        <div style="font-size:12px;color:var(--txt2);">${esc(c.localidad || '')} ${c.codigo ? '· #' + c.codigo : ''}</div>
+      </div>
+      <div style="font-size:14px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
+    </div>
+  `).join('');
+  
+  lista.style.display = 'block';
+  posicionarDropdownNCM('ncm-cli-q', 'ncm-cli-lista');
+}
+
+function ncmBuscarPorCod() {
+  const cod = document.getElementById('ncm-cli-cod').value.trim();
+  if (!cod) return;
+  const c = _clientes.find(x => String(x.codigo || x.id) === cod);
+  if (c) {
+    seleccionarClienteNCM(c.id);
+    document.getElementById('ncm-cli-cod').style.borderColor = 'var(--P)';
+  } else {
+    document.getElementById('ncm-cli-cod').style.borderColor = 'var(--D)';
+  }
+}
+
+function ncmConfirmarCod() {
+  ncmBuscarPorCod();
+}
+
+function seleccionarClienteNCM(id) {
+  const c = _clientes.find(x => x.id === id);
+  if (!c) return;
+  
+  _ncmCliTemp = c;
+  document.getElementById('ncm-cli-id').value = id;
+  document.getElementById('ncm-cli-q').value = c.nombre;
+  document.getElementById('ncm-cli-cod').value = c.codigo || c.id || '';
+  document.getElementById('ncm-cli-lista').style.display = 'none';
+  
+  // Mostrar info del cliente
+  const info = document.getElementById('ncm-cli-info');
+  document.getElementById('ncm-cli-nombre').textContent = c.nombre;
+  document.getElementById('ncm-cli-detalle').textContent = `${esc(c.localidad || '')} · ${esc(c.telefono || '—')}`;
+  document.getElementById('ncm-cli-saldo').textContent = `Saldo: ${fmt(c.saldo || 0)}`;
+  document.getElementById('ncm-cli-saldo').style.color = (c.saldo || 0) > 0 ? 'var(--D)' : 'var(--P)';
+  info.style.display = 'block';
+  
+  setTimeout(() => document.getElementById('ncm-pro-q').focus(), 100);
+}
+
+// ─── POSICIONAR DROPDOWN ──────────────────────────────────────────────
+
+function posicionarDropdownNCM(inputId, listaId) {
+  const input = document.getElementById(inputId);
+  const lista = document.getElementById(listaId);
+  if (!input || !lista || lista.style.display === 'none') return;
+  
+  const rect = input.getBoundingClientRect();
+  const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
+  
+  const espacioAbajo = viewportHeight - rect.bottom - 10;
+  const espacioArriba = rect.top - 10;
+  const alturaMax = Math.min(260, Math.max(150, Math.max(espacioAbajo, espacioArriba) - 20));
+  
+  const usarArriba = espacioAbajo < 160 && espacioArriba > espacioAbajo;
+  
+  lista.style.position = 'fixed';
+  lista.style.top = usarArriba ? 'auto' : (rect.bottom + 6) + 'px';
+  lista.style.bottom = usarArriba ? (viewportHeight - rect.top + 8) + 'px' : 'auto';
+  lista.style.left = Math.max(10, rect.left) + 'px';
+  lista.style.width = Math.min(rect.width, viewportWidth - 20) + 'px';
+  lista.style.maxHeight = alturaMax + 'px';
+  lista.style.overflowY = 'auto';
+  lista.style.zIndex = '99999';
+  lista.style.background = '#fff';
+  lista.style.border = '2px solid var(--P)';
+  lista.style.borderRadius = '12px';
+  lista.style.boxShadow = '0 8px 32px rgba(0,0,0,0.18)';
+  lista.style.padding = '4px 0';
+  lista.style.WebkitOverflowScrolling = 'touch';
+}
+
+// ─── BUSCADOR DE PRODUCTOS ─────────────────────────────────────────────
+
+function buscarProductoNCM() {
+  const q = document.getElementById('ncm-pro-q').value.toLowerCase().trim();
+  const lista = document.getElementById('ncm-pro-lista');
+  
+  if (q.length < 1) {
+    lista.style.display = 'none';
+    lista.innerHTML = '';
+    return;
+  }
+  
+  const res = _productos.filter(p => 
+    p.activo !== false &&
+    ((p.nombre || '').toLowerCase().includes(q) || 
+     String(p.codigo || p.id).includes(q))
+  ).slice(0, 12);
+  
+  if (!res.length) {
+    lista.style.display = 'block';
+    lista.innerHTML = '<div style="padding:14px;color:var(--txt2);text-align:center;">❌ Sin resultados</div>';
+    posicionarDropdownNCM('ncm-pro-q', 'ncm-pro-lista');
+    return;
+  }
+  
+  lista.innerHTML = res.map(p => {
+    const si = _stockInfo(p);
+    return `
+      <div onclick="seleccionarProductoNCM(${p.id})"
+        style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--brd);cursor:pointer;"
+        onmouseover="this.style.background='var(--bg2)'" 
+        onmouseout="this.style.background='transparent'">
+        <div>
+          <div style="font-weight:600;font-size:14px;">${esc(p.nombre)}</div>
+          <div style="font-size:12px;color:${si.color};font-weight:${si.peso};">${si.txt}</div>
+        </div>
+        <div style="font-size:14px;font-weight:700;color:var(--PD);">${fmt(p.precio)}</div>
+      </div>
+    `;
+  }).join('');
+  
+  lista.style.display = 'block';
+  posicionarDropdownNCM('ncm-pro-q', 'ncm-pro-lista');
+}
+
+function ncmBuscarProPorCod() {
+  const cod = document.getElementById('ncm-pro-cod').value.trim();
+  if (!cod) return;
+  const p = _productos.find(x => String(x.codigo || x.id) === cod);
+  if (p) {
+    seleccionarProductoNCM(p.id);
+    document.getElementById('ncm-pro-cod').style.borderColor = 'var(--P)';
+  } else {
+    document.getElementById('ncm-pro-cod').style.borderColor = 'var(--D)';
+  }
+}
+
+function ncmConfirmarProCod() {
+  ncmBuscarProPorCod();
+}
+
+function seleccionarProductoNCM(id) {
+  const p = _productos.find(x => x.id === id);
+  if (!p) return;
+  
+  _ncmProTemp = p;
+  document.getElementById('ncm-pro-q').value = p.nombre;
+  document.getElementById('ncm-pro-cod').value = p.codigo || p.id || '';
+  document.getElementById('ncm-pro-lista').style.display = 'none';
+  
+  // Cargar precio automáticamente
+  const precio = getPrecioParaCliente(p.id, parseInt(document.getElementById('ncm-cli-id').value) || 0);
+  document.getElementById('ncm-precio').value = precio || p.precio || 0;
+  document.getElementById('ncm-cant').value = '1';
+  
+  // Poner foco en cantidad
+  setTimeout(() => document.getElementById('ncm-cant').focus(), 100);
+}
+
+// ─── AGREGAR ITEM ──────────────────────────────────────────────────────
+
+function agregarItemNCM() {
+  if (!_ncmProTemp) {
+    alert('Seleccioná un producto primero');
+    return;
+  }
+  
+  const cant = parseFloat(document.getElementById('ncm-cant').value) || 0;
+  if (cant <= 0) {
+    alert('Ingresá una cantidad válida');
+    return;
+  }
+  
+  const precio = parseFloat(document.getElementById('ncm-precio').value) || 0;
+  if (precio <= 0) {
+    alert('Ingresá un precio válido');
+    return;
+  }
+  
+  const existing = _ncmItems.find(x => x.id === _ncmProTemp.id);
+  if (existing) {
+    existing.cant += cant;
+  } else {
+    _ncmItems.push({
+      id: _ncmProTemp.id,
+      nom: _ncmProTemp.nombre,
+      un: _ncmProTemp.unidad || 'un',
+      cant: cant,
+      precio: precio
+    });
+  }
+  
+  // Limpiar campos y mantener el producto seleccionado
+  document.getElementById('ncm-cant').value = '1';
+  // No limpiar el producto para poder agregar más del mismo
+  
+  renderItemsNCM();
+  actualizarTotalNCM();
+  
+  setTimeout(() => document.getElementById('ncm-cant').focus(), 100);
+}
+
+// ─── RENDER ITEMS ──────────────────────────────────────────────────────
+
+function renderItemsNCM() {
+  const el = document.getElementById('ncm-items-lista');
+  if (!el) return;
+  
+  if (!_ncmItems.length) {
+    el.innerHTML = `
+      <div style="padding:20px;text-align:center;color:var(--txt2);font-size:13px;">
+        <div style="font-size:30px;margin-bottom:8px;">📦</div>
+        Sin productos agregados
+      </div>
+    `;
+    return;
+  }
+  
+  el.innerHTML = _ncmItems.map((it, i) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#fff;border-radius:10px;margin-bottom:6px;border:1.5px solid var(--brd);">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:14px;">${esc(it.nom)}</div>
+        <div style="font-size:12px;color:var(--txt2);">${it.cant} × ${fmt(it.precio)} = ${fmt(it.precio * it.cant)}</div>
+      </div>
+      <button onclick="eliminarItemNCM(${i})" 
+        style="background:var(--DL);color:var(--D);border:none;border-radius:8px;padding:6px 10px;font-size:16px;cursor:pointer;min-width:36px;min-height:36px;">
+        ✕
+      </button>
+    </div>
+  `).join('');
+}
+
+function eliminarItemNCM(i) {
+  _ncmItems.splice(i, 1);
+  renderItemsNCM();
+  actualizarTotalNCM();
+}
+
+// ─── ACTUALIZAR TOTAL ─────────────────────────────────────────────────
+
+function actualizarTotalNCM() {
+  const total = _ncmItems.reduce((a, it) => a + it.precio * it.cant, 0);
+  document.getElementById('ncm-total').textContent = fmt(total);
+}
+
+// ─── EMITIR NOTA DE CRÉDITO ──────────────────────────────────────────
+
+async function emitirNCMovil() {
+  const cid = document.getElementById('ncm-cli-id').value;
+  if (!cid) {
+    alert('Seleccioná un cliente');
+    return;
+  }
+  
+  if (!_ncmItems.length) {
+    alert('Agregá al menos un producto a devolver');
+    return;
+  }
+  
+  const c = _clientes.find(x => x.id == cid);
+  const total = _ncmItems.reduce((a, it) => a + it.precio * it.cant, 0);
+  const motivo = document.getElementById('ncm-motivo').value;
+  const obs = document.getElementById('ncm-obs').value || '';
+  
+  // Confirmar antes de emitir
+  if (!confirm(`¿Emitir nota de crédito por ${fmt(total)} a ${c?.nombre}?`)) {
+    return;
+  }
+  
+  const { data: nc, error } = await sb.from('notas_credito').insert({
+    cliente_id: parseInt(cid),
+    cliente: c?.nombre || '?',
+    fecha: hoyLocal(),
+    motivo: motivo,
+    importe: total,
+    items: _ncmItems,
+    observaciones: obs,
+    remito_id: null
+  }).select().single();
+  
+  if (error) {
+    alert('Error al emitir nota de crédito: ' + error.message);
+    return;
+  }
+  
+  // Descontar saldo del cliente
+  if (c) {
+    await sb.from('clientes').update({
+      saldo: Math.max(0, (c.saldo || 0) - total)
+    }).eq('id', c.id);
+  }
+  
+  // Recargar datos
+  await Promise.all([cargarClientes(), cargarNCs(), cargarRemitos()]);
+  renderNCs();
+  renderDash();
+  
+  // Mostrar confirmación
+  mostrarConfirmacionNC('devolucion', c?.nombre, fmt(total));
+  go('vendedor-home');
+}
+
+// ─── CONFIRMACIÓN ──────────────────────────────────────────────────────
+
+function mostrarConfirmacionNC(tipo, cliente, total) {
+  const panel = document.getElementById('p-nc-movil');
+  if (!panel) return;
+  
+  panel.innerHTML = `
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px;text-align:center;">
+      <div style="font-size:56px;margin-bottom:16px;">✅</div>
+      <div style="font-size:20px;font-weight:700;color:var(--P);">Nota de crédito emitida</div>
+      <div style="font-size:16px;font-weight:600;margin-top:8px;">${esc(cliente)}</div>
+      <div style="font-size:18px;font-weight:700;color:var(--P);margin-top:4px;">${total}</div>
+      <div style="font-size:13px;color:var(--txt2);margin-top:4px;">El saldo del cliente fue actualizado</div>
+      <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:400px;margin-top:24px;">
+        <button onclick="go('vendedor-home')" style="width:100%;padding:16px;background:var(--P);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;">
+          🏠 Volver al inicio
+        </button>
+        <button onclick="go('nc-movil');setTimeout(abrirNCMovil,100);" style="width:100%;padding:16px;background:var(--bg2);color:var(--txt);border:2px solid var(--brd);border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;">
+          📋 Nueva devolución
+        </button>
+      </div>
+    </div>
+  `;
 }

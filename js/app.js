@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260821-01';
+const APP_VERSION = '20260821-02';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -762,10 +762,10 @@ document.addEventListener('click',e=>{
 });
 
 function go(p) {
-  // ⭐ VERIFICAR ACCESO A ESCRITORIO
+  //  VERIFICAR ACCESO A ESCRITORIO
   if (usuarioActual?.vista === 'movil') {
     // Paneles permitidos en móvil
-    const panelesMoviles = ['vendedor-home', 'pedido-movil', 'cobranza-hoy', 'cobranza', 'hoja-ruta', 'pedidos', 'cuentas'];
+    const panelesMoviles = ['vendedor-home', 'pedido-movil', 'cobranza-hoy', 'cobranza', 'hoja-ruta', 'pedidos', 'cuentas', 'nc-movil'];
     
     // Si el panel no está en la lista de permitidos
     if (!panelesMoviles.includes(p) && p !== 'vendedor-home') {
@@ -788,7 +788,7 @@ function go(p) {
   
   // Si es móvil y el panel no es móvil, redirigir al home
   if (usuarioActual?.vista === 'movil' && p !== 'vendedor-home') {
-    const panelesMoviles = ['vendedor-home', 'pedido-movil', 'cobranza-hoy', 'cobranza', 'hoja-ruta'];
+    const panelesMoviles = ['vendedor-home', 'pedido-movil', 'cobranza-hoy', 'cobranza', 'hoja-ruta', 'nc-movil'];
     if (!panelesMoviles.includes(p)) {
       // Si es admin, mostrar opción de cambiar
       if (usuarioActual.esAdmin) {
@@ -892,9 +892,9 @@ function go(p) {
   document.querySelectorAll('.sidebar-item,.sidebar-dash').forEach(b=>b.classList.remove('on'));
   document.querySelectorAll(`[data-p="${p}"]`).forEach(b=>b.classList.add('on'));
   document.querySelectorAll('.sidebar-group').forEach(g=>g.classList.remove('active'));
-  const grupoMap={
+  const grupoMap = {
     'clientes':'maestros','cuentas':'maestros','productos':'maestros','stock':'maestros','maestro-proveedores':'maestros','listas-precios':'maestros',
-    'pedidos':'ventas','pedido-movil':'ventas','carga':'ventas','remitos':'ventas','remito-rapido':'ventas','nc':'ventas',
+    'pedidos':'ventas','pedido-movil':'ventas','carga':'ventas','remitos':'ventas','remito-rapido':'ventas','nc':'ventas','nc-movil':'ventas',
     'cobranza':'tesoreria','rendicion':'tesoreria','tesoreria':'tesoreria','cheques':'tesoreria','contabilidad':'tesoreria',
     'informes':'informes','comisiones':'informes','contrib-zona':'informes','gastos-fijos':'informes','importar-historico':'informes'
   };
