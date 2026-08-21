@@ -729,19 +729,26 @@ function renderListaHojasRuta(){
   if(hasta)lista=lista.filter(g=>g.fecha<=hasta);
   if(num)lista=lista.filter(g=>g.filas.some(f=>String(f.numero_rendicion||'').includes(num)));
   if(!lista.length){el.innerHTML='<div class="empty">No hay hojas de ruta cargadas.</div>';return;}
-  el.innerHTML=lista.map(g=>{
-    const cerrada=g.filas.length>0&&g.filas.every(f=>f.cerrada);
-    const numRend=g.filas.find(f=>f.numero_rendicion)?.numero_rendicion;
-    const cerradoPor=g.filas.find(f=>f.cerrado_por)?.cerrado_por;
-    const fechaFmt=g.fecha.split('-').reverse().join('/');
-    const sel=_rendHojaSel&&_rendHojaSel.fecha===g.fecha&&_rendHojaSel.vendedor===g.vendedor;
-    const vendJsSafe=g.vendedor.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return `<div onclick="seleccionarHojaRendicion('${g.fecha}','${vendJsSafe}')"
+  el.innerHTML = lista.map(g => {
+    const cerrada = g.filas.length > 0 && g.filas.every(f => f.cerrada);
+    const numRend = g.filas.find(f => f.numero_rendicion)?.numero_rendicion;
+    const cerradoPor = g.filas.find(f => f.cerrado_por)?.cerrado_por;
+    const fechaFmt = g.fecha.split('-').reverse().join('/');
+    const sel = _rendHojaSel && _rendHojaSel.fecha === g.fecha && _rendHojaSel.vendedor === g.vendedor;
+    const vendJsSafe = g.vendedor.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    
+    //Si está seleccionada, mostrar un indicador
+    const toggleIcon = sel ? '▲' : '▼';
+    
+    return `<div onclick="toggleHojaRendicion('${g.fecha}','${vendJsSafe}')"
       style="cursor:pointer;padding:10px 14px;border-radius:8px;margin-bottom:6px;border:1.5px solid ${sel?'var(--P)':'var(--brd)'};background:${sel?'var(--PL)':'var(--bg)'};display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <div><b>${esc(g.vendedor)}</b> <span style="color:var(--txt2);font-size:12px">— ${fechaFmt} · ${g.filas.length} cliente${g.filas.length>1?'s':''}</span>
+      <div>
+        <b>${esc(g.vendedor)}</b> 
+        <span style="color:var(--txt2);font-size:12px">— ${fechaFmt} · ${g.filas.length} cliente${g.filas.length>1?'s':''}</span>
         ${cerradoPor&&cerradoPor.toLowerCase()!==g.vendedor.toLowerCase()?`<span style="color:var(--txt2);font-size:11px"> · cerrada por ${cerradoPor}</span>`:''}
       </div>
       <div style="display:flex;gap:8px;align-items:center;font-size:11px">
+        <span style="font-size:12px;color:${sel?'var(--P)':'var(--txt2)'}">${toggleIcon}</span>
         ${numRend?`<span class="b bA">Rendición #${numRend}</span>`:''}
         <span class="b ${cerrada?'bP':'bW'}">${cerrada?'🔒 Cerrada':'🔓 Abierta'}</span>
       </div>
@@ -757,10 +764,23 @@ function seleccionarHojaRendicion(fecha,vendedor){
   renderGrillaRendicion();
 }
 
+// ─── TOGGLE HOJA DE RENDICIÓN (abrir/cerrar con el mismo click) ──────
+
+function toggleHojaRendicion(fecha, vendedor) {
+  // Si ya está seleccionada y es la misma → cerrar
+  if (_rendHojaSel && _rendHojaSel.fecha === fecha && _rendHojaSel.vendedor === vendedor) {
+    cerrarGrillaRendicion();
+    return;
+  }
+  
+  // Si no está seleccionada o es diferente → abrir
+  seleccionarHojaRendicion(fecha, vendedor);
+}
+
 function cerrarGrillaRendicion(){
-  _rendHojaSel=null;
-  const wrap=document.getElementById('rend-grilla-wrap');
-  if(wrap)wrap.style.display='none';
+  _rendHojaSel = null;
+  const wrap = document.getElementById('rend-grilla-wrap');
+  if (wrap) wrap.style.display = 'none';
   renderListaHojasRuta();
 }
 
