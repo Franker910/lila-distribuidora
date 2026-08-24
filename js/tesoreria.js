@@ -3470,7 +3470,7 @@ function seleccionarZonaUniversal(codigoZona) {
   // Obtener clientes de la zona
   const clientes = _clientes.filter(c => c.zona === codigoZona && c.activo !== false);
   
-  // ⭐ DETECTAR CONTEXTO: PRIMERO PEDIDO, LUEGO COBRANZA
+  // DETECTAR CONTEXTO: PRIMERO PEDIDO, LUEGO COBRANZA
   const esPedido = !!document.getElementById('pm-cli-lista');
   const esCobranza = !!document.getElementById('cobm-clientes-por-zona');
   
@@ -3485,28 +3485,35 @@ function seleccionarZonaUniversal(codigoZona) {
           No hay clientes en esta zona
         </div>
       `;
+      // Ocultar buscador
+      const buscador = document.getElementById('pm-cli-buscador');
+      if (buscador) buscador.style.display = 'none';
       return;
     }
     
-    clientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
-    
-    listaPedidos.innerHTML = clientes.map(c => `
-      <div onclick="selClienteMovil(${c.id})" 
-        style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--brd);cursor:pointer;background:#fff;active:background:var(--PL);">
-        <div>
-          <div style="font-size:15px;font-weight:600;">[${c.codigo||c.id}] ${esc(c.nombre.toUpperCase())}</div>
-          <div style="font-size:12px;color:var(--txt2);">${esc(c.direccion||'')} ${esc(c.localidad||'')} · Tel: ${esc(c.telefono||'—')}</div>
+    // Usar la nueva función que muestra el buscador si hay muchos clientes
+    if (typeof mostrarClientesZonaConBuscador === 'function') {
+      mostrarClientesZonaConBuscador(clientes);
+    } else {
+      // Fallback: mostrar sin buscador
+      clientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+      listaPedidos.innerHTML = clientes.map(c => `
+        <div onclick="selClienteMovil(${c.id})" 
+          style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--brd);cursor:pointer;background:#fff;active:background:var(--PL);">
+          <div>
+            <div style="font-size:15px;font-weight:600;">[${c.codigo||c.id}] ${esc(c.nombre.toUpperCase())}</div>
+            <div style="font-size:12px;color:var(--txt2);">${esc(c.direccion||'')} ${esc(c.localidad||'')} · Tel: ${esc(c.telefono||'—')}</div>
+          </div>
+          <div style="text-align:right;min-width:80px;">
+            <div style="font-size:14px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
+            <div style="font-size:10px;color:var(--txt2);">saldo</div>
+          </div>
         </div>
-        <div style="text-align:right;min-width:80px;">
-          <div style="font-size:14px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
-          <div style="font-size:10px;color:var(--txt2);">saldo</div>
-        </div>
-      </div>
-    `).join('');
-    
-    const pasoCliente = document.getElementById('pm-paso-cliente');
-    if (pasoCliente) pasoCliente.style.display = 'none';
-    
+      `).join('');
+    }
+  
+  const pasoCliente = document.getElementById('pm-paso-cliente');
+  if (pasoCliente) pasoCliente.style.display = 'none';
   } else if (esCobranza) {
     // ─── MODO COBRANZA ───
     const contenedorClientes = document.getElementById('cobm-clientes-por-zona');

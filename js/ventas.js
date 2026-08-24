@@ -1607,17 +1607,105 @@ function buscarClienteMovil(){
 }
 
 function selClienteMovil(id){
-  const c=_clientes.find(x=>x.id===id);if(!c)return;
-  _pmCliId=id;
-  document.getElementById('pm-cli-nombre').textContent=`[${c.codigo||c.id}] ${esc(c.nombre.toUpperCase())}`;
-  document.getElementById('pm-cli-detalle').textContent=`${esc(c.localidad||'')} · ${esc(c.telefono||'')}`;
-  const saldoEl=document.getElementById('pm-cli-saldo');
-  const saldoWrap=document.getElementById('pm-cli-saldo-wrap');
-  if(saldoEl){saldoEl.textContent=fmt(c.saldo||0);saldoEl.style.color=(c.saldo||0)>0?'#ffb3b3':'#b3ffcc';}
-  if(saldoWrap)saldoWrap.style.display='block';
-  document.getElementById('pm-paso-cliente').style.display='none';
-  document.getElementById('pm-paso-productos').style.display='block';
-  cargarMarcasMovil();
+  const c = _clientes.find(x => x.id === id);
+  if (!c) return;
+  
+  _pmCliId = id;
+  
+  // Mostrar nombre del cliente en el header
+  const nombreEl = document.getElementById('pm-cli-nombre');
+  if (nombreEl) {
+    nombreEl.textContent = `[${c.codigo || c.id}] ${esc(c.nombre.toUpperCase())}`;
+  }
+  
+  const detalleEl = document.getElementById('pm-cli-detalle');
+  if (detalleEl) {
+    detalleEl.textContent = `${esc(c.localidad || '')} · ${esc(c.telefono || '')}`;
+  }
+  
+  const saldoEl = document.getElementById('pm-cli-saldo');
+  const saldoWrap = document.getElementById('pm-cli-saldo-wrap');
+  if (saldoEl) {
+    saldoEl.textContent = fmt(c.saldo || 0);
+    saldoEl.style.color = (c.saldo || 0) > 0 ? '#ffb3b3' : '#b3ffcc';
+  }
+  if (saldoWrap) {
+    saldoWrap.style.display = 'block';
+  }
+  
+  // Ocultar lista de clientes y buscador
+  const listaClientes = document.getElementById('pm-cli-lista');
+  if (listaClientes) {
+    listaClientes.innerHTML = '';
+    listaClientes.style.display = 'none';
+  }
+  
+  const buscador = document.getElementById('pm-cli-buscador');
+  if (buscador) {
+    buscador.style.display = 'none';
+  }
+  
+  // Ocultar paso de cliente
+  const pasoCliente = document.getElementById('cobm-paso-cliente');
+  if (pasoCliente) {
+    pasoCliente.style.display = 'none';
+  }
+  
+  // FORZAR altura del contenedor scrollable
+  const scrollable = document.querySelector('#p-pedido-movil > div:first-child + div');
+  if (scrollable) {
+    scrollable.style.display = 'flex';
+    scrollable.style.flexDirection = 'column';
+    scrollable.style.flex = '1 1 0';
+    scrollable.style.minHeight = '0';
+    scrollable.style.maxHeight = '100%';
+    scrollable.style.overflow = 'hidden';
+  }
+  
+  // MOSTRAR paso de productos
+  const pasoProductos = document.getElementById('pm-paso-productos');
+  if (pasoProductos) {
+    pasoProductos.style.display = 'flex';
+    pasoProductos.style.flexDirection = 'column';
+    pasoProductos.style.flex = '1 1 0';
+    pasoProductos.style.minHeight = '0';
+    pasoProductos.style.maxHeight = '100%';
+    pasoProductos.style.overflow = 'hidden';
+    pasoProductos.classList.add('on');
+  }
+  
+  // Ocultar paso de resumen
+  const pasoResumen = document.getElementById('pm-paso-resumen');
+  if (pasoResumen) {
+    pasoResumen.style.display = 'none';
+    pasoResumen.classList.remove('on');
+  }
+  
+  // Cargar marcas y forzar visibilidad
+  setTimeout(() => {
+    cargarMarcasMovil();
+    
+    const marcas = document.getElementById('pm-marcas-lista');
+    if (marcas) {
+      marcas.style.display = 'block';
+      marcas.style.flex = '1 1 0';
+      marcas.style.minHeight = '0';
+      marcas.style.maxHeight = '100%';
+      marcas.style.overflowY = 'auto';
+      marcas.style.overflowX = 'hidden';
+      marcas.style.visibility = 'visible';
+      marcas.style.opacity = '1';
+      
+      // Forzar que el padre también tenga altura
+      const parent = marcas.parentElement;
+      if (parent) {
+        parent.style.flex = '1 1 0';
+        parent.style.minHeight = '0';
+        parent.style.maxHeight = '100%';
+        parent.style.overflow = 'hidden';
+      }
+    }
+  }, 100);
 }
 
 async function verSaldoMovil(){
@@ -2679,4 +2767,136 @@ function mostrarConfirmacionNC(tipo, cliente, total) {
       </div>
     </div>
   `;
+}
+
+// ─── FILTRAR CLIENTES DENTRO DE UNA ZONA (PEDIDO MÓVIL) ──────────────
+
+// Variable global para guardar los clientes de la zona seleccionada
+let _pmClientesZonaActual = [];
+
+function mostrarClientesZonaConBuscador(clientes) {
+  const lista = document.getElementById('pm-cli-lista');
+  const buscador = document.getElementById('pm-cli-buscador');
+  const filtroInput = document.getElementById('pm-cli-filtro');
+  
+  if (!lista) return;
+  
+  // Guardar los clientes de la zona
+  _pmClientesZonaActual = clientes;
+  
+  // Si no hay clientes, mostrar mensaje
+  if (!clientes.length) {
+    lista.innerHTML = `
+      <div style="padding:20px;text-align:center;color:var(--txt2);font-size:14px;">
+        No hay clientes en esta zona
+      </div>
+    `;
+    if (buscador) buscador.style.display = 'none';
+    return;
+  }
+  
+  // Ordenar clientes
+  clientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+  
+  // Si hay más de 10 clientes, mostrar el buscador
+  if (clientes.length > 10) {
+    if (buscador) buscador.style.display = 'block';
+    if (filtroInput) filtroInput.value = '';
+  } else {
+    if (buscador) buscador.style.display = 'none';
+  }
+  
+  // Renderizar clientes
+  renderizarClientesZona(clientes);
+}
+
+function renderizarClientesZona(clientes) {
+  const lista = document.getElementById('pm-cli-lista');
+  if (!lista) return;
+  
+  if (!clientes.length) {
+    lista.innerHTML = `
+      <div style="padding:20px;text-align:center;color:var(--txt2);font-size:14px;">
+        No hay clientes que coincidan con el filtro
+      </div>
+    `;
+    return;
+  }
+  
+  lista.innerHTML = clientes.map(c => `
+    <div onclick="selClienteMovil(${c.id})" 
+      style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--brd);cursor:pointer;background:#fff;active:background:var(--PL);transition:background 0.15s;"
+      onmouseover="this.style.background='var(--bg2)'" 
+      onmouseout="this.style.background='#fff'">
+      <div>
+        <div style="font-size:15px;font-weight:600;">[${c.codigo||c.id}] ${esc(c.nombre.toUpperCase())}</div>
+        <div style="font-size:12px;color:var(--txt2);">${esc(c.direccion||'')} ${esc(c.localidad||'')} · Tel: ${esc(c.telefono||'—')}</div>
+      </div>
+      <div style="text-align:right;min-width:80px;">
+        <div style="font-size:14px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
+        <div style="font-size:10px;color:var(--txt2);">saldo</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filtrarClientesZona() {
+  const filtro = document.getElementById('pm-cli-filtro');
+  if (!filtro) return;
+  
+  const termino = filtro.value.toLowerCase().trim();
+  
+  // Si no hay término de búsqueda, mostrar todos los clientes de la zona
+  if (!termino) {
+    renderizarClientesZona(_pmClientesZonaActual);
+    return;
+  }
+  
+  // Filtrar clientes por nombre o código
+  const filtrados = _pmClientesZonaActual.filter(c => 
+    (c.nombre || '').toLowerCase().includes(termino) ||
+    String(c.codigo || c.id).includes(termino)
+  );
+  
+  renderizarClientesZona(filtrados);
+}
+
+// Modificar la función que se ejecuta al seleccionar una zona en pedido
+// Reemplazar la parte del modo pedido en seleccionarZonaUniversal()
+
+// ─── VOLVER A LA LISTA DE CLIENTES (desde productos) ──────────────────
+
+function volverClientesMovil() {
+  // Ocultar paso de productos
+  const pasoProductos = document.getElementById('pm-paso-productos');
+  if (pasoProductos) {
+    pasoProductos.style.display = 'none';
+    pasoProductos.classList.remove('on');
+  }
+  
+  // Mostrar paso de cliente
+  const pasoCliente = document.getElementById('cobm-paso-cliente');
+  if (pasoCliente) {
+    pasoCliente.style.display = 'block';
+  }
+  
+  // Restaurar la lista de clientes (si había clientes cargados)
+  const listaClientes = document.getElementById('pm-cli-lista');
+  if (listaClientes && _pmClientesZonaActual && _pmClientesZonaActual.length) {
+    if (typeof mostrarClientesZonaConBuscador === 'function') {
+      mostrarClientesZonaConBuscador(_pmClientesZonaActual);
+    }
+  }
+  
+  // Ocultar carrito si está vacío
+  const carritoBar = document.getElementById('pm-carrito-bar');
+  if (carritoBar && (!_pmCarrito || !_pmCarrito.length)) {
+    carritoBar.style.display = 'none';
+  }
+  
+  // Poner foco en el campo de zona
+  setTimeout(() => {
+    const input = document.getElementById('cobm-zona-input');
+    if (input) input.focus();
+  }, 100);
 }
