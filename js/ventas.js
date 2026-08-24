@@ -1566,6 +1566,17 @@ function abrirPedidoMovil(){
   if(pasoResEl)pasoResEl.style.display='none';
   const saldoWrap=document.getElementById('pm-cli-saldo-wrap');
   if(saldoWrap)saldoWrap.style.display='none';
+
+  // inicializar el buscador de zonas
+  setTimeout(() => {
+    if (document.getElementById('cobm-zona-input')) {
+      // Si la función existe, ejecutarla
+      if (typeof initBuscadorZonasCob === 'function') {
+        initBuscadorZonasCob();
+      }
+    }
+  }, 300)
+
   poblarSelectZona('pm-cli-zon');
   actualizarCarritoBar();
   setTimeout(()=>document.getElementById('pm-cli-q')?.focus(),100);

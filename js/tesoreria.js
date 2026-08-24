@@ -2307,7 +2307,9 @@ let _cobZonasCache = [];
 
 // Inicializar buscador de zonas
 function initBuscadorZonasCob() {
+  console.log('🔍 initBuscadorZonasCob() - EJECUTADA');
   const input = document.getElementById('cobm-zona-input');
+  console.log('📌 Input zona encontrado:', input);
   if (!input) return;
   
   // Cargar zonas únicas de los clientes
@@ -2317,7 +2319,7 @@ function initBuscadorZonasCob() {
     return {
       codigo: z,
       descripcion: zonaObj?.descripcion || z,
-      clientes: _clientes.filter(c => c.zona === z)
+      clientes: _clientes.filter(c => c.zona === z && c.activo !== false)
     };
   }).sort((a,b) => a.descripcion.localeCompare(b.descripcion));
   
@@ -2347,7 +2349,6 @@ function initBuscadorZonasCob() {
       if (items.length === 1) {
         items[0].click();
       } else if (items.length > 1) {
-        // Seleccionar la primera
         items[0].click();
       }
     }
@@ -2367,7 +2368,6 @@ function mostrarSugerenciasZonas() {
     return;
   }
   
-  // Buscar zonas que coincidan
   const coincidencias = _cobZonasCache.filter(z => 
     z.descripcion.toLowerCase().includes(termino) || 
     z.codigo.toLowerCase().includes(termino)
@@ -2380,14 +2380,14 @@ function mostrarSugerenciasZonas() {
       </div>
     `;
     contenedor.style.display = 'block';
+    posicionarSugerenciasZonas();
     return;
   }
   
-  // Mostrar hasta 8 zonas
   const mostrar = coincidencias.slice(0, 8);
   contenedor.innerHTML = mostrar.map(z => `
     <div class="zona-sug-item" 
-         onclick="seleccionarZonaCob('${z.codigo}')"
+         onclick="seleccionarZonaUniversal('${z.codigo}')"
          style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background 0.15s;"
          onmouseover="this.style.background='var(--bg2)'" 
          onmouseout="this.style.background='transparent'">
@@ -2402,6 +2402,7 @@ function mostrarSugerenciasZonas() {
   `).join('');
   
   contenedor.style.display = 'block';
+  posicionarSugerenciasZonas();
 }
 
 
@@ -2418,8 +2419,85 @@ function seleccionarZonaCob(codigoZona) {
   // Ocultar sugerencias
   contenedor.style.display = 'none';
   
-  // Filtrar clientes por esta zona y mostrarlos como cards
-  mostrarClientesPorZona(codigoZona);
+  // Cerrar dropdown de clientes si está visible
+  cerrarDropdownCobMovil();
+  
+  // Obtener clientes de la zona
+  const clientes = _clientes.filter(c => c.zona === codigoZona && c.activo !== false);
+  
+  // DETECTAR CONTEXTO: cobranza o pedido móvil
+  const contenedorClientes = document.getElementById('cobm-clientes-por-zona');
+  const listaPedidos = document.getElementById('pm-cli-lista');
+  
+  if (contenedorClientes) {
+    // MODO COBRANZA: mostrar en cobm-clientes-por-zona
+    if (!clientes.length) {
+      contenedorClientes.innerHTML = `
+        <div style="padding:20px;text-align:center;color:var(--txt2);font-size:14px;">
+          No hay clientes en esta zona
+        </div>
+      `;
+      contenedorClientes.style.display = 'block';
+      return;
+    }
+    
+    clientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+    
+    contenedorClientes.innerHTML = clientes.map(c => `
+      <div onclick="selClienteCobMovil(${c.id})"
+        style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#fff;border-radius:10px;margin-bottom:6px;border:1.5px solid var(--brd);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all 0.15s;"
+        onmouseover="this.style.borderColor='var(--P)';this.style.background='var(--bg2)'" 
+        onmouseout="this.style.borderColor='var(--brd)';this.style.background='#fff'">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.nombre)}</div>
+          <div style="font-size:12px;color:var(--txt2);margin-top:2px">${esc(c.localidad||'')} ${c.codigo ? '· #' + c.codigo : ''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:10px">
+          <div style="font-size:16px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
+          <div style="font-size:10px;color:var(--txt2);">
+            ${c.ultimo_remito ? (Math.floor((new Date() - new Date(c.ultimo_remito)) / 864e5)) + 'd' : '—'}
+          </div>
+        </div>
+      </div>
+    `).join('');
+    
+    // Ocultar el paso de cliente (el input de zona) y mostrar los clientes
+    const pasoCliente = document.getElementById('cobm-paso-cliente');
+    if (pasoCliente) pasoCliente.style.display = 'none';
+    
+    contenedorClientes.style.display = 'block';
+    
+  } else if (listaPedidos) {
+    // MODO PEDIDO MÓVIL: mostrar en pm-cli-lista
+    if (!clientes.length) {
+      listaPedidos.innerHTML = `
+        <div style="padding:20px;text-align:center;color:var(--txt2);font-size:14px;">
+          No hay clientes en esta zona
+        </div>
+      `;
+      return;
+    }
+    
+    clientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+    
+    listaPedidos.innerHTML = clientes.map(c => `
+      <div onclick="selClienteMovil(${c.id})" 
+        style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--brd);cursor:pointer;background:#fff;active:background:var(--PL);">
+        <div>
+          <div style="font-size:15px;font-weight:600;">[${c.codigo||c.id}] ${esc(c.nombre.toUpperCase())}</div>
+          <div style="font-size:12px;color:var(--txt2);">${esc(c.direccion||'')} ${esc(c.localidad||'')} · Tel: ${esc(c.telefono||'—')}</div>
+        </div>
+        <div style="text-align:right;min-width:80px;">
+          <div style="font-size:14px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
+          <div style="font-size:10px;color:var(--txt2);">saldo</div>
+        </div>
+      </div>
+    `).join('');
+    
+    // Ocultar el input de zona y mostrar los clientes
+    const pasoCliente = document.getElementById('pm-paso-cliente');
+    if (pasoCliente) pasoCliente.style.display = 'none';
+  }
 }
 
 function mostrarClientesPorZona(codigoZona) {
@@ -3372,4 +3450,173 @@ function limpiarFiltrosRendicion() {
   document.getElementById('rend-hr-desde').value = '';
   document.getElementById('rend-hr-hasta').value = '';
   renderListaHojasRuta();
+}
+
+// ─── SELECCIONAR ZONA (UNIVERSAL: cobranza o pedido móvil) ───────────
+
+function seleccionarZonaUniversal(codigoZona) {
+  const input = document.getElementById('cobm-zona-input');
+  const contenedor = document.getElementById('cobm-zona-sugerencias');
+  
+  // Mostrar la zona seleccionada
+  const zona = _cobZonasCache.find(z => z.codigo === codigoZona);
+  if (zona) {
+    input.value = `${zona.descripcion} (${zona.codigo})`;
+  }
+  
+  // Ocultar sugerencias
+  contenedor.style.display = 'none';
+  
+  // Obtener clientes de la zona
+  const clientes = _clientes.filter(c => c.zona === codigoZona && c.activo !== false);
+  
+  // ⭐ DETECTAR CONTEXTO: PRIMERO PEDIDO, LUEGO COBRANZA
+  const esPedido = !!document.getElementById('pm-cli-lista');
+  const esCobranza = !!document.getElementById('cobm-clientes-por-zona');
+  
+  if (esPedido) {
+    // ─── MODO PEDIDO MÓVIL ───
+    const listaPedidos = document.getElementById('pm-cli-lista');
+    if (!listaPedidos) return;
+    
+    if (!clientes.length) {
+      listaPedidos.innerHTML = `
+        <div style="padding:20px;text-align:center;color:var(--txt2);font-size:14px;">
+          No hay clientes en esta zona
+        </div>
+      `;
+      return;
+    }
+    
+    clientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+    
+    listaPedidos.innerHTML = clientes.map(c => `
+      <div onclick="selClienteMovil(${c.id})" 
+        style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--brd);cursor:pointer;background:#fff;active:background:var(--PL);">
+        <div>
+          <div style="font-size:15px;font-weight:600;">[${c.codigo||c.id}] ${esc(c.nombre.toUpperCase())}</div>
+          <div style="font-size:12px;color:var(--txt2);">${esc(c.direccion||'')} ${esc(c.localidad||'')} · Tel: ${esc(c.telefono||'—')}</div>
+        </div>
+        <div style="text-align:right;min-width:80px;">
+          <div style="font-size:14px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
+          <div style="font-size:10px;color:var(--txt2);">saldo</div>
+        </div>
+      </div>
+    `).join('');
+    
+    const pasoCliente = document.getElementById('pm-paso-cliente');
+    if (pasoCliente) pasoCliente.style.display = 'none';
+    
+  } else if (esCobranza) {
+    // ─── MODO COBRANZA ───
+    const contenedorClientes = document.getElementById('cobm-clientes-por-zona');
+    if (!contenedorClientes) return;
+    
+    if (!clientes.length) {
+      contenedorClientes.innerHTML = `
+        <div style="padding:20px;text-align:center;color:var(--txt2);font-size:14px;">
+          No hay clientes en esta zona
+        </div>
+      `;
+      contenedorClientes.style.display = 'block';
+      return;
+    }
+    
+    clientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+    
+    contenedorClientes.innerHTML = clientes.map(c => `
+      <div onclick="selClienteCobMovil(${c.id})"
+        style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#fff;border-radius:10px;margin-bottom:6px;border:1.5px solid var(--brd);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all 0.15s;"
+        onmouseover="this.style.borderColor='var(--P)';this.style.background='var(--bg2)'" 
+        onmouseout="this.style.borderColor='var(--brd)';this.style.background='#fff'">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.nombre)}</div>
+          <div style="font-size:12px;color:var(--txt2);margin-top:2px">${esc(c.localidad||'')} ${c.codigo ? '· #' + c.codigo : ''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:10px">
+          <div style="font-size:16px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
+          <div style="font-size:10px;color:var(--txt2);">
+            ${c.ultimo_remito ? (Math.floor((new Date() - new Date(c.ultimo_remito)) / 864e5)) + 'd' : '—'}
+          </div>
+        </div>
+      </div>
+    `).join('');
+    
+    const pasoCliente = document.getElementById('cobm-paso-cliente');
+    if (pasoCliente) pasoCliente.style.display = 'none';
+    contenedorClientes.style.display = 'block';
+  }
+}
+
+// ─── POSICIONAR SUGERENCIAS DE ZONAS ──────────────────────────────────
+
+function posicionarSugerenciasZonas() {
+  const input = document.getElementById('cobm-zona-input');
+  const contenedor = document.getElementById('cobm-zona-sugerencias');
+  if (!input || !contenedor || contenedor.style.display === 'none') return;
+  
+  const rect = input.getBoundingClientRect();
+  const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
+  
+  const espacioAbajo = viewportHeight - rect.bottom - 10;
+  const espacioArriba = rect.top - 10;
+  const alturaMax = Math.min(260, Math.max(150, Math.max(espacioAbajo, espacioArriba) - 20));
+  
+  const usarArriba = espacioAbajo < 160 && espacioArriba > espacioAbajo;
+  
+  contenedor.style.position = 'fixed';
+  contenedor.style.top = usarArriba ? 'auto' : (rect.bottom + 6) + 'px';
+  contenedor.style.bottom = usarArriba ? (viewportHeight - rect.top + 8) + 'px' : 'auto';
+  contenedor.style.left = Math.max(10, rect.left) + 'px';
+  contenedor.style.width = Math.min(rect.width, viewportWidth - 20) + 'px';
+  contenedor.style.maxHeight = alturaMax + 'px';
+  contenedor.style.overflowY = 'auto';
+  contenedor.style.zIndex = '99999';
+  contenedor.style.background = '#fff';
+  contenedor.style.border = '2px solid var(--P)';
+  contenedor.style.borderRadius = '12px';
+  contenedor.style.boxShadow = '0 8px 32px rgba(0,0,0,0.18)';
+  contenedor.style.display = 'block';
+  contenedor.style.padding = '4px 0';
+  contenedor.style.WebkitOverflowScrolling = 'touch';
+  
+  // Ajustar laterales
+  const dropRect = contenedor.getBoundingClientRect();
+  if (dropRect.right > viewportWidth - 8) {
+    contenedor.style.left = Math.max(8, viewportWidth - dropRect.width - 8) + 'px';
+  }
+  if (dropRect.left < 8) {
+    contenedor.style.left = '8px';
+  }
+}
+
+// ─── CERRAR SUGERENCIAS DE ZONAS ──────────────────────────────────────
+
+function cerrarSugerenciasZonas() {
+  const contenedor = document.getElementById('cobm-zona-sugerencias');
+  if (contenedor) {
+    contenedor.style.display = 'none';
+    contenedor.innerHTML = '';
+  }
+}
+
+// ─── LIMPIAR BUSCADOR DE ZONAS (versión universal) ────────────────────
+
+function limpiarBuscadorZonasUniversal() {
+  const input = document.getElementById('cobm-zona-input');
+  if (input) input.value = '';
+  
+  cerrarSugerenciasZonas();
+  
+  const clientesPorZona = document.getElementById('cobm-clientes-por-zona');
+  if (clientesPorZona) {
+    clientesPorZona.innerHTML = '';
+    clientesPorZona.style.display = 'none';
+  }
+  
+  const pasoCliente = document.getElementById('cobm-paso-cliente');
+  if (pasoCliente) pasoCliente.style.display = 'block';
+  
+  _cobZonaInput = '';
 }
