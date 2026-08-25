@@ -39,12 +39,12 @@ function renderPedidos(){
           ${(p.items||[]).map(it=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid var(--brd)"><span>${esc(it.nom||it.nombre)}</span><span style="font-weight:600">${it.cant} ${it.un||'un'} · ${fmt(it.precio*it.cant)}</span></div>`).join('')}
           ${p.obs?`<div style="margin-top:8px;color:var(--txt2);font-size:12px">Obs: ${esc(p.obs)}</div>`:''}
         </div>
-        <div style="display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--brd)">
+        <div style="display:flex;gap:6px;padding:10px 14px;border-top:1px solid var(--brd);flex-wrap:wrap;">
           ${p.estado==='pendiente'?`
-            <button onclick="event.stopPropagation();editarPedidoMovil(${p.id})" style="flex:2;min-height:44px;background:var(--AL);color:var(--A);border:1.5px solid var(--A);border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">✏️ Editar</button>
-            <button onclick="event.stopPropagation();elimPedido(${p.id})" style="flex:1;min-height:44px;background:var(--DL);color:var(--D);border:1.5px solid var(--D);border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">🗑</button>
+            <button onclick="event.stopPropagation();editarPedidoMovil(${p.id})" style="flex:0 0 auto;padding:0 14px;min-height:38px;background:var(--AL);color:var(--A);border:1.5px solid var(--A);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">✏️ Editar</button>
+            <button onclick="event.stopPropagation();elimPedido(${p.id})" style="flex:0 0 auto;padding:0 12px;min-height:38px;background:var(--DL);color:var(--D);border:1.5px solid var(--D);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">🗑 Eliminar</button>
           `:''}
-          ${p.estado==='remitado'?`<button onclick="event.stopPropagation();verRemito(${p.remito_id})" style="min-height:44px;padding:0 16px;background:var(--bg2);border:1.5px solid var(--brd);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer">📄 Ver remito</button>`:''}
+          ${p.estado==='remitado'?`<button onclick="event.stopPropagation();verRemito(${p.remito_id})" style="flex:0 0 auto;padding:0 14px;min-height:38px;background:var(--bg2);border:1.5px solid var(--brd);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">📄 Ver remito</button>`:''}
         </div>
       </div>
     </div>`).join('');
