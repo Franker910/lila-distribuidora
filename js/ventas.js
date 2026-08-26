@@ -1544,42 +1544,94 @@ function renderVendedorHome(){
 
 function abrirPedidoMovil(){
   // Si el panel fue reemplazado con innerHTML, restaurarlo primero
-  const panel=document.getElementById('p-pedido-movil');
-  if(panel && window._pmPanelOriginal && !document.getElementById('pm-cli-nombre')){
-    panel.innerHTML=window._pmPanelOriginal;
+  const panel = document.getElementById('p-pedido-movil');
+  if (panel && window._pmPanelOriginal && !document.getElementById('pm-cli-nombre')) {
+    panel.innerHTML = window._pmPanelOriginal;
   }
-  _pmCliId=null;_pmCarrito=[];_pmMarcaActual=null;_pmProdActual=null;
+  
+  _pmCliId = null;
+  _pmCarrito = [];
+  _pmMarcaActual = null;
+  _pmProdActual = null;
+  
   go('pedido-movil');
-  const nomEl=document.getElementById('pm-cli-nombre');
-  const saldoEl=document.getElementById('pm-cli-saldo');
-  const qEl=document.getElementById('pm-cli-q');
-  const listaEl=document.getElementById('pm-cli-lista');
-  const pasoCliEl=document.getElementById('pm-paso-cliente');
-  const pasoProdEl=document.getElementById('pm-paso-productos');
-  const pasoResEl=document.getElementById('pm-paso-resumen');
-  if(nomEl)nomEl.textContent='Seleccioná un cliente';
-  if(saldoEl)saldoEl.textContent='';
-  if(qEl)qEl.value='';
-  if(listaEl)listaEl.innerHTML='';
-  if(pasoCliEl)pasoCliEl.style.display='block';
-  if(pasoProdEl)pasoProdEl.style.display='none';
-  if(pasoResEl)pasoResEl.style.display='none';
-  const saldoWrap=document.getElementById('pm-cli-saldo-wrap');
-  if(saldoWrap)saldoWrap.style.display='none';
-
-  // inicializar el buscador de zonas
+  
+  // --- Limpiar paso de cliente ---
+  const nomEl = document.getElementById('pm-cli-nombre');
+  const saldoEl = document.getElementById('pm-cli-saldo');
+  const qEl = document.getElementById('pm-cli-q');
+  const listaEl = document.getElementById('pm-cli-lista');
+  const pasoCliEl = document.getElementById('cobm-paso-cliente');
+  const pasoProdEl = document.getElementById('pm-paso-productos');
+  const pasoResEl = document.getElementById('pm-paso-resumen');
+  const saldoWrap = document.getElementById('pm-cli-saldo-wrap');
+  
+  if (nomEl) nomEl.textContent = 'Seleccioná un cliente';
+  if (saldoEl) saldoEl.textContent = '';
+  if (qEl) qEl.value = '';
+  if (listaEl) {
+    listaEl.innerHTML = '';
+    listaEl.style.display = 'none'; // Oculto hasta que se seleccione zona
+  }
+  if (pasoCliEl) pasoCliEl.style.display = 'block';
+  if (pasoProdEl) {
+    pasoProdEl.style.display = 'none';
+    pasoProdEl.classList.remove('on');
+  }
+  if (pasoResEl) pasoResEl.style.display = 'none';
+  if (saldoWrap) saldoWrap.style.display = 'none';
+  
+  // --- Limpiar buscador de zonas (input, sugerencias y contenedores) ---
+  const inputZona = document.getElementById('cobm-zona-input');
+  if (inputZona) inputZona.value = '';
+  
+  const sugerencias = document.getElementById('cobm-zona-sugerencias');
+  if (sugerencias) {
+    sugerencias.style.display = 'none';
+    sugerencias.innerHTML = '';
+  }
+  
+  // Limpiar contenedor de clientes por zona (modo cobranza)
+  const clientesPorZona = document.getElementById('cobm-clientes-por-zona');
+  if (clientesPorZona) {
+    clientesPorZona.innerHTML = '';
+    clientesPorZona.style.display = 'none';
+  }
+  
+  // Limpiar contenedor de ruta de hoy
+  const clientesRuta = document.getElementById('cobm-clientes-ruta-hoy');
+  if (clientesRuta) {
+    clientesRuta.innerHTML = '';
+    clientesRuta.style.display = 'none';
+  }
+  
+  // Limpiar buscador de clientes dentro de la zona
+  const buscadorCli = document.getElementById('pm-cli-buscador');
+  if (buscadorCli) {
+    buscadorCli.style.display = 'none';
+    const filtro = document.getElementById('pm-cli-filtro');
+    if (filtro) filtro.value = '';
+  }
+  
+  // --- Resetear variables globales ---
+  _cobZonaInput = '';
+  _pmClientesZonaActual = [];
+  
+  // --- Inicializar buscador de zonas (recargar sugerencias) ---
   setTimeout(() => {
     if (document.getElementById('cobm-zona-input')) {
-      // Si la función existe, ejecutarla
       if (typeof initBuscadorZonasCob === 'function') {
         initBuscadorZonasCob();
       }
     }
-  }, 300)
+  }, 300);
 
+  // Poblar selector de zona (si existe)
   poblarSelectZona('pm-cli-zon');
   actualizarCarritoBar();
-  setTimeout(()=>document.getElementById('pm-cli-q')?.focus(),100);
+  
+  // Poner foco en el input de búsqueda de clientes
+  setTimeout(() => document.getElementById('pm-cli-q')?.focus(), 100);
 }
 
 function pmBuscarPorCod(){const cod=(document.getElementById('pm-cli-cod')?.value||'').trim();if(!cod)return;const c=_clientes.find(x=>String(x.codigo||x.id)===cod);if(c){selClienteMovil(c.id);document.getElementById('pm-cli-cod').style.borderColor='var(--P)';}else{document.getElementById('pm-cli-cod').style.borderColor='var(--D)';}}
@@ -1608,8 +1660,12 @@ function buscarClienteMovil(){
 
 function selClienteMovil(id){
   const c = _clientes.find(x => x.id === id);
-  if (!c) return;
+  if (!c) {
+    console.error('❌ Cliente no encontrado:', id);
+    return;
+  }
   
+  console.log('✅ Cliente seleccionado:', c.nombre);
   _pmCliId = id;
   
   // Mostrar nombre del cliente en el header
@@ -1651,7 +1707,27 @@ function selClienteMovil(id){
     pasoCliente.style.display = 'none';
   }
   
-  // FORZAR altura del contenedor scrollable
+  // ✅ VERIFICAR QUE PRODUCTOS ESTÉN CARGADOS
+  if (!_productos || !_productos.length) {
+    console.log('⏳ Productos no cargados, cargando...');
+    const marcas = document.getElementById('pm-marcas-lista');
+    if (marcas) {
+      marcas.innerHTML = '<div style="padding:20px;text-align:center;color:var(--txt2)">Cargando productos...</div>';
+      marcas.style.display = 'block';
+    }
+    cargarProductos().then(() => {
+      console.log('✅ Productos cargados, mostrando paso...');
+      _mostrarPasoProductosMovil();
+    });
+    return;
+  }
+  
+  console.log('✅ Productos ya cargados, mostrando paso...');
+  _mostrarPasoProductosMovil();
+}
+
+function _mostrarPasoProductosMovil() {
+  // Forzar altura del contenedor scrollable
   const scrollable = document.querySelector('#p-pedido-movil > div:first-child + div');
   if (scrollable) {
     scrollable.style.display = 'flex';
@@ -1681,31 +1757,35 @@ function selClienteMovil(id){
     pasoResumen.classList.remove('on');
   }
   
-  // Cargar marcas y forzar visibilidad
-  setTimeout(() => {
-    cargarMarcasMovil();
-    
-    const marcas = document.getElementById('pm-marcas-lista');
-    if (marcas) {
-      marcas.style.display = 'block';
-      marcas.style.flex = '1 1 0';
-      marcas.style.minHeight = '0';
-      marcas.style.maxHeight = '100%';
-      marcas.style.overflowY = 'auto';
-      marcas.style.overflowX = 'hidden';
-      marcas.style.visibility = 'visible';
-      marcas.style.opacity = '1';
+  // Cargar marcas con doble requestAnimationFrame para asegurar renderizado
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      cargarMarcasMovil();
       
-      // Forzar que el padre también tenga altura
-      const parent = marcas.parentElement;
-      if (parent) {
-        parent.style.flex = '1 1 0';
-        parent.style.minHeight = '0';
-        parent.style.maxHeight = '100%';
-        parent.style.overflow = 'hidden';
+      const marcas = document.getElementById('pm-marcas-lista');
+      if (marcas) {
+        marcas.style.display = 'block';
+        marcas.style.flex = '1 1 0';
+        marcas.style.minHeight = '0';
+        marcas.style.maxHeight = '100%';
+        marcas.style.overflowY = 'auto';
+        marcas.style.overflowX = 'hidden';
+        marcas.style.visibility = 'visible';
+        marcas.style.opacity = '1';
+        
+        // Forzar que el padre también tenga altura
+        const parent = marcas.parentElement;
+        if (parent) {
+          parent.style.flex = '1 1 0';
+          parent.style.minHeight = '0';
+          parent.style.maxHeight = '100%';
+          parent.style.overflow = 'hidden';
+        }
       }
-    }
-  }, 100);
+      
+      console.log('✅ Marcas renderizadas, cantidad de productos:', _productos?.length || 0);
+    });
+  });
 }
 
 async function verSaldoMovil(){
@@ -2872,15 +2952,7 @@ function filtrarClientesZona() {
 // Modificar la función que se ejecuta al seleccionar una zona en pedido
 // Reemplazar la parte del modo pedido en seleccionarZonaUniversal()
 
-// ─── VOLVER A LA LISTA DE CLIENTES (desde productos) ──────────────────
-
-function volverClientesMovil() {
-  // Simplemente llama a la misma función del header
-  volverHeaderPedidoMovil();
-}
-
 function volverHeaderPedidoMovil() {
-  // Verificar si estamos en el paso de productos (cliente seleccionado)
   const pasoProductos = document.getElementById('pm-paso-productos');
   const pasoCliente = document.getElementById('cobm-paso-cliente');
   
@@ -2900,79 +2972,80 @@ function volverHeaderPedidoMovil() {
     if (nombreEl) {
       nombreEl.textContent = 'Seleccioná un cliente';
     }
-    
     const detalleEl = document.getElementById('pm-cli-detalle');
-    if (detalleEl) {
-      detalleEl.textContent = '';
-    }
-    
+    if (detalleEl) detalleEl.textContent = '';
     const saldoEl = document.getElementById('pm-cli-saldo');
-    if (saldoEl) {
-      saldoEl.textContent = '';
-    }
-    
+    if (saldoEl) saldoEl.textContent = '';
     const saldoWrap = document.getElementById('pm-cli-saldo-wrap');
-    if (saldoWrap) {
-      saldoWrap.style.display = 'none';
-    }
+    if (saldoWrap) saldoWrap.style.display = 'none';
     
     // Limpiar campos de cliente
     const codCliente = document.getElementById('pm-cli-cod');
-    if (codCliente) {
-      codCliente.value = '';
-      codCliente.style.borderColor = '';
-    }
-    
+    if (codCliente) { codCliente.value = ''; codCliente.style.borderColor = ''; }
     const qCliente = document.getElementById('pm-cli-q');
-    if (qCliente) {
-      qCliente.value = '';
-    }
-    
+    if (qCliente) qCliente.value = '';
     const cliId = document.getElementById('pm-cli-id');
-    if (cliId) {
-      cliId.value = '';
-    }
+    if (cliId) cliId.value = '';
     
-    // Limpiar lista de clientes
     const listaClientes = document.getElementById('pm-cli-lista');
     if (listaClientes) {
-      listaClientes.innerHTML = '';
-      listaClientes.style.display = 'none';
+      listaClientes.innerHTML = '';          // Vacío
+      listaClientes.style.display = 'block'; // Asegurar que sea visible
     }
     
-    // Limpiar input de zona (pero mantener el mensaje de ayuda)
+    // Limpiar buscador de clientes dentro de la zona
+    const buscadorCli = document.getElementById('pm-cli-buscador');
+    if (buscadorCli) {
+      buscadorCli.style.display = 'none';
+      const filtro = document.getElementById('pm-cli-filtro');
+      if (filtro) filtro.value = '';
+    }
+    
+    // Limpiar variables de estado
+    _pmClientesZonaActual = [];
+    _pmCliId = null;
+    _cobZonaInput = '';   // <--- NUEVO: resetear filtro de zonas
+    
+    // Limpiar input de zona
     const inputZona = document.getElementById('cobm-zona-input');
     if (inputZona) {
       inputZona.value = '';
     }
     
-    // Limpiar sugerencias
+    // Limpiar sugerencias de zonas
     const sugerencias = document.getElementById('cobm-zona-sugerencias');
     if (sugerencias) {
       sugerencias.style.display = 'none';
       sugerencias.innerHTML = '';
     }
     
-    // Resetear variables
-    _pmClientesZonaActual = [];
-    _pmCliId = null;
+    // Limpiar contenedor de clientes por zona (modo cobranza)
+    const clientesPorZona = document.getElementById('cobm-clientes-por-zona');
+    if (clientesPorZona) {
+      clientesPorZona.innerHTML = '';
+      clientesPorZona.style.display = 'none';
+    }
+    
+    // Limpiar contenedor de ruta de hoy
+    const clientesRuta = document.getElementById('cobm-clientes-ruta-hoy');
+    if (clientesRuta) {
+      clientesRuta.innerHTML = '';
+      clientesRuta.style.display = 'none';
+    }
     
     // Ocultar carrito
     const carritoBar = document.getElementById('pm-carrito-bar');
-    if (carritoBar) {
-      carritoBar.style.display = 'none';
-    }
+    if (carritoBar) carritoBar.style.display = 'none';
     
     // Poner foco en input de zona
     setTimeout(() => {
       const input = document.getElementById('cobm-zona-input');
-      if (input) {
-        input.focus();
-      }
+      if (input) input.focus();
     }, 100);
     
   } else {
     // Si estamos en clientes o resumen, ir al home
     go('vendedor-home');
   }
+  
 }

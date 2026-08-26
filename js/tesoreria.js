@@ -3479,6 +3479,13 @@ function seleccionarZonaUniversal(codigoZona) {
     const listaPedidos = document.getElementById('pm-cli-lista');
     if (!listaPedidos) return;
     
+    // Asegurar que el contenedor de cobranza esté oculto
+    const contCobranza = document.getElementById('cobm-clientes-por-zona');
+    if (contCobranza) {
+      contCobranza.innerHTML = '';
+      contCobranza.style.display = 'none';
+    }
+    
     if (!clientes.length) {
       listaPedidos.innerHTML = `
         <div style="padding:20px;text-align:center;color:var(--txt2);font-size:14px;">
@@ -3488,7 +3495,7 @@ function seleccionarZonaUniversal(codigoZona) {
       return;
     }
     
-    //  GUARDAR CLIENTES EN LA VARIABLE GLOBAL (definida en ventas.js)
+    // GUARDAR CLIENTES EN LA VARIABLE GLOBAL
     if (typeof _pmClientesZonaActual !== 'undefined') {
       _pmClientesZonaActual = clientes;
     }
@@ -3521,11 +3528,20 @@ function seleccionarZonaUniversal(codigoZona) {
     if (buscador) {
       buscador.style.display = clientes.length > 10 ? 'block' : 'none';
     }
+
+    listaPedidos.style.display = 'block';
     
   } else if (esCobranza) {
     // ─── MODO COBRANZA ───
     const contenedorClientes = document.getElementById('cobm-clientes-por-zona');
     if (!contenedorClientes) return;
+    
+    // Asegurar que la lista de pedidos esté oculta
+    const listaPedidos = document.getElementById('pm-cli-lista');
+    if (listaPedidos) {
+      listaPedidos.innerHTML = '';
+      listaPedidos.style.display = 'none';
+    }
     
     if (!clientes.length) {
       contenedorClientes.innerHTML = `
@@ -3558,6 +3574,9 @@ function seleccionarZonaUniversal(codigoZona) {
     
     contenedorClientes.style.display = 'block';
   }
+  
+  // Resetear el filtro de zonas para que no interfiera en futuras búsquedas
+  _cobZonaInput = '';
 }
 
 // ─── POSICIONAR SUGERENCIAS DE ZONAS ──────────────────────────────────
