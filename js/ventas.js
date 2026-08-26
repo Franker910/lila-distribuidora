@@ -2845,6 +2845,14 @@ function filtrarClientesZona() {
   if (!filtro) return;
   
   const termino = filtro.value.toLowerCase().trim();
+  const lista = document.getElementById('pm-cli-lista');
+  if (!lista) return;
+  
+  // Si no hay clientes guardados, no hacer nada
+  if (!_pmClientesZonaActual || !_pmClientesZonaActual.length) {
+    lista.innerHTML = '<div style="padding:20px;text-align:center;color:var(--txt2);font-size:14px;">Primero seleccioná una zona</div>';
+    return;
+  }
   
   // Si no hay término de búsqueda, mostrar todos los clientes de la zona
   if (!termino) {
@@ -2867,36 +2875,104 @@ function filtrarClientesZona() {
 // ─── VOLVER A LA LISTA DE CLIENTES (desde productos) ──────────────────
 
 function volverClientesMovil() {
-  // Ocultar paso de productos
+  // Simplemente llama a la misma función del header
+  volverHeaderPedidoMovil();
+}
+
+function volverHeaderPedidoMovil() {
+  // Verificar si estamos en el paso de productos (cliente seleccionado)
   const pasoProductos = document.getElementById('pm-paso-productos');
-  if (pasoProductos) {
+  const pasoCliente = document.getElementById('cobm-paso-cliente');
+  
+  // Si estamos en productos, volver a clientes
+  if (pasoProductos && pasoProductos.style.display !== 'none' && pasoProductos.classList.contains('on')) {
+    // Ocultar paso de productos
     pasoProductos.style.display = 'none';
     pasoProductos.classList.remove('on');
-  }
-  
-  // Mostrar paso de cliente
-  const pasoCliente = document.getElementById('cobm-paso-cliente');
-  if (pasoCliente) {
-    pasoCliente.style.display = 'block';
-  }
-  
-  // Restaurar la lista de clientes (si había clientes cargados)
-  const listaClientes = document.getElementById('pm-cli-lista');
-  if (listaClientes && _pmClientesZonaActual && _pmClientesZonaActual.length) {
-    if (typeof mostrarClientesZonaConBuscador === 'function') {
-      mostrarClientesZonaConBuscador(_pmClientesZonaActual);
+    
+    // Mostrar paso de cliente
+    if (pasoCliente) {
+      pasoCliente.style.display = 'block';
     }
+    
+    // Limpiar header del cliente
+    const nombreEl = document.getElementById('pm-cli-nombre');
+    if (nombreEl) {
+      nombreEl.textContent = 'Seleccioná un cliente';
+    }
+    
+    const detalleEl = document.getElementById('pm-cli-detalle');
+    if (detalleEl) {
+      detalleEl.textContent = '';
+    }
+    
+    const saldoEl = document.getElementById('pm-cli-saldo');
+    if (saldoEl) {
+      saldoEl.textContent = '';
+    }
+    
+    const saldoWrap = document.getElementById('pm-cli-saldo-wrap');
+    if (saldoWrap) {
+      saldoWrap.style.display = 'none';
+    }
+    
+    // Limpiar campos de cliente
+    const codCliente = document.getElementById('pm-cli-cod');
+    if (codCliente) {
+      codCliente.value = '';
+      codCliente.style.borderColor = '';
+    }
+    
+    const qCliente = document.getElementById('pm-cli-q');
+    if (qCliente) {
+      qCliente.value = '';
+    }
+    
+    const cliId = document.getElementById('pm-cli-id');
+    if (cliId) {
+      cliId.value = '';
+    }
+    
+    // Limpiar lista de clientes
+    const listaClientes = document.getElementById('pm-cli-lista');
+    if (listaClientes) {
+      listaClientes.innerHTML = '';
+      listaClientes.style.display = 'none';
+    }
+    
+    // Limpiar input de zona (pero mantener el mensaje de ayuda)
+    const inputZona = document.getElementById('cobm-zona-input');
+    if (inputZona) {
+      inputZona.value = '';
+    }
+    
+    // Limpiar sugerencias
+    const sugerencias = document.getElementById('cobm-zona-sugerencias');
+    if (sugerencias) {
+      sugerencias.style.display = 'none';
+      sugerencias.innerHTML = '';
+    }
+    
+    // Resetear variables
+    _pmClientesZonaActual = [];
+    _pmCliId = null;
+    
+    // Ocultar carrito
+    const carritoBar = document.getElementById('pm-carrito-bar');
+    if (carritoBar) {
+      carritoBar.style.display = 'none';
+    }
+    
+    // Poner foco en input de zona
+    setTimeout(() => {
+      const input = document.getElementById('cobm-zona-input');
+      if (input) {
+        input.focus();
+      }
+    }, 100);
+    
+  } else {
+    // Si estamos en clientes o resumen, ir al home
+    go('vendedor-home');
   }
-  
-  // Ocultar carrito si está vacío
-  const carritoBar = document.getElementById('pm-carrito-bar');
-  if (carritoBar && (!_pmCarrito || !_pmCarrito.length)) {
-    carritoBar.style.display = 'none';
-  }
-  
-  // Poner foco en el campo de zona
-  setTimeout(() => {
-    const input = document.getElementById('cobm-zona-input');
-    if (input) input.focus();
-  }, 100);
 }

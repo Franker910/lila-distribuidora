@@ -1077,7 +1077,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div id="pm-cli-detalle" style="font-size:11px;opacity:0.8;margin-top:2px"></div>
       </div>
       <div style="text-align:right">
-        <button onclick="go('vendedor-home')" style="background:rgba(255,255,255,0.22);border:none;color:#fff;border-radius:10px;padding:12px 14px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px;min-height:48px;min-width:104px;white-space:nowrap;-webkit-tap-highlight-color:transparent">← Volver</button>
+        <button onclick="volverHeaderPedidoMovil()" style="background:rgba(255,255,255,0.22);border:none;color:#fff;border-radius:10px;padding:12px 14px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px;min-height:48px;min-width:104px;white-space:nowrap;-webkit-tap-highlight-color:transparent">← Volver</button>
         <div id="pm-cli-saldo-wrap" style="display:none;cursor:pointer" onclick="verSaldoMovil()">
           <div style="font-size:10px;opacity:0.8">SALDO CC</div>
           <div id="pm-cli-saldo" style="font-size:24px;font-weight:700;line-height:1"></div>
@@ -1107,6 +1107,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           💡 Escribí el nombre de una zona para ver sus clientes
         </div>
       </div>
+    </div>
 
       <!--Buscador de clientes dentro de la zona -->
       <div id="pm-cli-buscador" style="display:none; margin-top:8px;">
@@ -1128,14 +1129,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
 
     <!-- Paso 2: Productos -->
-    <div id="pm-paso-productos" style="display:none">
-      <!-- BOTÓN VOLVER A CLIENTES -->
-      <button onclick="volverClientesMovil()" 
-        style="display:flex;align-items:center;gap:8px;background:none;border:none;font-size:16px;font-weight:600;color:var(--PD);cursor:pointer;padding:8px 0;margin-bottom:6px;min-height:44px;">
-        ← Volver a clientes
-      </button>
-      <div id="pm-marcas-lista" style="padding:8px 0;"></div>
-      <div id="pm-marcas-lista" style="padding:8px 0;"></div>
+    <div id="pm-paso-productos" style="display:none; flex-direction:column; flex:1; min-height:0; overflow:hidden;">
+      <div id="pm-marcas-lista" style="flex:1;overflow-y:auto;padding:8px 0;"></div>
     </div>
 
     <!-- Paso 3: Resumen -->
@@ -4708,13 +4703,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260825-01"></script>
-<script src="js/maestros.js?v=20260825-01"></script>
-<script src="js/ventas.js?v=20260825-01"></script>
-<script src="js/tesoreria.js?v=20260825-01"></script>
-<script src="js/contabilidad.js?v=20260825-01"></script>
-<script src="js/informes.js?v=20260825-01"></script>
-<script src="js/logistica.js?v=20260825-01"></script>
+<script src="js/app.js?v=20260826-01"></script>
+<script src="js/maestros.js?v=20260826-01"></script>
+<script src="js/ventas.js?v=20260826-01"></script>
+<script src="js/tesoreria.js?v=20260826-01"></script>
+<script src="js/contabilidad.js?v=20260826-01"></script>
+<script src="js/informes.js?v=20260826-01"></script>
+<script src="js/logistica.js?v=20260826-01"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

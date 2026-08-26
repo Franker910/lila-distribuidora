@@ -3485,18 +3485,22 @@ function seleccionarZonaUniversal(codigoZona) {
           No hay clientes en esta zona
         </div>
       `;
-      // Ocultar buscador
-      const buscador = document.getElementById('pm-cli-buscador');
-      if (buscador) buscador.style.display = 'none';
       return;
     }
     
-    // Usar la nueva función que muestra el buscador si hay muchos clientes
-    if (typeof mostrarClientesZonaConBuscador === 'function') {
-      mostrarClientesZonaConBuscador(clientes);
+    //  GUARDAR CLIENTES EN LA VARIABLE GLOBAL (definida en ventas.js)
+    if (typeof _pmClientesZonaActual !== 'undefined') {
+      _pmClientesZonaActual = clientes;
+    }
+    
+    // Ordenar y mostrar
+    clientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+    
+    // Usar la función de renderizado si existe
+    if (typeof renderizarClientesZona === 'function') {
+      renderizarClientesZona(clientes);
     } else {
-      // Fallback: mostrar sin buscador
-      clientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+      // Fallback: renderizado directo
       listaPedidos.innerHTML = clientes.map(c => `
         <div onclick="selClienteMovil(${c.id})" 
           style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--brd);cursor:pointer;background:#fff;active:background:var(--PL);">
@@ -3511,9 +3515,13 @@ function seleccionarZonaUniversal(codigoZona) {
         </div>
       `).join('');
     }
-  
-  const pasoCliente = document.getElementById('pm-paso-cliente');
-  if (pasoCliente) pasoCliente.style.display = 'none';
+    
+    // Mostrar el buscador si hay más de 10 clientes
+    const buscador = document.getElementById('pm-cli-buscador');
+    if (buscador) {
+      buscador.style.display = clientes.length > 10 ? 'block' : 'none';
+    }
+    
   } else if (esCobranza) {
     // ─── MODO COBRANZA ───
     const contenedorClientes = document.getElementById('cobm-clientes-por-zona');
@@ -3530,7 +3538,6 @@ function seleccionarZonaUniversal(codigoZona) {
     }
     
     clientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
-    
     contenedorClientes.innerHTML = clientes.map(c => `
       <div onclick="selClienteCobMovil(${c.id})"
         style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#fff;border-radius:10px;margin-bottom:6px;border:1.5px solid var(--brd);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all 0.15s;"
@@ -3549,8 +3556,6 @@ function seleccionarZonaUniversal(codigoZona) {
       </div>
     `).join('');
     
-    const pasoCliente = document.getElementById('cobm-paso-cliente');
-    if (pasoCliente) pasoCliente.style.display = 'none';
     contenedorClientes.style.display = 'block';
   }
 }
