@@ -761,35 +761,82 @@ function verInformeStockAntes(){
 
   const el=document.getElementById('stock-informe');
   el.style.display='block';
-  el.innerHTML=`<div class="card" style="margin-top:12px">
-    <div style="font-weight:600;font-size:14px;margin-bottom:12px">📊 Resumen de diferencias</div>
-    <div class="g2" style="margin-bottom:12px">
-      <div class="stat"><div class="n" style="color:var(--D)">${mermas.length}</div><div class="l">Productos con merma</div></div>
-      <div class="stat"><div class="n" style="color:var(--D)">${fmtN(totalMermaKg,2)} kg/un</div><div class="l">Total merma</div></div>
+  el.innerHTML=`
+    <div class="card" style="margin-top:12px; position:relative;">
+      <!-- Botón de cerrar (✕) en la esquina superior derecha -->
+      <button onclick="cerrarInformeStock()" 
+        style="position:absolute; top:8px; right:12px; background:none; border:none; font-size:20px; cursor:pointer; color:var(--txt2); padding:4px 8px; border-radius:6px;"
+        onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''"
+        title="Cerrar informe">
+        ✕
+      </button>
+      
+      <div style="font-weight:600;font-size:14px;margin-bottom:12px">📊 Resumen de diferencias</div>
+      
+      <div class="g2" style="margin-bottom:12px">
+        <div class="stat"><div class="n" style="color:var(--D)">${mermas.length}</div><div class="l">Productos con merma</div></div>
+        <div class="stat"><div class="n" style="color:var(--D)">${fmtN(totalMermaKg,2)} kg/un</div><div class="l">Total merma</div></div>
+      </div>
+      
+      ${mermas.length?`
+        <div style="font-weight:600;margin-bottom:8px;color:var(--D)">⬇️ Mermas (menos de lo esperado):</div>
+        <div style="max-height:300px; overflow-y:auto; border:1px solid var(--brd); border-radius:8px; margin-bottom:12px;">
+          <table class="tbl" style="margin:0;">
+            <thead><tr>
+              <th>Producto</th>
+              <th>Proveedor</th>
+              <th style="text-align:right">Sistema</th>
+              <th style="text-align:right">Físico</th>
+              <th style="text-align:right">Diferencia</th>
+              <th style="text-align:right">% Merma</th>
+            </tr></thead>
+            <tbody>
+              ${mermas.map(p=>`
+                <tr>
+                  <td>${esc(p.nombre)}</td>
+                  <td style="font-size:11px;color:var(--txt2)">${esc(p.proveedor_nom||'')}</td>
+                  <td style="text-align:right">${fmtN(p.sistema,2)}</td>
+                  <td style="text-align:right">${fmtN(p.fisico,2)}</td>
+                  <td style="text-align:right;color:var(--D);font-weight:600">${fmtN(p.diff,2)}</td>
+                  <td style="text-align:right;color:var(--D)">${Math.abs(p.pctMerma).toFixed(1)}%</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `:''}
+      
+      ${sobrantes.length?`
+        <div style="font-weight:600;margin-bottom:8px;color:var(--A)">⬆️ Sobrantes (más de lo esperado):</div>
+        <div style="max-height:300px; overflow-y:auto; border:1px solid var(--brd); border-radius:8px; margin-bottom:12px;">
+          <table class="tbl" style="margin:0;">
+            <thead><tr>
+              <th>Producto</th>
+              <th style="text-align:right">Sistema</th>
+              <th style="text-align:right">Físico</th>
+              <th style="text-align:right">Diferencia</th>
+            </tr></thead>
+            <tbody>
+              ${sobrantes.map(p=>`
+                <tr>
+                  <td>${esc(p.nombre)}</td>
+                  <td style="text-align:right">${fmtN(p.sistema,2)}</td>
+                  <td style="text-align:right">${fmtN(p.fisico,2)}</td>
+                  <td style="text-align:right;color:var(--A);font-weight:600">+${fmtN(p.diff,2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `:''}
+      
+      <!-- Botones de acción -->
+      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+        <button class="btn A" onclick="imprimirStock()">🖨️ Imprimir informe</button>
+        <button class="btn" onclick="cerrarInformeStock()" style="background:var(--bg2); border:1px solid var(--brd);">✕ Cerrar</button>
+      </div>
     </div>
-    ${mermas.length?`<div style="font-weight:600;margin-bottom:8px;color:var(--D)">⬇️ Mermas (menos de lo esperado):</div>
-    <table class="tbl" style="margin-bottom:12px">
-      <thead><tr><th>Producto</th><th>Proveedor</th><th style="text-align:right">Sistema</th><th style="text-align:right">Físico</th><th style="text-align:right">Diferencia</th><th style="text-align:right">% Merma</th></tr></thead>
-      <tbody>${mermas.map(p=>`<tr>
-        <td>${esc(p.nombre)}</td><td style="font-size:11px;color:var(--txt2)">${esc(p.proveedor_nom||'')}</td>
-        <td style="text-align:right">${fmtN(p.sistema,2)}</td>
-        <td style="text-align:right">${fmtN(p.fisico,2)}</td>
-        <td style="text-align:right;color:var(--D);font-weight:600">${fmtN(p.diff,2)}</td>
-        <td style="text-align:right;color:var(--D)">${Math.abs(p.pctMerma).toFixed(1)}%</td>
-      </tr>`).join('')}</tbody>
-    </table>`:''}
-    ${sobrantes.length?`<div style="font-weight:600;margin-bottom:8px;color:var(--A)">⬆️ Sobrantes (más de lo esperado):</div>
-    <table class="tbl">
-      <thead><tr><th>Producto</th><th style="text-align:right">Sistema</th><th style="text-align:right">Físico</th><th style="text-align:right">Diferencia</th></tr></thead>
-      <tbody>${sobrantes.map(p=>`<tr>
-        <td>${esc(p.nombre)}</td>
-        <td style="text-align:right">${fmtN(p.sistema,2)}</td>
-        <td style="text-align:right">${fmtN(p.fisico,2)}</td>
-        <td style="text-align:right;color:var(--A);font-weight:600">+${fmtN(p.diff,2)}</td>
-      </tr>`).join('')}</tbody>
-    </table>`:''}
-    <button class="btn A" onclick="imprimirStock()" style="margin-top:12px">🖨️ Imprimir informe</button>
-  </div>`;
+  `;
 }
 
 async function guardarConteo() {
@@ -2675,4 +2722,27 @@ function calcularComisiones() {
   // 10. Mostrar el panel de resultados
   document.getElementById('com-resultados').style.display = 'block';
   console.log('✅ Comisiones calculadas correctamente');
+}
+
+function cerrarInformeStock() {
+  // Ocultar el informe
+  const informe = document.getElementById('stock-informe');
+  if (informe) {
+    informe.style.display = 'none';
+    informe.innerHTML = '';
+  }
+  
+  // Restaurar la vista anterior (conteo o historial)
+  const conteoSection = document.getElementById('stock-conteo-section');
+  const historial = document.getElementById('stock-historial');
+  
+  if (conteoSection && conteoSection.style.display !== 'none') {
+    // Si el conteo está visible, mantenerlo
+    conteoSection.style.display = 'flex';
+    if (historial) historial.style.display = 'none';
+  } else if (historial) {
+    // Si no, mostrar historial
+    historial.style.display = 'block';
+    if (conteoSection) conteoSection.style.display = 'none';
+  }
 }
