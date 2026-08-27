@@ -1144,7 +1144,7 @@ function hrInit(){
   document.getElementById('hr-fecha').value = hoy;
   document.getElementById('hr-fecha-mia').value = hoy;
   
-  // ⭐ DETECTAR ROL
+  // DETECTAR ROL
   const esAdmin = usuarioActual?.esAdmin || usuarioActual?.rol === 'admin' || usuarioActual?.rol_original === 'admin';
   const esMovil = usuarioActual?.vista === 'movil' || usuarioActual?.rol === 'vendedor' || usuarioActual?.rol === 'repartidor';
   
@@ -1152,7 +1152,7 @@ function hrInit(){
   const panelMia = document.getElementById('hr-panel-mia');
   const btnVolver = document.getElementById('hr-btn-volver');
   
-  // ⭐ Si es repartidor o vendedor en móvil → mostrar "Mi ruta"
+  // Si es repartidor o vendedor en móvil → mostrar "Mi ruta"
   if (usuarioActual?.rol === 'repartidor' || (usuarioActual?.rol === 'vendedor' && esMovil)) {
     if (panelAdmin) panelAdmin.style.display = 'none';
     if (panelMia) panelMia.style.display = 'block';
@@ -1181,7 +1181,7 @@ function hrInit(){
     return;
   }
   
-  // ⭐ Fallback: mostrar admin por defecto
+  //  Fallback: mostrar admin por defecto
   if (panelAdmin) panelAdmin.style.display = 'block';
   if (panelMia) panelMia.style.display = 'none';
   if (btnVolver) btnVolver.style.display = 'none';
@@ -1310,12 +1310,18 @@ async function hrVerMiRuta(){
   const fecha = document.getElementById('hr-fecha-mia').value;
   const vend = usuarioActual?.nombre||'';
   if(!fecha) return;
+  
+  // Gastos de reparto
   _renderGastosHoy();
-  const q = sb.from('hoja_ruta').select('*').eq('fecha',fecha);
-  if(vend) q.eq('vendedor',vend);
+  
+  // Obtener la hoja de ruta del día
+  const q = sb.from('hoja_ruta').select('*').eq('fecha', fecha);
+  if(vend) q.eq('vendedor', vend);
   const {data} = await q.order('orden');
   const ruta = data||[];
   _hrMiaRutaActual = ruta;
+  
+  // Verificar si está cerrada
   const cerrada = ruta.length>0 && ruta.every(r=>r.cerrada);
   const btnAgregar = document.getElementById('hr-mia-btn-agregar');
   if(btnAgregar) btnAgregar.style.display = cerrada?'none':'';
@@ -1323,13 +1329,19 @@ async function hrVerMiRuta(){
     const buscador=document.getElementById('hr-mia-buscador');
     if(buscador) buscador.style.display='none';
   }
+  
   const el = document.getElementById('hr-mia-lista');
+  
+  // ✅ FILTRO: ocultar visitados (por defecto activado)
+  const ocultarVisitados = document.getElementById('hr-ocultar-visitados')?.checked !== false; // true por defecto
+  let rutaFiltrada = ruta;
+  if (ocultarVisitados) {
+    rutaFiltrada = ruta.filter(r => !r.visitado);
+  }
+
+  // Caso 1: No hay clientes en la ruta (ni visitados ni pendientes)
   if(!ruta.length){
-    // No hay hoja de ruta armada a mano — ofrecer la carga del día como
-    // alternativa (misma carga que se usa en Cobranza → Facturar con pesaje).
-    // Siempre se muestra primero la carga (con su nombre) para elegirla, aun
-    // si hay una sola — así queda claro qué reparto es antes de desplegar
-    // los clientes, y es más fácil ubicarse si hubiera 2 repartos el mismo día.
+    // No hay hoja de ruta armada a mano — ofrecer la carga del día como alternativa
     await cargarHojaRutaRepartidor();
     if(!_hrCargaExpandida){
       if(!_cargasHoyCandidatas.length){
@@ -1366,7 +1378,15 @@ async function hrVerMiRuta(){
     el.innerHTML='<div class="empty">Sin clientes asignados para hoy</div>';
     return;
   }
-  el.innerHTML = (cerrada?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">🔒 Ruta cerrada — ya se generó su rendición</div>':'') + ruta.map((r,i)=>`
+
+  // Caso 2: Hay clientes en la ruta pero todos están visitados y el filtro está activado
+  if(ocultarVisitados && rutaFiltrada.length === 0 && ruta.length > 0){
+    el.innerHTML = `<div class="empty">✅ Todos los clientes de hoy ya fueron visitados.</div>`;
+    return;
+  }
+
+  // Caso 3: Mostrar los clientes pendientes (filtrados)
+  el.innerHTML = (cerrada?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">🔒 Ruta cerrada — ya se generó su rendición</div>':'') + rutaFiltrada.map((r,i)=>`
     <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:${r.visitado?'var(--PL)':'var(--bg)'};border-radius:14px;margin-bottom:8px;border:2px solid ${r.visitado?'var(--P)':'var(--brd)'};transition:background .15s">
       <div onclick="hrMarcarVisitado(${r.id},${!r.visitado})" title="Tocar para marcar visitado sin cobrar"
         style="font-size:24px;font-weight:700;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;text-align:center;color:${r.visitado?'var(--P)':'var(--txt2)'};cursor:pointer;-webkit-tap-highlight-color:transparent">

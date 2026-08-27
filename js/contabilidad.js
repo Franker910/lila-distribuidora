@@ -1269,6 +1269,86 @@ async function abrirComprobante(){
   setTimeout(()=>document.getElementById('comp-prov-cod').focus(), 100);
 }
 
+function editarComprobante(id) {
+  const comp = _comprobantes.find(c => c.id === id);
+  if (!comp) {
+    toast('Comprobante no encontrado', 'err');
+    return;
+  }
+
+  // Rellenar el modal con los datos del comprobante
+  document.getElementById('comp-edit-id').value = comp.id;
+  document.getElementById('m-comp-title').textContent = 'Editar comprobante';
+  document.getElementById('comp-fecha').value = comp.fecha || '';
+  document.getElementById('comp-nro').value = comp.nro_comprobante || '';
+  document.getElementById('comp-desc').value = comp.descripcion || '';
+  document.getElementById('comp-importe').value = comp.importe || 0;
+  document.getElementById('comp-obs').value = comp.observaciones || '';
+  document.getElementById('comp-condpago').value = comp.condicion_pago || 0;
+  document.getElementById('comp-tipo').value = comp.tipo || 'factura';
+  
+  // Cuenta contable
+  const cuenta = comp.cuenta_cod && comp.cuenta_nom ? `${comp.cuenta_cod}|${comp.cuenta_nom}` : '';
+  if (cuenta) document.getElementById('comp-cuenta').value = cuenta;
+
+  // Forma de pago
+  const formaPago = comp.forma_pago_cod && comp.forma_pago_nom ? `${comp.forma_pago_cod}|${comp.forma_pago_nom}` : '';
+  if (formaPago) document.getElementById('comp-formapago').value = formaPago;
+
+  // Vencimiento
+  if (comp.fecha_vencimiento) {
+    document.getElementById('comp-vencimiento').value = comp.fecha_vencimiento;
+  } else {
+    calcVencimiento();
+  }
+
+  // Proveedor
+  if (comp.proveedor_id) {
+    selProvComp(comp.proveedor_id);
+    document.getElementById('comp-prov-id').value = comp.proveedor_id;
+  }
+
+  // Productos (items)
+  const listaCostos = document.getElementById('comp-costos-lista');
+  listaCostos.innerHTML = '';
+  if (comp.items && comp.items.length) {
+    comp.items.forEach(item => {
+      agregarItemCostoComp();
+      const rows = document.querySelectorAll('.comp-costo-row');
+      const last = rows[rows.length - 1];
+      if (!last) return;
+      
+      const sel = last.querySelector('.comp-costo-sel');
+      const cant = last.querySelector('.comp-costo-cant');
+      const val = last.querySelector('.comp-costo-val');
+      
+      if (sel) {
+        // Buscar producto por ID o nombre
+        const prod = _productos.find(p => p.id === item.producto_id || p.nombre === item.producto_nom);
+        if (prod) {
+          sel.value = prod.id;
+          last.dataset.prodId = prod.id;
+          sel.dispatchEvent(new Event('change'));
+        } else {
+          // Producto no encontrado, agregar opción temporal
+          const opt = document.createElement('option');
+          opt.value = item.producto_id || '';
+          opt.textContent = item.producto_nom || 'Producto desconocido';
+          sel.appendChild(opt);
+          sel.value = opt.value;
+          last.dataset.prodId = item.producto_id || '';
+        }
+      }
+      if (cant && item.cantidad) cant.value = item.cantidad;
+      if (val && item.costo_unitario) val.value = item.costo_unitario;
+    });
+  }
+
+  // Mostrar el modal
+  document.getElementById('m-comprobante').classList.add('on');
+  setTimeout(() => document.getElementById('comp-prov-cod')?.focus(), 100);
+}
+
 function calcCostoReal(costoFacturado, condFiscal, pctFact){
   if(condFiscal==='no_factura') return costoFacturado;
   if(condFiscal==='factura_parcial'){
@@ -2097,6 +2177,7 @@ function renderComprobantes(){
       <td><span class="b ${badgeClass}">${estado}</span>${(()=>{ if(estado!=='pagado')return ''; const pago=_pagoDeComprobante(c); const f=pago?.forma; const lbl=f==='efectivo'?'💵':f==='transferencia'?'🏦':f==='cheque'?'📋':''; return lbl?` <span title="Forma de pago" style="font-size:12px">${lbl}</span>`:''; })()}</td>
       <td style="display:flex;gap:3px;flex-wrap:wrap">
         ${estado!=='pagado'?`<button class="btn P sm" onclick="pagarComprobante(${c.id})">✓ Pagar</button>`:`<button class="btn sm" onclick="imprimirOrdenPago(${c.id})" title="Reimprimir orden de pago">🧾 Orden</button>`}
+        <button class="btn sm" onclick="editarComprobante(${c.id})" title="Editar comprobante" style="background:var(--bg2);border:1px solid var(--brd);">✏️</button>
         <button class="btn sm" onclick="abrirCargaArticulos(${c.id})" title="Cargar los productos recibidos: actualiza stock y costo">📦 Artículos${c.items&&c.items.length?` (${c.items.length})`:''}</button>
         <button class="btn sm" onclick="abrirAjusteComp(${c.id},'nc')" title="Nota de crédito del proveedor" style="background:#dbeafe;color:#1e40af;border:none">NC</button>
         <button class="btn sm" onclick="abrirAjusteComp(${c.id},'nd')" title="Nota de débito del proveedor" style="background:#fef3c7;color:#92400e;border:none">ND</button>
