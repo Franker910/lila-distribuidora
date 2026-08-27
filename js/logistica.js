@@ -1218,11 +1218,16 @@ function hrRenderLista(){
         ${r.telefono?`<div style="font-size:11px;color:var(--P)">${esc(r.telefono)}</div>`:''}
       </div>
       <div style="display:flex;gap:4px;flex-shrink:0">
-        ${i>0?`<button class="btn sm" onclick="hrMover(${i},-1)">↑</button>`:'<span style="width:28px"></span>'}
-        ${i<_hrRuta.length-1?`<button class="btn sm" onclick="hrMover(${i},1)">↓</button>`:'<span style="width:28px"></span>'}
+        <!-- Botón Subir: siempre visible, deshabilitado si es el primero -->
+        <button class="btn sm" onclick="hrMover(${i},-1)" ${i===0?'disabled':''} title="${i===0?'Ya está en el primer lugar':'Mover hacia arriba'}">↑</button>
+        
+        <!-- Botón Bajar: siempre visible, deshabilitado si es el último -->
+        <button class="btn sm" onclick="hrMover(${i},1)" ${i===_hrRuta.length-1?'disabled':''} title="${i===_hrRuta.length-1?'Ya está en el último lugar':'Mover hacia abajo'}">↓</button>
+        
         <button class="btn D sm" onclick="hrEliminar(${i})">✕</button>
       </div>
-    </div>`).join('');
+    </div>
+  `).join('');
 }
 
 function hrAgregarCliente(){

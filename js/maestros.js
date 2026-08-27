@@ -354,18 +354,28 @@ function renderProductos(){
   const subcat=document.getElementById('pro-subcat')?.value||'';
   const prov=document.getElementById('pro-prov')?.value||'';
   const activoFiltro=document.getElementById('pro-activo')?.value||'activos';
+  
   let data=_productos.filter(p=>{
     const okQ=!q||(p.nombre||'').toLowerCase().includes(q)||(p.codigo||'').toString().includes(q)||(p.proveedor_nom||'').toLowerCase().includes(q);
-    const okC=!cat||(p.rubro||'')===cat;
-    const okSC=!subcat||(p.linea||'')===subcat;
+    const okC=!cat||(p.rubro||'').toLowerCase().trim()===cat.toLowerCase().trim();
+    const okSC=!subcat||(p.linea||'').toLowerCase().trim()===subcat.toLowerCase().trim();
     const okP=!prov||(p.proveedor_nom||'')===prov;
     const esActivo=p.activo!==false;
     const okA=activoFiltro==='todos'||(activoFiltro==='activos'&&esActivo)||(activoFiltro==='inactivos'&&!esActivo);
     return okQ&&okC&&okSC&&okP&&okA&&_productoPasaAutofiltro(p);
   });
-  const tot=data.length,sl=data.slice((_proPg-1)*PP,_proPg*PP);
+  
+  const tot=data.length;
+  const sl=data.slice((_proPg-1)*PP,_proPg*PP);
   const tbody=document.getElementById('pro-tbody');
-  tbody.innerHTML=sl.length?sl.map(p=>{
+  
+  if(!tot){
+    tbody.innerHTML=`<tr><td colspan="11"><div class="empty">No hay productos que coincidan con los filtros seleccionados.<br><span style="font-size:11px;color:var(--txt2)">Probá cambiando la categoría o el proveedor.</span></div></td></tr>`;
+    pag('pro-pg',0,_proPg,p=>{});
+    return;
+  }
+  
+  tbody.innerHTML=sl.map(p=>{
     const costo=p.costo||0;const precio=p.precio||0;
     const mReal=costo>0?Math.round((precio-costo)/costo*1000)/10:0;
     const mObj=p.margen_objetivo||0;
@@ -373,18 +383,20 @@ function renderProductos(){
     const badge=mReal<0?'<span class="b bD">📉 Pérdida</span>':dif>=-5&&dif<0?`<span class="b bW" title="${dif}%">⚠️ -${Math.abs(dif)}%</span>`:dif<-5?`<span class="b bD" title="${dif}%">🔴 -${Math.abs(dif)}%</span>`:'<span class="b bP">✅ OK</span>';
     const esActivo=p.activo!==false;
     return `<tr${esActivo?'':' style="opacity:0.55"'}>
-    <td style="color:var(--txt2);font-size:11px">${p.codigo||''}</td>
-    <td style="font-weight:600">${esc(p.nombre)}${esActivo?'':' <span class="b" style="background:var(--D30);color:var(--D);font-size:10px">INACTIVO</span>'}</td>
-    <td style="font-size:11px;color:var(--txt2)">${esc(p.proveedor_nom||'')}</td>
-    <td style="font-size:12px;color:var(--txt2)">${p.unidad||'—'}</td>
-    <td style="font-size:12px">${fmt(costo)}</td>
-    <td style="color:var(--P);font-weight:600">${fmt(precio)}</td>
-    <td style="font-size:12px;font-weight:600;color:${mReal<0?'var(--D)':mReal<mObj?'var(--W)':'var(--P)'}">${mReal}%</td>
-    <td style="font-size:12px;color:var(--txt2)">${mObj>0?mObj+'%':'—'}</td>
-    <td>${badge}</td>
-    <td><span class="b ${(p.stock||0)<=0?'bD':(p.stock||0)<=5?'bW':'bP'}">${p.stock||0}</span></td>
-    <td><button class="btn sm" onclick="editarProducto(${p.id})">✏️</button></td>
-  </tr>`;}).join(''):'<tr><td colspan="11"><div class="empty">Sin productos</div></td></tr>';
+      <td style="color:var(--txt2);font-size:11px">${p.codigo||''}</td>
+      <td style="font-weight:600">${esc(p.nombre)}${esActivo?'':' <span class="b" style="background:var(--D30);color:var(--D);font-size:10px">INACTIVO</span>'}</td>
+      <td style="font-size:11px;color:var(--txt2)">${esc(p.proveedor_nom||'')}</td>
+      <td style="font-size:12px;color:var(--txt2)">${p.unidad||'—'}</td>
+      <td style="font-size:12px">${fmt(costo)}</td>
+      <td style="color:var(--P);font-weight:600">${fmt(precio)}</td>
+      <td style="font-size:12px;font-weight:600;color:${mReal<0?'var(--D)':mReal<mObj?'var(--W)':'var(--P)'}">${mReal}%</td>
+      <td style="font-size:12px;color:var(--txt2)">${mObj>0?mObj+'%':'—'}</td>
+      <td>${badge}</td>
+      <td><span class="b ${(p.stock||0)<=0?'bD':(p.stock||0)<=5?'bW':'bP'}">${p.stock||0}</span></td>
+      <td><button class="btn sm" onclick="editarProducto(${p.id})">✏️</button></td>
+    </tr>`;
+  }).join('');
+  
   pag('pro-pg',tot,_proPg,p=>{_proPg=p;renderProductos();});
 }
 

@@ -759,6 +759,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   overflow-x: hidden !important;
   padding: 8px 0 !important;
 }
+
+/* Botones deshabilitados en hoja de ruta */
+#hr-lista-ruta .btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: var(--bg2);
+  color: var(--txt2);
+  border-color: var(--brd);
+  pointer-events: none;
+}
 </style>
 </head>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
@@ -886,7 +896,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="sidebar-item" onclick="go('contrib-zona')" data-p="contrib-zona">📊 Contrib. Marginal</button>
       <button class="sidebar-item" onclick="go('saldos-zona')" data-p="saldos-zona">🗺️ Saldos por Zona</button>
       <button class="sidebar-item" onclick="go('gastos-fijos')" data-p="gastos-fijos">📋 Gastos Fijos</button>
-      <button class="sidebar-item" onclick="go('importar-historico')" data-p="importar-historico">📊 Histórico FoxPro</button>
+      <button class="sidebar-item" onclick="go('importar-historico')" data-p="importar-historico">📥 Importar histórico FoxPro</button>
     </div>
   </div>
 
@@ -3025,7 +3035,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button id="inf-tab-cmg-cli" class="btn sm" onclick="infTab('cmg-cli')" tabindex="-1">👥 CMG Clientes</button>
     <button id="inf-tab-financiamiento" class="btn sm" onclick="infTab('financiamiento')" tabindex="-1">🏭 Financiamiento</button>
     <button id="inf-tab-precios" class="btn sm" onclick="infTab('precios')" tabindex="-1">💰 Análisis de precios</button>
-    <button id="inf-tab-historico" class="btn sm" onclick="infTab('historico')" tabindex="-1">📜 Histórico FoxPro</button>
+    <button id="inf-tab-historico" class="btn sm" onclick="infTab('historico')" tabindex="-1">📈 Evolución histórica</button>
   </div>
 
   <!-- Área de contenido scrolleable -->
@@ -3343,6 +3353,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <!-- HISTÓRICO FOXPRO -->
   <div id="inf-sec-historico" style="display:none">
     <div class="card">
+      <div style="font-size:13px; color:var(--txt2); margin-bottom:12px;">
+        Visualización gráfica de la evolución de ventas, costos, CMG y resultados, combinando datos importados y gastos actuales.
+      </div>
       <div class="sech" style="margin-bottom:10px">
         <div>
           <div style="font-weight:700;margin-bottom:2px">📜 Evolución histórica — datos FoxPro</div>
@@ -4711,13 +4724,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260827-03"></script>
-<script src="js/maestros.js?v=20260827-03"></script>
-<script src="js/ventas.js?v=20260827-03"></script>
-<script src="js/tesoreria.js?v=20260827-03"></script>
-<script src="js/contabilidad.js?v=20260827-03"></script>
-<script src="js/informes.js?v=20260827-03"></script>
-<script src="js/logistica.js?v=20260827-03"></script>
+<script src="js/app.js?v=20260827-04"></script>
+<script src="js/maestros.js?v=20260827-04"></script>
+<script src="js/ventas.js?v=20260827-04"></script>
+<script src="js/tesoreria.js?v=20260827-04"></script>
+<script src="js/contabilidad.js?v=20260827-04"></script>
+<script src="js/informes.js?v=20260827-04"></script>
+<script src="js/logistica.js?v=20260827-04"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

@@ -1,6 +1,19 @@
 // ─── TESORERÍA: cobros, cheques, caja, rendición, cobranza móvil ───
 
-async function cargarCobros(){const {data,error}=await sb.from('cobros').select('id,cliente_id,cliente,fecha,forma,importe,referencia,total,efectivo,transferencia,cheque_propio,cheque_terceros,retencion_ganancias,retencion_ing_brutos,retencion_otras,estado_transferencia,estado_rendicion,reparto,carga_id,tipo_cobrador,vendedor,imputaciones,observaciones,comprobante_url,saldo_favor,banco_cheque,nro_cheque,nombre_transferencia,created_at').order('id',{ascending:false});if(error)console.error('[cobros]',error.message,error.details);_cobros=data||[];}
+async function cargarCobros(){
+  const {data,error} = await sb.from('cobros').select(`
+    id, cliente_id, cliente, fecha, forma, importe, referencia, total,
+    efectivo, transferencia, cheque_propio, cheque_terceros,
+    retencion_ganancias, retencion_ing_brutos, retencion_otras,
+    estado_transferencia, estado_rendicion, reparto, carga_id,
+    tipo_cobrador, vendedor, imputaciones, observaciones,
+    comprobante_url, saldo_favor, banco_cheque, nro_cheque,
+    nombre_transferencia, created_at,
+    numero_rendicion  
+  `).order('id', {ascending:false});
+  if(error) console.error('[cobros]', error.message, error.details);
+  _cobros = data || [];
+}
 
 async function cobrarRemito(id){
   const r = _remitos.find(x=>x.id===id); if(!r) return;
