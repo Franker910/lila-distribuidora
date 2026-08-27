@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260826-02';
+const APP_VERSION = '20260827-01';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -177,37 +177,62 @@ async function doLogin(){
 }
 
 function entrarApp(found) {
-  usuarioActual = found;
-  
-  //  DETECTAR DISPOSITIVO
+  // 1. Detectar dispositivo (mismo criterio que ya usás)
   const esMovil = window.innerWidth <= 768 || 
                   /Android|iPhone|iPad|iPod|BlackBerry|Opera Mini/i.test(navigator.userAgent) ||
                   ('ontouchstart' in window && window.innerWidth <= 1024);
-  
-  //  DETERMINAR ROL Y VISTA SEGÚN DISPOSITIVO
+
+  // 2. Determinar si es admin
+  const esAdmin = found.esAdmin || found.rol === 'admin' || found.rol_original === 'admin';
+
+  // 3. Validar acceso según rol y dispositivo
+  //    - Admin sin dualRol: solo escritorio
+  if (esAdmin && !found.dualRolMovil && esMovil) {
+    const err = document.getElementById('login-err');
+    if (err) err.textContent = '⚠️ El administrador solo puede acceder desde una computadora.';
+    // Asegurar que la pantalla de login esté visible
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    // Limpiar campos (opcional)
+    document.getElementById('login-pass').value = '';
+    return;
+  }
+
+  //    - Vendedor/Repartidor (no admin): solo móvil
+  if (!esAdmin && !esMovil) {
+    const err = document.getElementById('login-err');
+    if (err) err.textContent = '⚠️ Esta cuenta solo puede acceder desde un dispositivo móvil.';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('login-pass').value = '';
+    return;
+  }
+
+  // 4. Si pasa la validación, asignar usuarioActual
+  usuarioActual = found;
+
+  // 5. Determinar vista y rol según dispositivo y permisos
   const esAdminReal = found.esAdmin || found.rol === 'admin' || found.rol_original === 'admin';
-  
-  // Si es admin y está en móvil → vista móvil (rol vendedor)
-  // Si es admin y está en escritorio → vista escritorio (rol admin)
-  // Si no es admin → vista móvil siempre (no tiene acceso a escritorio)
+
   if (esAdminReal && !esMovil) {
     // Admin en escritorio → vista completa
     usuarioActual.vista = 'escritorio';
     usuarioActual.rol = 'admin';
   } else if (esAdminReal && esMovil) {
-    // Admin en móvil → vista móvil (vendedor por defecto)
+    // Admin en móvil (solo si tiene dualRol) → vista móvil, rol vendedor
     usuarioActual.vista = 'movil';
     usuarioActual.rol = 'vendedor';
   } else {
-    // Vendedor o repartidor → siempre móvil
+    // Vendedor o repartidor en móvil → vista móvil, rol original
     usuarioActual.vista = 'movil';
-    // Mantener su rol original (vendedor/repartidor)
+    // Mantener su rol (vendedor o repartidor)
   }
-  
-  // Guardar rol original para poder volver
-  usuarioActual.rol_original = found.rol_original || found.rol;
-  usuarioActual.esAdmin = found.esAdmin || found.rol === 'admin' || found.rol_original === 'admin';
 
+  // Guardar rol original y esAdmin
+  usuarioActual.rol_original = found.rol_original || found.rol;
+  usuarioActual.esAdmin = esAdminReal;
+
+  // 6. Ocultar login, mostrar app, cargar datos...
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('app').style.flexDirection = 'column';
@@ -215,16 +240,10 @@ function entrarApp(found) {
   document.getElementById('top-fecha').textContent = new Date().toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' });
   ['np-fecha', 'cob-fecha', 'nc-fecha'].forEach(id => { const el = document.getElementById(id); if (el) el.value = hoyLocal(); });
 
-  // Aplicar vista
+  // 7. Aplicar vista (movil o escritorio)
   if (usuarioActual.vista === 'movil') {
     mostrarVistaMovil();
-    
-    // Si es admin con dual rol en móvil, mostrar botón para volver a admin
-    if (usuarioActual.esAdmin) {
-      const btnAdmin = document.getElementById('btn-volver-admin');
-      if (btnAdmin) btnAdmin.style.display = 'flex';
-    }
-    
+       
     // Si tiene dualRolMovil, mostrar toggle (vendedor/repartidor)
     if (found.dualRolMovil) {
       const btnRol = document.getElementById('btn-cambiar-rol-movil');
@@ -234,7 +253,7 @@ function entrarApp(found) {
     mostrarVistaEscritorio();
   }
 
-  // Cargar datos y navegar
+  // 8. Cargar datos y navegar
   cargarTodo().then(() => {
     initVersionCheck();
     if (usuarioActual.vista === 'movil') {
@@ -1442,14 +1461,14 @@ function mostrarVistaMovil() {
     home.style.display = 'flex';
   }
   
-  // Si es admin, mostrar botón para volver a escritorio
-  if (usuarioActual?.esAdmin) {
-    const btnAdmin = document.getElementById('btn-volver-admin');
-    if (btnAdmin) btnAdmin.style.display = 'flex';
-  } else {
-    const btnAdmin = document.getElementById('btn-volver-admin');
-    if (btnAdmin) btnAdmin.style.display = 'none';
-  }
+  // // Si es admin, mostrar botón para volver a escritorio
+  // if (usuarioActual?.esAdmin) {
+  //   const btnAdmin = document.getElementById('btn-volver-admin');
+  //   if (btnAdmin) btnAdmin.style.display = 'flex';
+  // } else {
+  //   const btnAdmin = document.getElementById('btn-volver-admin');
+  //   if (btnAdmin) btnAdmin.style.display = 'none';
+  // }
   
   // Mostrar toggle de rol solo si tiene dualRolMovil
   if (usuarioActual?.dualRolMovil) {
@@ -1517,14 +1536,14 @@ function toggleVista() {
 }
 
 
-function volverAdmin() {
-  // Cambiar rol temporalmente a admin
-  if(usuarioActual) {
-    usuarioActual.rol = 'admin';
-    usuarioActual.vista = 'escritorio';
-  }
-  mostrarVistaEscritorio();
-  go('dash');
-  initSidebarKeyNav();
-  focoHamburguesa();
-}
+// function volverAdmin() {
+//   // Cambiar rol temporalmente a admin
+//   if(usuarioActual) {
+//     usuarioActual.rol = 'admin';
+//     usuarioActual.vista = 'escritorio';
+//   }
+//   mostrarVistaEscritorio();
+//   go('dash');
+//   initSidebarKeyNav();
+//   focoHamburguesa();
+// }
