@@ -769,6 +769,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   border-color: var(--brd);
   pointer-events: none;
 }
+
+#np-items-lista.collapsed {
+  display: none !important;
+}
+#np-toggle-items .icon {
+  transition: transform 0.2s;
+}
+#np-toggle-items .icon.open {
+  transform: rotate(180deg);
+}
 </style>
 </head>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
@@ -3965,14 +3975,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <input type="hidden" id="np-fecha">
     <input type="hidden" id="np-visita">
+    <input type="hidden" id="np-edit-id" value="">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin:8px 0 4px 0;">
+      <span style="font-size:13px; font-weight:600; color:var(--txt2);">📦 Productos del pedido</span>
+      <button id="np-toggle-items" onclick="toggleItemsPedido()" style="background:none; border:1px solid var(--brd); border-radius:6px; padding:2px 8px; cursor:pointer; font-size:12px; color:var(--txt2);">
+        ▼ Ocultar
+      </button>
+    </div>
     <div id="np-items-lista"></div>
     <div id="np-totbar" style="display:none;justify-content:space-between;align-items:center;background:var(--PL);border-radius:8px;padding:10px 14px;margin-top:8px">
       <span style="font-weight:600;color:var(--PD)">Total pedido</span>
       <span id="np-total-show" style="font-size:20px;font-weight:700;color:var(--PD)">$0</span>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
-      <button class="btn" onclick="cerrarPedidoYVolver()">Cancelar</button>
-      <button class="btn P" onclick="guardarPedidoYVolver()">✓ Confirmar pedido</button>
+      <button class="btn" onclick="cerrarPedidoYVolver()" style="padding:6px 14px; font-size:13px;">Cancelar</button>
+      <button class="btn P" onclick="guardarPedidoYVolver()" style="padding:6px 14px; font-size:13px;">✓ Confirmar pedido</button>
     </div>
   </div>
 </div>
@@ -4724,13 +4741,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260827-04"></script>
-<script src="js/maestros.js?v=20260827-04"></script>
-<script src="js/ventas.js?v=20260827-04"></script>
-<script src="js/tesoreria.js?v=20260827-04"></script>
-<script src="js/contabilidad.js?v=20260827-04"></script>
-<script src="js/informes.js?v=20260827-04"></script>
-<script src="js/logistica.js?v=20260827-04"></script>
+<script src="js/app.js?v=20260827-05"></script>
+<script src="js/maestros.js?v=20260827-05"></script>
+<script src="js/ventas.js?v=20260827-05"></script>
+<script src="js/tesoreria.js?v=20260827-05"></script>
+<script src="js/contabilidad.js?v=20260827-05"></script>
+<script src="js/informes.js?v=20260827-05"></script>
+<script src="js/logistica.js?v=20260827-05"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

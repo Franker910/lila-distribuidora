@@ -76,6 +76,7 @@ async function elimPedido(id){
 // ─── NUEVO PEDIDO ───
 function abrirPedido(){
   _items=[];_proTemp=null;
+  document.getElementById('np-edit-id').value = '';
   ['np-cli-q','np-ven','np-obs','np-pro-q'].forEach(id=>document.getElementById(id).value='');
   const nv=document.getElementById('np-visita');if(nv)nv.value='';
   document.getElementById('np-cli-id').value='';
@@ -85,11 +86,16 @@ function abrirPedido(){
   document.getElementById('np-dto').value='0';
   document.getElementById('np-cli-info').style.display='none';
   renderItems();
+  const lista = document.getElementById('np-items-lista');
+  const btn = document.getElementById('np-toggle-items');
+  if (lista) lista.style.display = '';
+  if (btn) btn.innerHTML = '▼ Ocultar';
   document.getElementById('m-pedido').classList.add('on');
 }
 
 // ─── LIMPIAR MODAL DE PEDIDO ───
 function limpiarPedidoModal() {
+  document.getElementById('np-edit-id').value = '';
   // Limpiar cliente
   document.getElementById('np-cli-cod').value = '';
   document.getElementById('np-cli-q').value = '';
@@ -218,18 +224,39 @@ function agregarItem(){
 }
 
 function renderItems(){
-  const el=document.getElementById('np-items'),tb=document.getElementById('np-totbar');
-  if(!el||!tb)return;
-  if(!_items.length){el.innerHTML='<div class="empty" style="padding:14px">Agregá productos al pedido</div>';tb.style.display='none';return;}
-  let sub=0,dtoT=0,ivaT=0,tot=0;
-  el.innerHTML=_items.map((it,i)=>{
-    const base=it.precio*it.cant,dtoA=base*(it.dto/100),neto=base-dtoA;let iva=0;
-    sub+=base;dtoT+=dtoA;ivaT+=0;tot+=neto;
-    return `<div class="pitem"><span class="pnom">${esc(it.nom)}</span><input type="number" value="${it.cant}" min="0.01" step="0.01" onchange="updItem(${i},'cant',this.value)" style="width:70px"><span style="color:var(--txt2);font-size:11px">${it.un}</span><input type="number" value="${it.precio}" onchange="updItem(${i},'precio',this.value)" style="width:90px;text-align:right"><span style="width:45px;text-align:center;font-size:11px;color:var(--txt2)">${it.dto?it.dto+'%':''}</span><span class="ptot">${fmt(it.precio*it.cant*(1-it.dto/100))}</span><button class="btn D sm" onclick="delItem(${i})">🗑</button></div>`;
+  const el = document.getElementById('np-items-lista');
+  const tb = document.getElementById('np-totbar');
+  
+  if(!el || !tb) return;
+  
+  if(!_items.length){
+    el.innerHTML = '<div class="empty" style="padding:14px">Agregá productos al pedido</div>';
+    tb.style.display = 'none';
+    return;
+  }
+  
+  let sub = 0, dtoT = 0, tot = 0;
+  el.innerHTML = _items.map((it, i) => {
+    const base = it.precio * it.cant;
+    const dtoA = base * (it.dto / 100);
+    const neto = base - dtoA;
+    sub += base;
+    dtoT += dtoA;
+    tot += neto;
+    return `<div class="pitem">
+      <span class="pnom">${esc(it.nom)}</span>
+      <input type="number" value="${it.cant}" min="0.01" step="0.01" onchange="updItem(${i},'cant',this.value)" style="width:70px">
+      <span style="color:var(--txt2);font-size:11px">${it.un}</span>
+      <input type="number" value="${it.precio}" onchange="updItem(${i},'precio',this.value)" style="width:90px;text-align:right">
+      <span style="width:45px;text-align:center;font-size:11px;color:var(--txt2)">${it.dto ? it.dto + '%' : ''}</span>
+      <span class="ptot">${fmt(it.precio * it.cant * (1 - it.dto / 100))}</span>
+      <button class="btn D sm" onclick="delItem(${i})">🗑</button>
+    </div>`;
   }).join('');
-  tb.style.display='flex';
-  document.getElementById('np-desglose').textContent=`Sub ${fmt(sub)}${dtoT>0?' | Dto '+fmt(dtoT):''}`;
-  document.getElementById('np-total').textContent=fmt(tot);
+  
+  tb.style.display = 'flex';
+  document.getElementById('np-desglose').textContent = `Sub ${fmt(sub)}${dtoT > 0 ? ' | Dto ' + fmt(dtoT) : ''}`;
+  document.getElementById('np-total').textContent = fmt(tot);
 }
 
 function updItem(i,k,v){_items[i][k]=parseFloat(v)||0;renderItems();}
@@ -2250,17 +2277,87 @@ async function elimPedidoMovil(id){
 
 // ── Edición de pedido en la vista móvil — bottom sheet ──
 function editarPedidoMovil(pedId){
-  const p=_pedidos.find(x=>x.id===pedId);if(!p)return;
-  _editPedMovil={id:pedId,items:JSON.parse(JSON.stringify(p.items||[]))};
-  const cl=document.getElementById('epm-sheet-cliente');
-  if(cl)cl.textContent=p.cliente||'';
-  const busq=document.getElementById('epm-busq');
-  if(busq)busq.value='';
-  const drop=document.getElementById('epm-drop');
-  if(drop)drop.style.display='none';
+  const p = _pedidos.find(x => x.id === pedId);
+  if (!p) return;
+  
+  // DETECTAR SI ES PC (vista escritorio)
+  const esPC = usuarioActual?.vista === 'escritorio' || !usuarioActual?.vista;
+  
+  if (esPC) {
+    // ─── MODO PC: abrir modal #m-pedido ───
+    editarPedidoPC(p);
+    return;
+  }
+  
+  // ─── MODO MÓVIL: bottom sheet ───
+  _editPedMovil = { id: pedId, items: JSON.parse(JSON.stringify(p.items || [])) };
+  const cl = document.getElementById('epm-sheet-cliente');
+  if (cl) cl.textContent = p.cliente || '';
+  const busq = document.getElementById('epm-busq');
+  if (busq) busq.value = '';
+  const drop = document.getElementById('epm-drop');
+  if (drop) drop.style.display = 'none';
   renderEditPedidoMovil();
   abrirBottomSheetEditar();
-  setTimeout(()=>{const b=document.getElementById('epm-busq');if(b){b.value='';filtrarAgregarMovil();}},350);
+  setTimeout(() => {
+    const b = document.getElementById('epm-busq');
+    if (b) { b.value = ''; filtrarAgregarMovil(); }
+  }, 350);
+}
+
+function editarPedidoPC(p) {
+  console.log('📝 Editando pedido PC:', p.id, p.cliente);
+  
+  // Limpiar estado anterior
+  _items = [];
+  _proTemp = null;
+  
+  // Llenar campos del modal
+  const cli = _clientes.find(c => c.id === p.cliente_id);
+  if (cli) {
+    selCli(cli.id);
+    document.getElementById('np-cli-id').value = cli.id;
+  } else {
+    document.getElementById('np-cli-q').value = p.cliente || '';
+  }
+  document.getElementById('np-ven').value = p.vendedor || '';
+  document.getElementById('np-obs').value = p.observaciones || p.obs || '';
+  document.getElementById('np-fecha').value = p.fecha || hoyLocal();
+  document.getElementById('np-visita').value = p.visita || '';
+  
+  // Cargar items del pedido
+  console.log('📦 Items del pedido:', p.items);
+  _items = (p.items || []).map(it => ({
+    id: it.id || it.producto_id,
+    nom: it.nom || it.nombre || it.producto_nom || 'Producto',
+    un: it.un || it.unidad || '',
+    cant: it.cant || it.cantidad || 1,
+    precio: it.precio || it.p || 0,
+    dto: it.dto || it.descuento || 0,
+    iva: it.iva || 21
+  }));
+  
+  console.log('📦 Items cargados en _items:', _items.length);
+  
+  // Guardar ID del pedido para actualizar en lugar de crear uno nuevo
+  document.getElementById('np-edit-id').value = p.id;
+  
+  // Abrir el modal ANTES de renderizar para asegurar que el contenedor existe
+  document.getElementById('m-pedido').classList.add('on');
+  
+  // Renderizar items (ahora el modal está visible)
+  renderItems();
+  
+  // Asegurar que la lista esté visible y el botón toggle correcto
+  setTimeout(() => {
+    const lista = document.getElementById('np-items-lista');
+    const btn = document.getElementById('np-toggle-items');
+    if (lista) {
+      lista.style.display = '';
+      lista.classList.remove('collapsed');
+    }
+    if (btn) btn.innerHTML = '▼ Ocultar';
+  }, 50);
 }
 
 function abrirBottomSheetEditar(){
@@ -2405,7 +2502,6 @@ function cerrarPedidoYVolver() {
 // ─── GUARDAR PEDIDO Y VOLVER AL ORIGEN ────────────────────────────────
 
 async function guardarPedidoYVolver() {
-  // Validar cliente
   const cid = document.getElementById('np-cli-id').value;
   if (!cid) { alert('Seleccioná un cliente'); return; }
   if (!_items.length) { alert('Agregá al menos un producto'); return; }
@@ -2414,7 +2510,9 @@ async function guardarPedidoYVolver() {
   let tot = 0;
   _items.forEach(it => { tot += it.precio * it.cant * (1 - it.dto / 100); });
   
-  const { error } = await sb.from('pedidos').insert({
+  const editId = document.getElementById('np-edit-id').value;
+  
+  const obj = {
     cliente_id: parseInt(cid),
     cliente: c?.nombre || '?',
     localidad: c?.localidad || '',
@@ -2424,35 +2522,34 @@ async function guardarPedidoYVolver() {
     observaciones: document.getElementById('np-obs').value || '',
     visita: document.getElementById('np-visita').value || null,
     items: _items,
-    total: Math.round(tot * 100) / 100,
-    estado: 'pendiente'
-  });
+    total: Math.round(tot * 100) / 100
+  };
+  
+  let error;
+  if (editId) {
+    // Edición: actualizar pedido existente
+    const { error: err } = await sb.from('pedidos').update(obj).eq('id', editId);
+    error = err;
+  } else {
+    // Nuevo pedido
+    const { error: err } = await sb.from('pedidos').insert({ ...obj, estado: 'pendiente' });
+    error = err;
+  }
   
   if (error) {
     alert('Error: ' + error.message);
     return;
   }
   
-  // Cerrar modal
+  // Limpiar campo oculto
+  document.getElementById('np-edit-id').value = '';
+  
   cerrar('m-pedido');
-  
-  // Verificar el origen
-  const origen = sessionStorage.getItem('origenPedido');
-  
-  if (origen === 'clientes') {
-    sessionStorage.removeItem('origenPedido');
-    go('clientes');
-    setTimeout(() => {
-      renderClientes();
-      toast('✅ Pedido creado desde Clientes');
-    }, 100);
-  } else {
-    await cargarPedidos();
-    renderPedidos();
-    renderDash();
-    go('pedidos');
-    toast('✅ Pedido creado');
-  }
+  await cargarPedidos();
+  renderPedidos();
+  renderDash();
+  go('pedidos');
+  toast(editId ? '✅ Pedido actualizado' : '✅ Pedido creado');
 }
 
 // ─── NOTA DE CRÉDITO - MÓVIL ──────────────────────────────────────────────
@@ -3048,4 +3145,14 @@ function volverHeaderPedidoMovil() {
     go('vendedor-home');
   }
   
+}
+
+function toggleItemsPedido() {
+  const lista = document.getElementById('np-items-lista');
+  const btn = document.getElementById('np-toggle-items');
+  if (!lista || !btn) return;
+  
+  const isHidden = lista.style.display === 'none';
+  lista.style.display = isHidden ? '' : 'none';
+  btn.innerHTML = isHidden ? '▼ Ocultar' : '▶ Mostrar';
 }
