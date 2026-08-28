@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260827-05';
+const APP_VERSION = '20260828-01';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -342,6 +342,9 @@ function togglePasswordVisibility() {
   
   if (!input || !svg) return;
   
+  // Guardar posición del cursor antes de cambiar el tipo
+  const cursorPos = input.selectionStart;
+  
   if (input.type === 'password') {
     input.type = 'text';
     // Ojo abierto → ojo tachado (oculto)
@@ -359,6 +362,10 @@ function togglePasswordVisibility() {
     `;
     svg.setAttribute('stroke', '#666');
   }
+  
+  // ✅ Devolver el foco al input y restaurar la posición del cursor
+  input.focus();
+  input.setSelectionRange(cursorPos, cursorPos);
 }
 
 // ─── HELPERS ───

@@ -2322,21 +2322,33 @@ let _cobZonasCache = [];
 function initBuscadorZonasCob() {
   console.log('🔍 initBuscadorZonasCob() - EJECUTADA');
   const input = document.getElementById('cobm-zona-input');
-  console.log('📌 Input zona encontrado:', input);
   if (!input) return;
   
-  // Cargar zonas únicas de los clientes
-  const zonasUnicas = [...new Set(_clientes.map(c => c.zona).filter(Boolean))];
-  _cobZonasCache = zonasUnicas.map(z => {
-    const zonaObj = _zonas.find(zn => zn.codigo === z);
-    return {
-      codigo: z,
-      descripcion: zonaObj?.descripcion || z,
-      clientes: _clientes.filter(c => c.zona === z && c.activo !== false)
-    };
-  }).sort((a,b) => a.descripcion.localeCompare(b.descripcion));
+  // Obtener zonas de cargas del día (si existen)
+  let zonasPermitidas = null; // null = todas
+  if (_cargasHoyCandidatas && _cargasHoyCandidatas.length) {
+    const zonasSet = new Set();
+    for (const carga of _cargasHoyCandidatas) {
+      const peds = _pedidosDeCarga(carga.id);
+      for (const ped of peds) {
+        const cli = _clientes.find(c => c.id === ped.cliente_id);
+        if (cli && cli.zona) zonasSet.add(cli.zona);
+      }
+    }
+    if (zonasSet.size) zonasPermitidas = zonasSet;
+  }
   
-  // Eventos del input
+  // Construir _cobZonasCache solo con zonas permitidas (o todas si no hay restricción)
+  _cobZonasCache = _zonas
+    .filter(z => !zonasPermitidas || zonasPermitidas.has(z.codigo))
+    .map(z => {
+      const clientes = _clientes.filter(c => c.zona === z.codigo && c.activo !== false);
+      return { codigo: z.codigo, descripcion: z.descripcion || z.codigo, clientes };
+    })
+    .sort((a, b) => a.descripcion.localeCompare(b.descripcion));
+  
+  // Si no hay zonas permitidas y hay cargas, mostrar un mensaje (pero igual se mostrarán todas)
+  // Eventos del input (igual que antes)
   input.addEventListener('input', function() {
     _cobZonaInput = this.value.trim();
     mostrarSugerenciasZonas();
@@ -2376,44 +2388,50 @@ function mostrarSugerenciasZonas() {
   const contenedor = document.getElementById('cobm-zona-sugerencias');
   const termino = _cobZonaInput.toLowerCase();
   
-  if (!termino || termino.length < 1) {
-    contenedor.style.display = 'none';
-    return;
+  // Filtrar coincidencias
+  let coincidencias = _cobZonasCache;
+  if (termino) {
+    coincidencias = coincidencias.filter(z => 
+      z.descripcion.toLowerCase().includes(termino) || 
+      z.codigo.toLowerCase().includes(termino)
+    );
   }
   
-  const coincidencias = _cobZonasCache.filter(z => 
-    z.descripcion.toLowerCase().includes(termino) || 
-    z.codigo.toLowerCase().includes(termino)
-  );
+  let html = '';
   
-  if (!coincidencias.length) {
-    contenedor.innerHTML = `
-      <div style="padding:12px 14px;color:var(--txt2);font-size:13px;text-align:center;">
-        ❌ No se encontraron zonas con "${termino}"
+  // ✅ Opción "Todas las zonas" siempre presente
+  if (_cobZonasCache.length > 1) {
+    html += `
+      <div class="zona-sug-item" onclick="seleccionarZonaUniversal('')"
+        style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background 0.15s;"
+        onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='transparent'">
+        <div>
+          <div style="font-weight:600;font-size:14px;">🌍 Todas las zonas</div>
+          <div style="font-size:11px;color:var(--txt2);">Muestra todos los clientes sin filtrar por zona</div>
+        </div>
       </div>
     `;
-    contenedor.style.display = 'block';
-    posicionarSugerenciasZonas();
-    return;
   }
   
-  const mostrar = coincidencias.slice(0, 8);
-  contenedor.innerHTML = mostrar.map(z => `
-    <div class="zona-sug-item" 
-         onclick="seleccionarZonaUniversal('${z.codigo}')"
-         style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background 0.15s;"
-         onmouseover="this.style.background='var(--bg2)'" 
-         onmouseout="this.style.background='transparent'">
-      <div>
-        <div style="font-weight:600;font-size:14px;">${esc(z.descripcion)}</div>
-        <div style="font-size:11px;color:var(--txt2);">${z.codigo} · ${z.clientes.length} cliente${z.clientes.length !== 1 ? 's' : ''}</div>
+  if (!coincidencias.length && termino) {
+    html += `<div style="padding:12px 14px;color:var(--txt2);font-size:13px;text-align:center;">❌ No se encontraron zonas con "${termino}"</div>`;
+  } else if (coincidencias.length) {
+    html += coincidencias.slice(0, 10).map(z => `
+      <div class="zona-sug-item" onclick="seleccionarZonaUniversal('${z.codigo}')"
+        style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background 0.15s;"
+        onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='transparent'">
+        <div>
+          <div style="font-weight:600;font-size:14px;">${esc(z.descripcion)}</div>
+          <div style="font-size:11px;color:var(--txt2);">${z.codigo} · ${z.clientes.length} cliente${z.clientes.length !== 1 ? 's' : ''}</div>
+        </div>
+        <div style="font-size:12px;color:var(--P);background:var(--PL);padding:2px 10px;border-radius:12px;">
+          ${z.clientes.filter(c => (c.saldo||0) > 0).length} con deuda
+        </div>
       </div>
-      <div style="font-size:12px;color:var(--P);background:var(--PL);padding:2px 10px;border-radius:12px;">
-        ${z.clientes.filter(c => (c.saldo||0) > 0).length} con deuda
-      </div>
-    </div>
-  `).join('');
+    `).join('');
+  }
   
+  contenedor.innerHTML = html;
   contenedor.style.display = 'block';
   posicionarSugerenciasZonas();
 }
@@ -3471,19 +3489,24 @@ function seleccionarZonaUniversal(codigoZona) {
   const input = document.getElementById('cobm-zona-input');
   const contenedor = document.getElementById('cobm-zona-sugerencias');
   
-  // Mostrar la zona seleccionada
-  const zona = _cobZonasCache.find(z => z.codigo === codigoZona);
-  if (zona) {
-    input.value = `${zona.descripcion} (${zona.codigo})`;
+  // Determinar clientes a mostrar
+  let clientes = _clientes.filter(c => c.activo !== false);
+  
+  if (codigoZona && codigoZona !== '') {
+    // Zona específica
+    const zona = _cobZonasCache.find(z => z.codigo === codigoZona);
+    if (zona) {
+      input.value = `${zona.descripcion} (${zona.codigo})`;
+    }
+    clientes = clientes.filter(c => c.zona === codigoZona);
+  } else {
+    // "Todas las zonas"
+    input.value = '🌍 Todas las zonas';
   }
   
-  // Ocultar sugerencias
   contenedor.style.display = 'none';
   
-  // Obtener clientes de la zona
-  const clientes = _clientes.filter(c => c.zona === codigoZona && c.activo !== false);
-  
-  // DETECTAR CONTEXTO: PRIMERO PEDIDO, LUEGO COBRANZA
+  // DETECTAR CONTEXTO: pedido o cobranza
   const esPedido = !!document.getElementById('pm-cli-lista');
   const esCobranza = !!document.getElementById('cobm-clientes-por-zona');
   
@@ -3492,7 +3515,7 @@ function seleccionarZonaUniversal(codigoZona) {
     const listaPedidos = document.getElementById('pm-cli-lista');
     if (!listaPedidos) return;
     
-    // Asegurar que el contenedor de cobranza esté oculto
+    // Ocultar contenedor de cobranza
     const contCobranza = document.getElementById('cobm-clientes-por-zona');
     if (contCobranza) {
       contCobranza.innerHTML = '';
@@ -3500,27 +3523,16 @@ function seleccionarZonaUniversal(codigoZona) {
     }
     
     if (!clientes.length) {
-      listaPedidos.innerHTML = `
-        <div style="padding:20px;text-align:center;color:var(--txt2);font-size:14px;">
-          No hay clientes en esta zona
-        </div>
-      `;
+      listaPedidos.innerHTML = `<div style="padding:20px;text-align:center;color:var(--txt2);font-size:14px;">No hay clientes en ${codigoZona ? 'esta zona' : 'todas las zonas'}</div>`;
       return;
     }
     
-    // GUARDAR CLIENTES EN LA VARIABLE GLOBAL
-    if (typeof _pmClientesZonaActual !== 'undefined') {
-      _pmClientesZonaActual = clientes;
-    }
-    
-    // Ordenar y mostrar
+    _pmClientesZonaActual = clientes;
     clientes.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
     
-    // Usar la función de renderizado si existe
     if (typeof renderizarClientesZona === 'function') {
       renderizarClientesZona(clientes);
     } else {
-      // Fallback: renderizado directo
       listaPedidos.innerHTML = clientes.map(c => `
         <div onclick="selClienteMovil(${c.id})" 
           style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--brd);cursor:pointer;background:#fff;active:background:var(--PL);">
@@ -3536,20 +3548,15 @@ function seleccionarZonaUniversal(codigoZona) {
       `).join('');
     }
     
-    // Mostrar el buscador si hay más de 10 clientes
     const buscador = document.getElementById('pm-cli-buscador');
-    if (buscador) {
-      buscador.style.display = clientes.length > 10 ? 'block' : 'none';
-    }
-
-    listaPedidos.style.display = 'block';
+    if (buscador) buscador.style.display = clientes.length > 10 ? 'block' : 'none';
     
   } else if (esCobranza) {
     // ─── MODO COBRANZA ───
     const contenedorClientes = document.getElementById('cobm-clientes-por-zona');
     if (!contenedorClientes) return;
     
-    // Asegurar que la lista de pedidos esté oculta
+    // Ocultar lista de pedidos
     const listaPedidos = document.getElementById('pm-cli-lista');
     if (listaPedidos) {
       listaPedidos.innerHTML = '';
@@ -3557,11 +3564,7 @@ function seleccionarZonaUniversal(codigoZona) {
     }
     
     if (!clientes.length) {
-      contenedorClientes.innerHTML = `
-        <div style="padding:20px;text-align:center;color:var(--txt2);font-size:14px;">
-          No hay clientes en esta zona
-        </div>
-      `;
+      contenedorClientes.innerHTML = `<div style="padding:20px;text-align:center;color:var(--txt2);font-size:14px;">No hay clientes en ${codigoZona ? 'esta zona' : 'todas las zonas'}</div>`;
       contenedorClientes.style.display = 'block';
       return;
     }
@@ -3588,7 +3591,6 @@ function seleccionarZonaUniversal(codigoZona) {
     contenedorClientes.style.display = 'block';
   }
   
-  // Resetear el filtro de zonas para que no interfiera en futuras búsquedas
   _cobZonaInput = '';
 }
 
@@ -3605,9 +3607,10 @@ function posicionarSugerenciasZonas() {
   
   const espacioAbajo = viewportHeight - rect.bottom - 10;
   const espacioArriba = rect.top - 10;
-  const alturaMax = Math.min(260, Math.max(150, Math.max(espacioAbajo, espacioArriba) - 20));
+  // Mayor altura máxima (50% de la pantalla, mínimo 200px)
+  const alturaMax = Math.min(viewportHeight * 0.5, Math.max(200, Math.max(espacioAbajo, espacioArriba) - 20));
   
-  const usarArriba = espacioAbajo < 160 && espacioArriba > espacioAbajo;
+  const usarArriba = espacioAbajo < 200 && espacioArriba > espacioAbajo;
   
   contenedor.style.position = 'fixed';
   contenedor.style.top = usarArriba ? 'auto' : (rect.bottom + 6) + 'px';
@@ -3623,16 +3626,7 @@ function posicionarSugerenciasZonas() {
   contenedor.style.boxShadow = '0 8px 32px rgba(0,0,0,0.18)';
   contenedor.style.display = 'block';
   contenedor.style.padding = '4px 0';
-  contenedor.style.WebkitOverflowScrolling = 'touch';
-  
-  // Ajustar laterales
-  const dropRect = contenedor.getBoundingClientRect();
-  if (dropRect.right > viewportWidth - 8) {
-    contenedor.style.left = Math.max(8, viewportWidth - dropRect.width - 8) + 'px';
-  }
-  if (dropRect.left < 8) {
-    contenedor.style.left = '8px';
-  }
+  contenedor.style.WebkitOverflowScrolling = 'touch'; // ✅ para iOS
 }
 
 // ─── CERRAR SUGERENCIAS DE ZONAS ──────────────────────────────────────
