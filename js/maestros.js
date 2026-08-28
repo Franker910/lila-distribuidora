@@ -154,30 +154,17 @@ function editarCliente(id){
   document.getElementById('cli-nom').value = c.nombre || '';
   document.getElementById('cli-cuit').value = c.cuit || '';
   
-  // Razón social (si existe)
   const razon = document.getElementById('cli-razon');
   if(razon) razon.value = c['razon social'] || '';
   
-  // Categoría
   const cat = document.getElementById('cli-cat');
   if(cat) cat.value = c.categoria || 'Cons. Final';
-  
   document.getElementById('cli-dir').value = c.direccion || '';
   document.getElementById('cli-loc').value = c.localidad || '';
   document.getElementById('cli-tel').value = c.telefono || '';
   
-  // ZONA: mostrar descripción si nombre está vacío o es igual al código
   const zonaEncontrada = _zonas.find(z => z.codigo === c.zona);
-  let zonaDisplay = c.zona || '';
-  if (zonaEncontrada) {
-    // Si el nombre está vacío o es igual al código, usar descripción
-    if (!zonaEncontrada.nombre || zonaEncontrada.nombre === zonaEncontrada.codigo) {
-      zonaDisplay = zonaEncontrada.descripcion || zonaEncontrada.codigo;
-    } else {
-      zonaDisplay = zonaEncontrada.nombre;
-    }
-  }
-  document.getElementById('cli-zona').value = zonaDisplay;
+  document.getElementById('cli-zona').value = zonaEncontrada ? zonaEncontrada.nombre : (c.zona || '');
   document.getElementById('cli-zona-codigo').value = c.zona || '';
   
   document.getElementById('cli-ven').value = c.vendedor || '';
@@ -185,10 +172,6 @@ function editarCliente(id){
   document.getElementById('cli-saldo').value = c.saldo || 0;
   document.getElementById('cli-cpg').value = c.condicion_pago || 0;
   document.getElementById('cli-lista').value = c.lista || 1;
-  
-  // Ocultar dropdown de zonas
-  document.getElementById('cli-zona-drop').style.display = 'none';
-  
   document.getElementById('m-cliente').classList.add('on');
 }
 
@@ -234,23 +217,11 @@ function buscarZonasParaCliente() {
 }
 
 function seleccionarZonaParaCliente(codigo, nombre) {
-  // Buscar la zona completa en _zonas para tener acceso a descripcion
-  const zona = _zonas.find(z => z.codigo === codigo);
-  
-  // Determinar el texto a usar para localidad
-  let textoLocalidad = nombre;
-  if (!textoLocalidad || textoLocalidad === codigo) {
-    // Si el nombre está vacío o es igual al código, usar descripción
-    textoLocalidad = zona?.descripcion || codigo;
-  }
-  
-  document.getElementById('cli-zona').value = codigo;
+  // MOSTRAR EL CÓDIGO en el campo (para que el usuario vea lo que se va a guardar)
+  document.getElementById('cli-zona').value = codigo;  // ← CAMBIAR A codigo
   document.getElementById('cli-zona-codigo').value = codigo;
   document.getElementById('cli-zona-drop').style.display = 'none';
-  
-  document.getElementById('cli-loc').value = textoLocalidad;
-  
-  console.log('✅ Zona seleccionada:', codigo, '-', textoLocalidad);
+  console.log('✅ Zona seleccionada:', codigo, '-', nombre);
 }
 
 // Cerrar el dropdown al hacer clic fuera
