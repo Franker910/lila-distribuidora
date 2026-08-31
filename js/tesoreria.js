@@ -328,13 +328,13 @@ function selCliCob(id){
     if(lista)lista.innerHTML='';
   }
   // Sugerir saldo en efectivo y sincronizar total a imputar
-  const ef=document.getElementById('cob-efectivo');
-  if(ef&&(c.saldo||0)>0){
-    ef.value=Math.round(c.saldo);
-    calcTotalCobro();
-    const ti=document.getElementById('cob-total-imputar');
-    if(ti){ti.value=Math.round(c.saldo);calcTotalDesdeImputacion();}
-  }
+  // const ef=document.getElementById('cob-efectivo');
+  // if(ef&&(c.saldo||0)>0){
+  //   ef.value=Math.round(c.saldo);
+  //   calcTotalCobro();
+  //   const ti=document.getElementById('cob-total-imputar');
+  //   if(ti){ti.value=Math.round(c.saldo);calcTotalDesdeImputacion();}
+  // }
   // foco manejado por buscarCodCli o dropdown
 }
 
@@ -426,15 +426,21 @@ function verCobroDetalle(id){
 
 function limitarImputacion(input, maxRemito){
   const val = parseFloat(input.value)||0;
+  const totalCobra = parseFloat(document.getElementById('cob-total-imputar')?.value)||0;
+  
+  // Si no hay total a cobrar, no limitar (permitir escritura libre)
+  if (totalCobra <= 0) {
+    input.style.borderColor = '';
+    return;
+  }
+  
   // Calcular cuánto ya está imputado en otros remitos
   const inputs = document.querySelectorAll('[id^="imp-rem-"]');
   let otrosImputados = 0;
   inputs.forEach(inp => { if(inp !== input) otrosImputados += parseFloat(inp.value)||0; });
-  // Total que cobra
-  const totalCobra = parseFloat(document.getElementById('cob-total-imputar')?.value)||0;
   const disponible = Math.max(0, totalCobra - otrosImputados);
-  // Limitar al mínimo entre el saldo del remito y lo disponible
   const maximo = Math.min(maxRemito, disponible);
+  
   if(val > maximo){
     input.value = maximo.toFixed(2);
     input.style.borderColor = 'var(--W)';
@@ -443,7 +449,6 @@ function limitarImputacion(input, maxRemito){
     input.style.borderColor = '';
   }
 }
-
 function imputarTotal(remId, total){
   const input = document.getElementById(`imp-rem-${remId}`);
   if(!input) return;
