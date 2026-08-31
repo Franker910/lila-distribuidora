@@ -1,7 +1,41 @@
 // ─── LOGÍSTICA: cargas, remitos (despacho), hoja de ruta ───
 let _carNombreSugerido='';
 
-async function cargarRemitos(){const {data}=await sb.from('remitos').select('*').order('created_at',{ascending:false});_remitos=data||[];}
+async function cargarRemitos() {
+  let all = [];
+  let from = 0;
+  const pageSize = 1000;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await sb
+      .from('remitos')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      console.error('[cargarRemitos]', error);
+      // Si falla una página, devolvemos lo que tengamos hasta ahora
+      break;
+    }
+
+    if (!data || data.length === 0) {
+      hasMore = false;
+      break;
+    }
+
+    all = all.concat(data);
+    from += pageSize;
+
+    // Si la página devuelve menos de pageSize, es la última
+    if (data.length < pageSize) {
+      hasMore = false;
+    }
+  }
+
+  _remitos = all || [];
+}
 
 async function cargarCargas(){const {data}=await sb.from('cargas').select('*').order('created_at',{ascending:false});_cargas=data||[];}
 

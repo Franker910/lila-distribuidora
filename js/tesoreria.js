@@ -1,18 +1,45 @@
 // ─── TESORERÍA: cobros, cheques, caja, rendición, cobranza móvil ───
 
-async function cargarCobros(){
-  const {data,error} = await sb.from('cobros').select(`
-    id, cliente_id, cliente, fecha, forma, importe, referencia, total,
-    efectivo, transferencia, cheque_propio, cheque_terceros,
-    retencion_ganancias, retencion_ing_brutos, retencion_otras,
-    estado_transferencia, estado_rendicion, reparto, carga_id,
-    tipo_cobrador, vendedor, imputaciones, observaciones,
-    comprobante_url, saldo_favor, banco_cheque, nro_cheque,
-    nombre_transferencia, created_at,
-    numero_rendicion  
-  `).order('id', {ascending:false});
-  if(error) console.error('[cobros]', error.message, error.details);
-  _cobros = data || [];
+async function cargarCobros() {
+  let all = [];
+  let from = 0;
+  const pageSize = 1000;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await sb
+      .from('cobros')
+      .select(`
+        id, cliente_id, cliente, fecha, forma, importe, referencia, total,
+        efectivo, transferencia, cheque_propio, cheque_terceros,
+        retencion_ganancias, retencion_ing_brutos, retencion_otras,
+        estado_transferencia, estado_rendicion, reparto, carga_id,
+        tipo_cobrador, vendedor, imputaciones, observaciones,
+        comprobante_url, saldo_favor, banco_cheque, nro_cheque,
+        nombre_transferencia, created_at, numero_rendicion
+      `)
+      .order('id', { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      console.error('[cargarCobros]', error);
+      break;
+    }
+
+    if (!data || data.length === 0) {
+      hasMore = false;
+      break;
+    }
+
+    all = all.concat(data);
+    from += pageSize;
+
+    if (data.length < pageSize) {
+      hasMore = false;
+    }
+  }
+
+  _cobros = all || [];
 }
 
 async function cobrarRemito(id){

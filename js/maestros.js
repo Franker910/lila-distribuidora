@@ -20,11 +20,46 @@ function poblarSubcats(catSelId,subcatSelId){
   sel.disabled=!subs.length;
 }
 
-async function cargarClientes(){
-  // Cargar todos los clientes — el filtro por vendedor se hace en JS para incluir sin-vendedor
-  const {data}=await sb.from('clientes').select('*').order('nombre').limit(2000);
-  // Vendedor ve sus clientes + los que no tienen vendedor asignado (para no perder ninguno)
-  _clientes=usuarioActual.vendedor?(data||[]).filter(c=>{const v=c.vendedor||'';return v===''||v.toLowerCase().includes(usuarioActual.vendedor.toLowerCase());}):data||[];
+async function cargarClientes() {
+  let all = [];
+  let from = 0;
+  const pageSize = 1000;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await sb
+      .from('clientes')
+      .select('*')
+      .order('nombre')
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      console.error('[cargarClientes]', error);
+      break;
+    }
+
+    if (!data || data.length === 0) {
+      hasMore = false;
+      break;
+    }
+
+    all = all.concat(data);
+    from += pageSize;
+
+    if (data.length < pageSize) {
+      hasMore = false;
+    }
+  }
+
+  // Aplicar filtro por vendedor (si existe)
+  if (usuarioActual?.vendedor) {
+    _clientes = (all || []).filter(c => {
+      const v = c.vendedor || '';
+      return v === '' || v.toLowerCase().includes(usuarioActual.vendedor.toLowerCase());
+    });
+  } else {
+    _clientes = all || [];
+  }
 }
 
 async function cargarListasPrecios(){

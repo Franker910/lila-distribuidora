@@ -2,15 +2,47 @@
 
 let _items=[], _proTemp=null;
 
-async function cargarPedidos(){
-  const {data}=await sb.from('pedidos').select('*').order('created_at',{ascending:false});
-  // _pedidosTodos: sin filtrar, para todo lo que sea "carga de reparto" (una
-  // carga mezcla pedidos de varios vendedores — el repartidor tiene que ver
-  // a todos sus clientes, no solo los de su propio vendedor).
-  _pedidosTodos=data||[];
-  // Vendedor ve sus pedidos + los que no tienen vendedor asignado (para la
-  // pantalla de Pedidos propiamente dicha)
-  _pedidos=usuarioActual.vendedor?(data||[]).filter(p=>{const v=p.vendedor||'';return v===''||v.toLowerCase().includes(usuarioActual.vendedor.toLowerCase());}):data||[];
+async function cargarPedidos() {
+  let all = [];
+  let from = 0;
+  const pageSize = 1000;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await sb
+      .from('pedidos')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      console.error('[cargarPedidos]', error);
+      break;
+    }
+
+    if (!data || data.length === 0) {
+      hasMore = false;
+      break;
+    }
+
+    all = all.concat(data);
+    from += pageSize;
+
+    if (data.length < pageSize) {
+      hasMore = false;
+    }
+  }
+
+  _pedidosTodos = all || [];
+  // Aplicar filtro por vendedor (si existe)
+  if (usuarioActual?.vendedor) {
+    _pedidos = _pedidosTodos.filter(p => {
+      const v = p.vendedor || '';
+      return v === '' || v.toLowerCase().includes(usuarioActual.vendedor.toLowerCase());
+    });
+  } else {
+    _pedidos = _pedidosTodos;
+  }
 }
 
 // ─── PEDIDOS ───
@@ -255,8 +287,9 @@ function renderItems(){
   }).join('');
   
   tb.style.display = 'flex';
-  document.getElementById('np-desglose').textContent = `Sub ${fmt(sub)}${dtoT > 0 ? ' | Dto ' + fmt(dtoT) : ''}`;
-  document.getElementById('np-total').textContent = fmt(tot);
+  // document.getElementById('np-desglose').textContent = `Sub ${fmt(sub)}${dtoT > 0 ? ' | Dto ' + fmt(dtoT) : ''}`;
+  const totalEl = document.getElementById('np-total-show');
+  if (totalEl) totalEl.textContent = fmt(tot);
 }
 
 function updItem(i,k,v){_items[i][k]=parseFloat(v)||0;renderItems();}
@@ -1295,7 +1328,8 @@ function renderItemsNC(){
     </div>`;
   }).join('');
   tb.style.display='flex';
-  document.getElementById('nc-total').textContent=fmt(tot);
+  const totalEl = document.getElementById('nc-total-show');
+  if (totalEl) totalEl.textContent = fmt(tot);
 }
 
 async function guardarNC(){
