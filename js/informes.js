@@ -2317,12 +2317,18 @@ async function informeHistoricoChart(anioFiltro) {
     _histGastos = resGas.data || [];
   }
 
-  // Gastos agrupados por mes (YYYY-MM)
-  const gastosPorMes = {};
-  _histGastos.forEach(g => {
-    const mes = (g.fecha || '').substring(0, 7);
-    if (mes) gastosPorMes[mes] = (gastosPorMes[mes] || 0) + (g.importe || 0);
-  });
+const gastosPorMes = {};
+_histGastos.forEach(g => {
+  const mesRaw = (g.fecha || '').substring(0, 7); // "2026-07"
+  if (mesRaw) {
+    // Convertir "2026-07" a "07-2026" para que coincida con los períodos importados
+    const partes = mesRaw.split('-');
+    if (partes.length === 2) {
+      const mesNorm = partes[1] + '-' + partes[0]; // "07-2026"
+      gastosPorMes[mesNorm] = (gastosPorMes[mesNorm] || 0) + (g.importe || 0);
+    }
+  }
+});
 
   // Botones de filtro de año
   const años = [...new Set(_histData.map(r => (r.periodo||'').substring(0,4)).filter(Boolean))].sort();
