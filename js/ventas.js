@@ -894,18 +894,19 @@ function agregarItemRR() {
 }
 
 function _rrStagingRowHTML(){
-  const p=_rrProTemp;
-  const unidad=p?(p.unidad||'').toLowerCase().trim():'';
-  const esPeso=p?['kg','kilo','kilos','k','kilogramo','kilogramos'].includes(unidad):false;
-  const cant=parseFloat(_rrStagingVals.cant)||0;
-  const peso=parseFloat(_rrStagingVals.peso)||0;
-  const precio=parseFloat(_rrStagingVals.precio)||0;
-  const dto=parseFloat(_rrStagingVals.dto)||0;
-  const q=esPeso?peso:cant;
-  const neto=p&&q>0?precio*q*(1-dto/100):0;
-  const pesoCol=p&&esPeso
-    ?`<input type="text" inputmode="decimal" id="rr-peso" value="${_rrStagingVals.peso}" oninput="updStagingRR('peso',this.value,this)" onkeydown="_rrStagingKeydown(event,'peso')" style="width:70px;${peso<=0?'border-color:var(--D);background:#fdecea':''}" placeholder="kg real" title="Peso real de balanza">`
-    :`<span style="width:70px;display:inline-block;text-align:center;font-size:12px;color:var(--txt2)">—</span>`;
+  const p = _rrProTemp;
+  const unidad = p ? (p.unidad||'').toLowerCase().trim() : '';
+  const esPeso = p ? ['kg','kilo','kilos','k','kilogramo','kilogramos'].includes(unidad) : false;
+  const badge = p ? badgeUnidad(p.unidad) : '📦 Un';
+  const cant = parseFloat(_rrStagingVals.cant)||0;
+  const peso = parseFloat(_rrStagingVals.peso)||0;
+  const precio = parseFloat(_rrStagingVals.precio)||0;
+  const dto = parseFloat(_rrStagingVals.dto)||0;
+  const q = esPeso ? peso : cant;
+  const neto = p && q>0 ? precio*q*(1-dto/100) : 0;
+  const pesoCol = p && esPeso
+    ? `<input type="text" inputmode="decimal" id="rr-peso" value="${_rrStagingVals.peso}" oninput="updStagingRR('peso',this.value,this)" onkeydown="_rrStagingKeydown(event,'peso')" style="width:70px;${peso<=0?'border-color:var(--D);background:#fdecea':''}" placeholder="kg real" title="Peso real de balanza">`
+    : `<span style="width:70px;display:inline-block;text-align:center;font-size:12px;color:var(--txt2)">—</span>`;
   return `<div class="pitem rr-staging">
     <span class="drop-wrap" style="width:55px;flex-shrink:0;position:relative">
       <input id="rr-cod" value="${_rrStagingVals.cod}" placeholder="Cód." autocomplete="off" title="Código de producto — F2 para buscar por nombre"
@@ -913,6 +914,7 @@ function _rrStagingRowHTML(){
       <div class="drop" id="rr-pro-drop" style="width:280px"></div>
     </span>
     <input id="rr-pro-q" readonly tabindex="-1" value="${esc(p?p.nombre:'')}" style="flex:1">
+    <span style="font-size:10px;color:var(--txt2);margin-left:4px;background:var(--bg2);padding:1px 6px;border-radius:4px;white-space:nowrap">${badge}</span>
     <select id="rr-item-lista" onchange="actualizarListaStagingRR(this.value)" style="width:72px;font-size:11px" title="Lista de precios para este producto">${_rrListaOptions(_rrStagingVals.lista)}</select>
     <input type="text" inputmode="decimal" id="rr-cant" value="${_rrStagingVals.cant}" oninput="updStagingRR('cant',this.value,this)" onkeydown="_rrStagingKeydown(event,'cant')" style="width:58px" title="Cantidad">
     ${pesoCol}
@@ -980,20 +982,22 @@ function _rrItemKeydown(e,idx,field){
 }
 
 function renderItemsRR(){
-  const el=document.getElementById('rr-items'),tb=document.getElementById('rr-totbar');
-  let sub=0,dtoT=0,tot=0;
-  const rows=_rrItems.map((it,i)=>{
-    const q=it.esPeso?(it.peso||0):it.cant;
-    const base=it.precio*q,dtoA=base*(it.dto/100),neto=base-dtoA;
-    sub+=base;dtoT+=dtoA;tot+=neto;
-    const pedidoCant=it.pedido_cant?`<span style="color:var(--txt2);font-size:10px">(ped:${it.pedido_cant})</span>`:'';
-    const codigo=_productos.find(p=>p.id===it.id)?.codigo||'';
-    const pesoCol=it.esPeso
-      ?`<input type="text" inputmode="decimal" data-idx="${i}" data-field="peso" value="${it.peso||''}" oninput="updItemRR(${i},'peso',this.value,this)" onkeydown="_rrItemKeydown(event,${i},'peso')" style="width:70px;${(it.peso||0)===0?'border-color:var(--W)':''}" placeholder="kg real" title="Peso real de balanza">`
-      :`<span style="width:70px;display:inline-block;text-align:center;font-size:12px;color:var(--txt2)">—</span>`;
+  const el = document.getElementById('rr-items'), tb = document.getElementById('rr-totbar');
+  let sub=0, dtoT=0, tot=0;
+  
+  const rows = _rrItems.map((it,i)=>{
+    const q = it.esPeso ? (it.peso||0) : it.cant;
+    const base = it.precio * q, dtoA = base * (it.dto/100), neto = base - dtoA;
+    sub += base; dtoT += dtoA; tot += neto;
+    const pedidoCant = it.pedido_cant ? `<span style="color:var(--txt2);font-size:10px">(ped:${it.pedido_cant})</span>` : '';
+    const codigo = _productos.find(p=>p.id===it.id)?.codigo || '';
+    const badge = badgeUnidad(it.un);
+    const pesoCol = it.esPeso
+      ? `<input type="text" inputmode="decimal" data-idx="${i}" data-field="peso" value="${it.peso||''}" oninput="updItemRR(${i},'peso',this.value,this)" onkeydown="_rrItemKeydown(event,${i},'peso')" style="width:70px;${(it.peso||0)===0?'border-color:var(--W)':''}" placeholder="kg real" title="Peso real de balanza">`
+      : `<span style="width:70px;display:inline-block;text-align:center;font-size:12px;color:var(--txt2)">—</span>`;
     return `<div class="pitem">
       <span style="width:55px;flex-shrink:0;text-align:center;font-size:11px;color:var(--txt2)">${codigo}</span>
-      <span class="pnom">${esc(it.nom)}${it.esPeso?' <span class="b bA" style="font-size:10px">kg</span>':''} ${pedidoCant}</span>
+      <span class="pnom">${esc(it.nom)} <span style="font-size:10px;color:var(--txt2);background:var(--bg2);padding:1px 6px;border-radius:4px;white-space:nowrap">${badge}</span> ${pedidoCant}</span>
       <select onchange="actualizarListaItemRR(${i},this.value)" style="width:72px;font-size:11px" title="Lista de precios para este producto">${_rrListaOptions(it.listaId)}</select>
       <input type="text" inputmode="decimal" data-idx="${i}" data-field="cant" value="${it.cant}" oninput="updItemRR(${i},'cant',this.value,this)" onkeydown="_rrItemKeydown(event,${i},'cant')" style="width:58px" title="Cantidad">
       ${pesoCol}
@@ -1003,7 +1007,8 @@ function renderItemsRR(){
       <button class="btn D sm" onclick="delItemRR(${i})" title="Eliminar (F7)">🗑</button>
     </div>`;
   }).join('');
-  const header=`<div class="fx-grid-head" style="display:flex;gap:6px;padding:2px 8px 3px;font-size:10px;font-weight:700;text-transform:uppercase">
+  
+  const header = `<div class="fx-grid-head" style="display:flex;gap:6px;padding:2px 8px 3px;font-size:10px;font-weight:700;text-transform:uppercase">
     <span style="width:55px;text-align:center">Cód.</span>
     <span style="flex:1">Producto</span>
     <span style="width:72px;text-align:center">Lista</span>
@@ -1014,16 +1019,17 @@ function renderItemsRR(){
     <span style="min-width:80px;text-align:right">Subtotal</span>
     <span style="width:32px"></span>
   </div>`;
-  // En modo facturar carga con pesaje no se agregan productos nuevos —
-  // ocultar la fila de carga para no dejar un renglón vacío sin uso.
-  el.innerHTML=header+rows+(_facturandoCargaId?'':_rrStagingRowHTML());
-  const sinPeso=_rrItems.filter(it=>it.esPeso&&(it.peso||0)===0).length;
+  
+  el.innerHTML = header + rows + (_facturandoCargaId ? '' : _rrStagingRowHTML());
+  
+  const sinPeso = _rrItems.filter(it=>it.esPeso&&(it.peso||0)===0).length;
   if(sinPeso){
-    el.innerHTML+=`<div style="background:var(--WL);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--W);margin-top:6px">⚠️ ${sinPeso} producto(s) por kg sin peso. Completá el peso real de la balanza.</div>`;
+    el.innerHTML += `<div style="background:var(--WL);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--W);margin-top:6px">⚠️ ${sinPeso} producto(s) por kg sin peso. Completá el peso real de la balanza.</div>`;
   }
-  tb.style.display=_rrItems.length?'flex':'none';
-  document.getElementById('rr-desglose').textContent=`Sub ${fmt(sub)}${dtoT>0?' | Dto '+fmt(dtoT):''}`;
-  document.getElementById('rr-total').textContent=fmt(tot);
+  
+  tb.style.display = _rrItems.length ? 'flex' : 'none';
+  document.getElementById('rr-desglose').textContent = `Sub ${fmt(sub)}${dtoT>0?' | Dto '+fmt(dtoT):''}`;
+  document.getElementById('rr-total').textContent = fmt(tot);
 }
 
 function updItemRR(i,k,v,inputEl){
@@ -3250,4 +3256,12 @@ function toggleItemsPedido() {
   const isHidden = lista.style.display === 'none';
   lista.style.display = isHidden ? '' : 'none';
   btn.innerHTML = isHidden ? '▼ Ocultar' : '▶ Mostrar';
+}
+
+// ─── BADGE PARA UNIDAD DE MEDIDA ───
+function badgeUnidad(unidad) {
+  if (!unidad) return '📦 Un';
+  const u = unidad.toLowerCase().trim();
+  const esPeso = ['kg','kilo','kilos','k','kilogramo','kilogramos'].includes(u);
+  return esPeso ? '⚖️ Kg' : '📦 ' + unidad.charAt(0).toUpperCase() + unidad.slice(1);
 }

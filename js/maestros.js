@@ -450,7 +450,7 @@ function renderProductos(){
       <td style="color:var(--txt2);font-size:11px">${p.codigo||''}</td>
       <td style="font-weight:600">${esc(p.nombre)}${esActivo?'':' <span class="b" style="background:var(--D30);color:var(--D);font-size:10px">INACTIVO</span>'}</td>
       <td style="font-size:11px;color:var(--txt2)">${esc(p.proveedor_nom||'')}</td>
-      <td style="font-size:12px;color:var(--txt2)">${p.unidad||'—'}</td>
+      <td style="font-size:12px;color:var(--txt2)">${p.unidad ? badgeUnidad(p.unidad) : '—'}</td>
       <td style="font-size:12px">${fmt(costo)}</td>
       <td style="color:var(--P);font-weight:600">${fmt(precio)}</td>
       <td style="font-size:12px;font-weight:600;color:${mReal<0?'var(--D)':mReal<mObj?'var(--W)':'var(--P)'}">${mReal}%</td>
