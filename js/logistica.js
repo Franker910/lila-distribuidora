@@ -831,20 +831,20 @@ function imprimirRemito(){
   const condPago=d.condicion_pago??cli.condicion_pago;
   const condTexto=condPago?condPago+' días':'Contado';
   let sub=0,dtoT=0,tot=0;
-  const rows=(d.items||[]).map(it=>{
+  const rows = (d.items||[]).map(it=>{
     const prod=_productos.find(p=>p.id===it.id||p.nombre===it.nom)||{};
-    const base=it.precio*it.cant,dtoA=base*((it.dto||0)/100),neto=base-dtoA;
-    sub+=base;dtoT+=dtoA;tot+=neto;
+    const base=it.precio*it.cant, dtoA=base*((it.dto||0)/100), neto=base-dtoA;
+    sub+=base; dtoT+=dtoA; tot+=neto;
     const esKg=(it.un||'').toLowerCase()==='kg';
     return '<tr>'
-      +'<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:11px;white-space:nowrap">'+fmtN(it.cant,2)+' '+(it.un||'')+'</td>'
-      +'<td style="padding:5px 6px;border:1px solid #ccc;font-size:11px">'+esc(it.nom)+'</td>'
-      +'<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:10px;color:#666">'+(prod.codigo||'—')+'</td>'
-      +'<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:11px">'+(esKg?fmtN(it.cant,2):'—')+'</td>'
-      +'<td style="padding:5px 6px;border:1px solid #ccc;text-align:right;font-size:11px">'+fmt(it.precio)+'</td>'
-      +'<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:11px">'+((it.dto||0)||'—')+(it.dto?'%':'')+'</td>'
-      +'<td style="padding:5px 6px;border:1px solid #ccc;text-align:right;font-weight:600;font-size:11px">'+fmt(neto)+'</td>'
-      +'</tr>';
+      + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:11px;white-space:nowrap">'+fmtN(it.cant,2)+'</td>'  // Cambio aquí
+      + '<td style="padding:5px 6px;border:1px solid #ccc;font-size:11px">'+esc(it.nom)+'</td>' 
+      + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:10px;color:#666">'+(prod.codigo||'—')+'</td>'
+      + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:11px">'+(esKg?fmtN(it.cant,2)+' kg':'—')+'</td>'  // Cambio aquí
+      + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:right;font-size:11px">'+fmt(it.precio)+'</td>'
+      + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:11px">'+((it.dto||0)||'—')+(it.dto?'%':'')+'</td>'
+      + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:right;font-weight:600;font-size:11px">'+fmt(neto)+'</td>'
+      + '</tr>';
   }).join('');
 
   const bloque=(etiqueta)=>`

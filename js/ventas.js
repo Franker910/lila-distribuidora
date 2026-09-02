@@ -760,31 +760,70 @@ function selProRR(id){
 
 // Navegación Código→Cant/Peso→Precio→Dto de la fila de carga. Al completar la
 // última celda, confirma el ítem y deja lista una fila nueva vacía (sin botón Agregar).
-function _rrStagingKeydown(e,campo){
-  // Enter en CUALQUIER campo agrega el producto
-  if(e.key==='Enter'){
+function _rrStagingKeydown(e, campo) {
+  const esPeso = _rrProTemp && ['kg','kilo','kilos','k','kilogramo','kilogramos'].includes((_rrProTemp.unidad||'').toLowerCase().trim());
+
+  if (e.key === 'Enter') {
     e.preventDefault();
-    _rrCommitStaging();
-    return;
-  }
-  
-  // Tab sigue navegando entre campos
-  if(e.key==='Tab'){
-    e.preventDefault();
-    if(campo==='peso'){
-      const peso=parseFloat(e.target.value)||0;
-      if(peso<=0){
-        e.target.style.borderColor='var(--D)';e.target.style.background='#fdecea';
-        e.target.focus();e.target.select();
+    // Si es pesable y el peso está vacío o 0, no confirmar: ir a peso
+    if (esPeso) {
+      const peso = parseFloat(_rrStagingVals.peso) || 0;
+      if (peso <= 0) {
+        const input = document.getElementById('rr-peso');
+        if (input) {
+          input.style.borderColor = 'var(--D)';
+          input.style.background = '#fdecea';
+          input.focus();
+          input.select();
+        }
+        toast('⚠️ Ingresá el peso real del producto (kg) antes de confirmar.', 'warn');
         return;
       }
     }
-    const esPeso=_rrProTemp&&['kg','kilo','kilos','k','kilogramo','kilogramos'].includes((_rrProTemp.unidad||'').toLowerCase().trim());
-    const orden=esPeso?['peso','precio','dto']:['cant','precio','dto'];
-    const idx=orden.indexOf(campo);
-    if(idx<0||idx>=orden.length-1){_rrCommitStaging();return;}
-    const f=document.getElementById('rr-'+orden[idx+1]);
-    if(f){f.focus();f.select();}
+    _rrCommitStaging();
+    return;
+  }
+
+  if (e.key !== 'Tab') return;
+  e.preventDefault();
+
+  const orden = esPeso ? ['peso', 'precio', 'dto'] : ['cant', 'precio', 'dto'];
+  const idx = orden.indexOf(campo);
+  if (idx === -1) {
+    _rrCommitStaging();
+    return;
+  }
+
+  if (campo === 'peso' && esPeso) {
+    const peso = parseFloat(_rrStagingVals.peso) || 0;
+    if (peso <= 0) {
+      const input = document.getElementById('rr-peso');
+      if (input) {
+        input.style.borderColor = 'var(--D)';
+        input.style.background = '#fdecea';
+        input.focus();
+        input.select();
+      }
+      toast('⚠️ Ingresá el peso real del producto (kg) antes de continuar.', 'warn');
+      return;
+    } else {
+      const input = document.getElementById('rr-peso');
+      if (input) {
+        input.style.borderColor = '';
+        input.style.background = '';
+      }
+    }
+  }
+
+  if (idx >= orden.length - 1) {
+    _rrCommitStaging();
+    return;
+  }
+
+  const nextField = document.getElementById('rr-' + orden[idx + 1]);
+  if (nextField) {
+    nextField.focus();
+    nextField.select();
   }
 }
 
@@ -800,31 +839,53 @@ function updStagingRR(campo,v,inputEl){
   if(el2){el2.value=v;el2.focus();el2.setSelectionRange(v.length,v.length);}
 }
 
-function _rrCommitStaging(){
-  if(!_rrProTemp){alert('Seleccioná un producto (código o nombre)');return;}
-  const cant=parseFloat(_rrStagingVals.cant)||1;
-  const peso=parseFloat(_rrStagingVals.peso)||0;
-  const precio=parseFloat(_rrStagingVals.precio)||0;
-  const dto=parseFloat(_rrStagingVals.dto)||0;
-  const unidad=(_rrProTemp.unidad||'').toLowerCase().trim();
-  const esPorPeso=['kg','kilo','kilos','k','kilogramo','kilogramos'].includes(unidad);
-  if(esPorPeso&&peso<=0){
-    alert('⚠️ '+esc(_rrProTemp.nombre)+' se vende por kg. Ingresá el peso real de la balanza.');
-    const f=document.getElementById('rr-peso');
-    if(f){f.focus();f.select();f.style.borderColor='var(--D)';}
+function _rrCommitStaging() {
+  if (!_rrProTemp) {
+    toast('Seleccioná un producto (código o nombre)', 'warn');
     return;
   }
-  const unFinal=esPorPeso?'kg':(_rrProTemp.unidad||'un');
-  const listaId=_rrStagingVals.lista?parseInt(_rrStagingVals.lista):null;
-  const ex=_rrItems.find(i=>i.id===_rrProTemp.id);
-  if(ex){ex.cant+=cant;if(esPorPeso)ex.peso=(ex.peso||0)+peso;}
-  else{_rrItems.push({id:_rrProTemp.id,nom:_rrProTemp.nombre,un:unFinal,cant,peso:esPorPeso?peso:0,precio,dto,iva:_rrProTemp.iva||21,esPeso:esPorPeso,listaId});}
-  _rrProTemp=null;
-  // Se mantiene "lista" para la próxima fila (uso típico: mismo cliente,
-  // misma lista casi siempre) — el resto de los campos sí se limpia.
-  _rrStagingVals={cod:'',cant:'1',peso:'',precio:'0',dto:'0',lista:_rrStagingVals.lista};
+  const cant = parseFloat(_rrStagingVals.cant) || 1;
+  const peso = parseFloat(_rrStagingVals.peso) || 0;
+  const precio = parseFloat(_rrStagingVals.precio) || 0;
+  const dto = parseFloat(_rrStagingVals.dto) || 0;
+  const unidad = (_rrProTemp.unidad || '').toLowerCase().trim();
+  const esPorPeso = ['kg','kilo','kilos','k','kilogramo','kilogramos'].includes(unidad);
+
+  if (esPorPeso && peso <= 0) {
+    // ✅ Reemplazado alert por toast
+    toast('⚠️ ' + esc(_rrProTemp.nombre) + ' se vende por kg. Ingresá el peso real de la balanza.', 'warn');
+    const f = document.getElementById('rr-peso');
+    if (f) { f.focus(); f.select(); f.style.borderColor = 'var(--D)'; }
+    return;
+  }
+
+  const unFinal = esPorPeso ? 'kg' : (_rrProTemp.unidad || 'un');
+  const listaId = _rrStagingVals.lista ? parseInt(_rrStagingVals.lista) : null;
+  const ex = _rrItems.find(i => i.id === _rrProTemp.id);
+  if (ex) {
+    ex.cant += cant;
+    if (esPorPeso) ex.peso = (ex.peso || 0) + peso;
+  } else {
+    _rrItems.push({
+      id: _rrProTemp.id,
+      nom: _rrProTemp.nombre,
+      un: unFinal,
+      cant: cant,
+      peso: esPorPeso ? peso : 0,
+      precio: precio,
+      dto: dto,
+      iva: _rrProTemp.iva || 21,
+      esPeso: esPorPeso,
+      listaId: listaId
+    });
+  }
+  _rrProTemp = null;
+  _rrStagingVals = { cod: '', cant: '1', peso: '', precio: '0', dto: '0', lista: _rrStagingVals.lista };
   renderItemsRR();
-  setTimeout(()=>{const f=document.getElementById('rr-cod');if(f)f.focus();},80);
+  setTimeout(() => {
+    const f = document.getElementById('rr-cod');
+    if (f) f.focus();
+  }, 80);
 }
 
 // Alias para el botón "+" - llama a _rrCommitStaging
