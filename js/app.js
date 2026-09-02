@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260831-04';
+const APP_VERSION = '20260901-01';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -966,18 +966,47 @@ function focoHamburguesa(){
 // registra una sola vez (no depende de qué camino de login lo abrió).
 let _sidebarKeyNavInit=false;
 function initSidebarKeyNav(){
-  if(_sidebarKeyNavInit)return;
-  _sidebarKeyNavInit=true;
-  document.getElementById('sidebar')?.addEventListener('keydown',function(e){
-    if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
+  if (_sidebarKeyNavInit) return;
+  _sidebarKeyNavInit = true;
+  
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+  
+  // Remover cualquier listener previo (por si acaso)
+  sidebar.removeEventListener('keydown', _sidebarKeydownHandler);
+  
+  // Definir el handler
+  function _sidebarKeydownHandler(e) {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
     e.preventDefault();
-    const btns=[...this.querySelectorAll('.sidebar-dash,.sidebar-group-btn,.sidebar-item')]
-      .filter(b=>b.style.display!=='none');
-    const idx=btns.indexOf(document.activeElement);
-    if(idx===-1)return;
-    const next=e.key==='ArrowDown'?btns[idx+1]:btns[idx-1];
-    if(next)next.focus();
-  });
+    e.stopPropagation(); // Evita que otros listeners lo manejen
+    
+    const selector = '.sidebar-dash, .sidebar-group-btn, .sidebar-item';
+    const all = [...sidebar.querySelectorAll(selector)];
+    
+    const visibles = all.filter(el => {
+      const rect = el.getBoundingClientRect();
+      return el.offsetParent !== null && rect.height > 0;
+    });
+    
+    const currentIdx = visibles.indexOf(document.activeElement);
+    if (currentIdx === -1) return;
+    
+    let newIdx;
+    if (e.key === 'ArrowDown') {
+      newIdx = Math.min(currentIdx + 1, visibles.length - 1);
+    } else {
+      newIdx = Math.max(currentIdx - 1, 0);
+    }
+    
+    console.log(`🔄 Moviendo de ${currentIdx} a ${newIdx} (${visibles.length} visibles)`);
+    console.log('📋 Visibles:', visibles.map(el => el.textContent.trim()));
+    
+    if (visibles[newIdx]) visibles[newIdx].focus();
+  };
+  
+  // Agregar el listener
+  sidebar.addEventListener('keydown', _sidebarKeydownHandler);
 }
 
 function abrirMenu(){
