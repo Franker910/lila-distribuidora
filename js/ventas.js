@@ -1816,7 +1816,7 @@ function selClienteMovil(id){
   if (saldoWrap) {
     saldoWrap.style.display = 'block';
   }
-  
+
   // Ocultar lista de clientes y buscador
   const listaClientes = document.getElementById('pm-cli-lista');
   if (listaClientes) {
@@ -2107,22 +2107,48 @@ function agregarAlCarrito(){
 }
 
 function actualizarCarritoBar(){
-  const bar=document.getElementById('pm-carrito-bar');
-  const tot=_pmCarrito.reduce((a,x)=>a+x.neto,0);
-  const n=_pmCarrito.length;
-  const itemsEl=document.getElementById('pm-carrito-items');
-  const totalEl=document.getElementById('pm-carrito-total');
-  if(itemsEl)itemsEl.textContent=n+' producto'+(n!==1?'s':'');
-  if(totalEl)totalEl.textContent=fmt(tot);
-  if(bar)bar.style.display=n>0?'flex':'none';
+  const bar = document.getElementById('pm-carrito-bar');
+  if (!bar) return;
+  
+  const tot = _pmCarrito.reduce((a,x) => a + x.neto, 0);
+  const n = _pmCarrito.length;
+  
+  const itemsEl = document.getElementById('pm-carrito-items');
+  const totalEl = document.getElementById('pm-carrito-total');
+  const btn = bar.querySelector('button');
+  
+  if (itemsEl) itemsEl.textContent = n + ' producto' + (n !== 1 ? 's' : '');
+  if (totalEl) totalEl.textContent = fmt(tot);
+  
+  // Detectar si el resumen está visible
+  const resumen = document.getElementById('pm-paso-resumen');
+  const resumenVisible = resumen && resumen.style.display === 'block';
+  
+  if (n > 0) {
+    bar.style.display = 'flex';
+    if (btn) {
+      if (resumenVisible) {
+        btn.textContent = '← Seguir agregando';
+        btn.onclick = volverProductosMovil;
+      } else {
+        btn.textContent = 'Ver pedido →';
+        btn.onclick = mostrarResumenMovil;
+      }
+    }
+  } else {
+    bar.style.display = 'none';
+  }
 }
 
 function mostrarResumenMovil(){
-  document.getElementById('pm-paso-productos').style.display='none';
-  document.getElementById('pm-paso-resumen').style.display='block';
-  const tot=_pmCarrito.reduce((a,x)=>a+x.neto,0);
-  document.getElementById('pm-resumen-total').textContent=fmt(tot);
-  document.getElementById('pm-resumen-items').innerHTML=_pmCarrito.map(x=>`
+  const pasoProd = document.getElementById('pm-paso-productos');
+  const pasoRes = document.getElementById('pm-paso-resumen');
+  if (pasoProd) pasoProd.style.display = 'none';
+  if (pasoRes) pasoRes.style.display = 'block';
+  
+  const tot = _pmCarrito.reduce((a,x) => a + x.neto, 0);
+  document.getElementById('pm-resumen-total').textContent = fmt(tot);
+  document.getElementById('pm-resumen-items').innerHTML = _pmCarrito.map(x => `
     <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--brd);font-size:14px">
       <div>
         <div style="font-weight:600">${esc(x.nom)}</div>
@@ -2130,11 +2156,19 @@ function mostrarResumenMovil(){
       </div>
       <div style="font-weight:700;color:var(--PD)">${fmt(x.neto)}</div>
     </div>`).join('');
+  
+  // Actualizar el botón del carrito
+  actualizarCarritoBar();
 }
 
 function volverProductosMovil(){
-  document.getElementById('pm-paso-resumen').style.display='none';
-  document.getElementById('pm-paso-productos').style.display='block';
+  const pasoProd = document.getElementById('pm-paso-productos');
+  const pasoRes = document.getElementById('pm-paso-resumen');
+  if (pasoProd) pasoProd.style.display = 'block';
+  if (pasoRes) pasoRes.style.display = 'none';
+  
+  // Actualizar el botón del carrito
+  actualizarCarritoBar();
 }
 
 async function confirmarPedidoMovil(){
