@@ -1503,14 +1503,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <!-- CARGAS -->
-<div class="panel" id="p-carga">
+<div class="panel" id="p-carga" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">
   
   <!-- Vista lista de cargas -->
   <div id="carga-vista-lista" style="display:flex; flex-direction:column; height:100%; overflow:hidden;">
     
-    <div class="sech" style="flex-shrink:0;">
-      <h2>Cargas emitidas</h2>
-      <button class="btn P" onclick="mostrarNuevaCarga()">+ Nueva carga</button>
+    <div class="sech" style="flex-shrink:0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+      <h2 style="margin:0; font-size:18px;">Cargas emitidas</h2>
+      <button class="btn P" onclick="mostrarNuevaCarga()" style="padding:8px 16px;">+ Nueva carga</button>
     </div>
 
     <div class="tb" style="flex-shrink:0; flex-wrap:wrap; gap:6px;">
@@ -4385,6 +4385,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+
 <!-- MAESTRO ZONAS -->
 <div class="panel" id="p-zonas" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">
   <div class="sech" style="flex-shrink:0;">
@@ -4394,13 +4395,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="btn A" onclick="sincronizarZonasDesdeLocalidades()" title="Crear zonas para localidades de clientes que aún no tienen zona">🔄 Sincronizar desde clientes</button>
     </div>
   </div>
-  <div class="tb">
-    <input id="zona-q" placeholder="Buscar..." oninput="renderZonas()">
+
+  <!-- Barra de búsqueda -->
+  <div class="tb" style="flex-shrink:0;">
+    <input id="zona-q" placeholder="Buscar..." oninput="renderZonas()" style="flex:1; max-width:300px;">
   </div>
-  <div class="tbl-wrap"><table class="tbl">
-    <thead><tr><th>Zona</th><th>Descripción</th><th>Vendedor</th><th>Clientes</th><th></th></tr></thead>
-    <tbody id="zona-tbody"></tbody>
-  </table></div>
+
+  <!-- Contenedor con scroll para la tabla -->
+  <div style="flex:1; overflow-y:auto; min-height:0; border:1px solid var(--brd); border-radius:8px; padding:4px; margin-top:4px;">
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Zona</th>
+            <th>Descripción</th>
+            <th>Vendedor</th>
+            <th>Clientes</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="zona-tbody"></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <!-- HOJA DE RUTA -->
@@ -4742,13 +4759,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260902-03"></script>
-<script src="js/maestros.js?v=20260902-03"></script>
-<script src="js/ventas.js?v=20260902-03"></script>
-<script src="js/tesoreria.js?v=20260902-03"></script>
-<script src="js/contabilidad.js?v=20260902-03"></script>
-<script src="js/informes.js?v=20260902-03"></script>
-<script src="js/logistica.js?v=20260902-03"></script>
+<script src="js/app.js?v=20260903-01"></script>
+<script src="js/maestros.js?v=20260903-01"></script>
+<script src="js/ventas.js?v=20260903-01"></script>
+<script src="js/tesoreria.js?v=20260903-01"></script>
+<script src="js/contabilidad.js?v=20260903-01"></script>
+<script src="js/informes.js?v=20260903-01"></script>
+<script src="js/logistica.js?v=20260903-01"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
