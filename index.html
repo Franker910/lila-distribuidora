@@ -779,6 +779,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #np-toggle-items .icon.open {
   transform: rotate(180deg);
 }
+
+#inf-hist-chart {
+  width: 100% !important;
+  height: 340px !important;
+  min-height: 340px !important;
+  display: block !important;
+}
 </style>
 </head>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
@@ -3369,10 +3376,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
       <div class="sech" style="margin-bottom:10px">
         <div>
-          <div style="font-weight:700;margin-bottom:2px">📜 Evolución histórica — datos FoxPro</div>
+          <div style="font-weight:700;margin-bottom:2px">📈 Evolución histórica — datos FoxPro</div>
           <div id="inf-hist-status" style="font-size:11px;color:var(--txt2)">Cargando datos importados...</div>
         </div>
-        <button class="btn P" onclick="_histData=null;_histGastos=null;informeHistoricoChart()" style="padding:8px 18px;font-weight:700">🔄 Actualizar</button>
+        <button class="btn P" onclick="informeHistoricoChart(null, true)" style="padding:8px 18px;font-weight:700">🔄 Actualizar</button>
       </div>
       <!-- Filtro de año -->
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
@@ -3381,8 +3388,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <button class="btn sm" id="inf-hist-all" onclick="informeHistoricoChart(null)" style="font-size:11px">Todos</button>
       </div>
       <!-- Gráfico principal -->
-      <div style="position:relative;height:340px">
-        <canvas id="inf-hist-chart"></canvas>
+      <div style="position:relative; height:340px; width:100%;">
+        <canvas id="inf-hist-chart" style="width:100%; height:100%; display:block;"></canvas>
       </div>
       <!-- KPIs resumen -->
       <div id="inf-hist-kpis" class="g4" style="margin-top:14px"></div>
@@ -4759,13 +4766,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260903-01"></script>
-<script src="js/maestros.js?v=20260903-01"></script>
-<script src="js/ventas.js?v=20260903-01"></script>
-<script src="js/tesoreria.js?v=20260903-01"></script>
-<script src="js/contabilidad.js?v=20260903-01"></script>
-<script src="js/informes.js?v=20260903-01"></script>
-<script src="js/logistica.js?v=20260903-01"></script>
+<script src="js/app.js?v=20260903-02"></script>
+<script src="js/maestros.js?v=20260903-02"></script>
+<script src="js/ventas.js?v=20260903-02"></script>
+<script src="js/tesoreria.js?v=20260903-02"></script>
+<script src="js/contabilidad.js?v=20260903-02"></script>
+<script src="js/informes.js?v=20260903-02"></script>
+<script src="js/logistica.js?v=20260903-02"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

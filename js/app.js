@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260903-01';
+const APP_VERSION = '20260903-02';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -1571,6 +1571,31 @@ function toggleVista() {
   });
 }
 
+// ─── TRAER TODOS LOS REGISTROS CON PAGINACIÓN ───
+async function traerTodos(tabla, select, orderBy) {
+  let all = [];
+  let from = 0;
+  const pageSize = 1000;
+  let hasMore = true;
+
+  while (hasMore) {
+    let query = sb.from(tabla).select(select);
+    if (orderBy) query = query.order(orderBy, { ascending: true });
+    const { data, error } = await query.range(from, from + pageSize - 1);
+    if (error) {
+      console.error(`[traerTodos] Error en ${tabla}:`, error);
+      break;
+    }
+    if (!data || data.length === 0) {
+      hasMore = false;
+      break;
+    }
+    all = all.concat(data);
+    from += pageSize;
+    if (data.length < pageSize) hasMore = false;
+  }
+  return all;
+}
 
 // function volverAdmin() {
 //   // Cambiar rol temporalmente a admin
