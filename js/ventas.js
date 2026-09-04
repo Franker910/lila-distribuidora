@@ -1849,6 +1849,19 @@ function selClienteMovil(id){
     });
     return;
   }
+
+  // Mostrar el buscador de productos
+  const busqWrap = document.getElementById('pm-pro-busq-wrap');
+  if (busqWrap) busqWrap.style.display = 'block';
+  
+  // Resetear buscador
+  const input = document.getElementById('pm-pro-busq');
+  const resultados = document.getElementById('pm-pro-busq-resultados');
+  if (input) input.value = '';
+  if (resultados) {
+    resultados.style.display = 'none';
+    resultados.innerHTML = '';
+  }
   
   console.log('✅ Productos ya cargados, mostrando paso...');
   _mostrarPasoProductosMovil();
@@ -1876,6 +1889,15 @@ function _mostrarPasoProductosMovil() {
     pasoProductos.style.maxHeight = '100%';
     pasoProductos.style.overflow = 'hidden';
     pasoProductos.classList.add('on');
+  }
+
+  //  Asegurar que el buscador esté vacío y oculto
+  const input = document.getElementById('pm-pro-busq');
+  const resultados = document.getElementById('pm-pro-busq-resultados');
+  if (input) input.value = '';
+  if (resultados) {
+    resultados.style.display = 'none';
+    resultados.innerHTML = '';
   }
   
   // Ocultar paso de resumen
@@ -2309,8 +2331,37 @@ function resetYNuevoPedido(){
   const saldoWrap=document.getElementById('pm-cli-saldo-wrap');if(saldoWrap)saldoWrap.style.display='none';
   const qEl=document.getElementById('pm-cli-q');if(qEl){qEl.value='';setTimeout(()=>qEl.focus(),100);}
   const listaEl=document.getElementById('pm-cli-lista');if(listaEl)listaEl.innerHTML='';
+  const busqWrap = document.getElementById('pm-pro-busq-wrap');
+  if (busqWrap) busqWrap.style.display = 'none';
   actualizarCarritoBar();
   go('pedido-movil');
+}
+
+
+// Para el modal de nuevo pedido (PC y móvil)
+
+/**
+ * Busca cliente por código desde el campo de código en el modal de pedido
+ * Redirige a buscarCodCli() que ya existe.
+ */
+function buscarCliPorCodigo(pfx) {
+  buscarCodCli(pfx);
+}
+
+/**
+ * Busca producto por código desde el campo de código en el modal de pedido
+ * Redirige a buscarCodPro() asumiendo el prefijo 'np'.
+ */
+function buscarPorCodigo() {
+  buscarCodPro('np');
+}
+
+/**
+ * Recalcula y actualiza el total del pedido cuando se modifica el descuento
+ * Llama a renderItems() para actualizar toda la interfaz.
+ */
+function calcItem() {
+  renderItems();
 }
 
 // estado temporal de edición de pedido móvil
@@ -3268,6 +3319,10 @@ function volverHeaderPedidoMovil() {
     // Ocultar carrito
     const carritoBar = document.getElementById('pm-carrito-bar');
     if (carritoBar) carritoBar.style.display = 'none';
+
+    // Ocultar el buscador de productos
+    const busqWrap = document.getElementById('pm-pro-busq-wrap');
+    if (busqWrap) busqWrap.style.display = 'none';
     
     // Poner foco en input de zona
     setTimeout(() => {
@@ -3298,4 +3353,60 @@ function badgeUnidad(unidad) {
   const u = unidad.toLowerCase().trim();
   const esPeso = ['kg','kilo','kilos','k','kilogramo','kilogramos'].includes(u);
   return esPeso ? '⚖️ Kg' : '📦 ' + unidad.charAt(0).toUpperCase() + unidad.slice(1);
+}
+
+function filtrarProductosMovil() {
+  const input = document.getElementById('pm-pro-busq');
+  const resultados = document.getElementById('pm-pro-busq-resultados');
+  const marcasLista = document.getElementById('pm-marcas-lista');
+  if (!input || !resultados || !marcasLista) return;
+  
+  const q = input.value.toLowerCase().trim();
+  
+  // Si no hay búsqueda, ocultar resultados y mostrar marcas
+  if (!q) {
+    resultados.style.display = 'none';
+    resultados.innerHTML = '';
+    marcasLista.style.display = 'block';
+    // Recargar marcas (para que no quede vacío)
+    cargarMarcasMovil();
+    return;
+  }
+  
+  // Buscar productos que coincidan
+  const coincidencias = _productos.filter(p => 
+    p.activo !== false &&
+    ((p.nombre || '').toLowerCase().includes(q) || 
+     String(p.codigo || '').includes(q))
+  );
+  
+  if (!coincidencias.length) {
+    resultados.style.display = 'block';
+    resultados.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt2);font-size:14px;">❌ No hay productos que coincidan</div>';
+    marcasLista.style.display = 'none';
+    return;
+  }
+  
+  // Mostrar resultados en una lista plana
+  resultados.style.display = 'block';
+  marcasLista.style.display = 'none';
+  resultados.innerHTML = coincidencias.map(p => {
+    const si = _stockInfo(p);
+    const enCarrito = _pmCarrito.find(x => x.id === p.id);
+    return `
+      <div onclick="abrirPopupMovil(${p.id})" 
+        style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--brd);cursor:pointer;background:${enCarrito?'var(--PL)':'var(--bg)'};min-height:56px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.nombre)}</div>
+          <div style="font-size:11px;color:var(--txt2);">${esc(p.proveedor_nom || '')} · Cód: ${p.codigo || p.id}</div>
+          <div style="font-size:11px;color:${si.color};font-weight:${si.peso};">${si.txt}</div>
+          ${enCarrito ? `<div style="font-size:11px;color:var(--P);font-weight:600;">✓ ${enCarrito.cant} en pedido</div>` : ''}
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:10px;">
+          <div style="font-size:15px;font-weight:700;color:var(--PD);">${fmt(p.precio)}</div>
+          <div style="font-size:10px;color:var(--txt2);">${p.unidad || ''}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
 }

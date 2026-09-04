@@ -2313,7 +2313,7 @@ function limpiarCobMovil(){
   const pmc=document.getElementById('cobm-panel-miscobranzas');
   if(pmc) pmc.style.display='none';
   
-  setTimeout(()=>document.getElementById('cobm-cli-q')?.focus(),100);
+  // setTimeout(()=>document.getElementById('cobm-cli-q')?.focus(),100);
 
   const clientesRuta = document.getElementById('cobm-clientes-ruta-hoy');
   if (clientesRuta) {
