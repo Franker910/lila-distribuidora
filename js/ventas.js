@@ -9,31 +9,32 @@ async function cargarPedidos() {
   let hasMore = true;
 
   while (hasMore) {
-    const { data, error } = await sb
-      .from('pedidos')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(from, from + pageSize - 1);
+    const result = await q(
+      sb
+        .from('pedidos')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, from + pageSize - 1),
+      'pedidos (página ' + (Math.floor(from / pageSize) + 1) + ')'
+    );
 
-    if (error) {
-      console.error('[cargarPedidos]', error);
-      break;
+    if (result === null) {
+      _pedidosTodos = [];
+      _pedidos = [];
+      return;
     }
 
-    if (!data || data.length === 0) {
+    if (result.length === 0) {
       hasMore = false;
       break;
     }
 
-    all = all.concat(data);
+    all = all.concat(result);
     from += pageSize;
-
-    if (data.length < pageSize) {
-      hasMore = false;
-    }
+    if (result.length < pageSize) hasMore = false;
   }
 
-  _pedidosTodos = all || [];
+  _pedidosTodos = all;
   // Aplicar filtro por vendedor (si existe)
   if (usuarioActual?.vendedor) {
     _pedidos = _pedidosTodos.filter(p => {
@@ -2111,6 +2112,7 @@ function agregarAlCarrito(){
     // Redibujar el catálogo para que se actualice el contador "✓ en pedido",
     // igual que hace cargarMarcasMovil() en la toma de pedido original.
     filtrarAgregarMovil();
+    limpiarBuscadorProductosMovil();
     return;
   }
 
@@ -2124,6 +2126,7 @@ function agregarAlCarrito(){
     if(idx>=0)_pmCarrito[idx]=item;else _pmCarrito.push(item);
   }
   cerrarPopupMovil();
+  limpiarBuscadorProductosMovil();
   actualizarCarritoBar();
   cargarMarcasMovil();
 }
@@ -2170,17 +2173,43 @@ function mostrarResumenMovil(){
   
   const tot = _pmCarrito.reduce((a,x) => a + x.neto, 0);
   document.getElementById('pm-resumen-total').textContent = fmt(tot);
-  document.getElementById('pm-resumen-items').innerHTML = _pmCarrito.map(x => `
-    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--brd);font-size:14px">
-      <div>
-        <div style="font-weight:600">${esc(x.nom)}</div>
-        <div style="color:var(--txt2);font-size:12px">${x.cant} ${x.un} × ${fmt(x.precio)}${x.dto>0?' − '+x.dto+'%':''}</div>
+  
+  document.getElementById('pm-resumen-items').innerHTML = _pmCarrito.map((x, index) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--brd);font-size:14px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;">${esc(x.nom)}</div>
+        <div style="color:var(--txt2);font-size:12px;">${x.cant} ${x.un} × ${fmt(x.precio)}${x.dto>0?' − '+x.dto+'%':''}</div>
       </div>
-      <div style="font-weight:700;color:var(--PD)">${fmt(x.neto)}</div>
-    </div>`).join('');
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <div style="font-weight:700;color:var(--PD);">${fmt(x.neto)}</div>
+        <button onclick="eliminarProductoResumen(${index})" 
+          style="background:var(--DL);color:var(--D);border:none;border-radius:6px;width:30px;height:30px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
+          title="Eliminar producto">
+          ✕
+        </button>
+      </div>
+    </div>
+  `).join('');
   
   // Actualizar el botón del carrito
   actualizarCarritoBar();
+}
+
+function eliminarProductoResumen(index) {
+  // Eliminar el producto del carrito
+  _pmCarrito.splice(index, 1);
+  
+  // Actualizar la interfaz
+  actualizarCarritoBar();
+  
+  // Si el carrito quedó vacío, volver a la lista de productos
+  if (_pmCarrito.length === 0) {
+    volverProductosMovil();
+    return;
+  }
+  
+  // Si no quedó vacío, refrescar el resumen
+  mostrarResumenMovil();
 }
 
 function volverProductosMovil(){
@@ -2188,6 +2217,9 @@ function volverProductosMovil(){
   const pasoRes = document.getElementById('pm-paso-resumen');
   if (pasoProd) pasoProd.style.display = 'block';
   if (pasoRes) pasoRes.style.display = 'none';
+
+  // Recargar marcas para que los badges se actualicen
+  cargarMarcasMovil();
   
   // Actualizar el botón del carrito
   actualizarCarritoBar();
@@ -2651,6 +2683,7 @@ async function guardarEditPedidoMovil(){
 function cancelarEditPedidoMovil(){
   _editPedMovil=null;
   cerrarBottomSheetEditar();
+  limpiarBuscadorProductosMovil();
 }
 
 // ─── LIMPIAR FILTROS DE REMITOS ───
@@ -3409,4 +3442,33 @@ function filtrarProductosMovil() {
       </div>
     `;
   }).join('');
+}
+
+function limpiarBuscadorProductosMovil() {
+  const input = document.getElementById('pm-pro-busq');
+  const resultados = document.getElementById('pm-pro-busq-resultados');
+  const marcasLista = document.getElementById('pm-marcas-lista');
+  
+  if (input) {
+    input.value = '';
+    input.blur(); // opcional: quita el foco para cerrar el teclado
+  }
+  if (resultados) {
+    resultados.style.display = 'none';
+    resultados.innerHTML = '';
+  }
+  if (marcasLista) {
+    marcasLista.style.display = 'block';
+  }
+  // Recargar marcas para que reflejen el carrito actualizado
+  cargarMarcasMovil();
+}
+
+/**
+ * Recalcula y actualiza el total de la Nota de Crédito
+ * Se llama desde el input de precio de producto en el modal de NC.
+ */
+function calcNCItem() {
+  // Re-renderizar la lista de items de la NC
+  renderItemsNC();
 }

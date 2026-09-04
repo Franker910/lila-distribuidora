@@ -2812,3 +2812,45 @@ function cerrarInformeStock() {
     if (conteoSection) conteoSection.style.display = 'none';
   }
 }
+
+/**
+ * Simula la comisión de un vendedor en el panel de Informes.
+ * Actualiza el resultado del simulador.
+ */
+function simularComision() {
+  const vendedor = document.getElementById('sim-vendedor')?.value || 'Franco';
+  const venta = parseFloat(document.getElementById('sim-venta')?.value) || 0;
+  const pctCob = parseFloat(document.getElementById('sim-cob-pct')?.value) || 85;
+  
+  // Obtener parámetros de comisiones
+  const base1 = parseFloat(document.getElementById('com-base1')?.value) || 1.2;
+  const base2 = parseFloat(document.getElementById('com-base2')?.value) || 1.5;
+  const base3 = parseFloat(document.getElementById('com-base3')?.value) || 1.8;
+  const base4 = parseFloat(document.getElementById('com-base4')?.value) || 2.2;
+  const comCob = parseFloat(document.getElementById('com-cob')?.value) || 1.0;
+  
+  // Calcular comisión base según tramos
+  let comBase = 0;
+  if (venta > 0) {
+    if (venta <= 5000000) comBase = venta * (base1 / 100);
+    else if (venta <= 15000000) comBase = venta * (base2 / 100);
+    else if (venta <= 30000000) comBase = venta * (base3 / 100);
+    else comBase = venta * (base4 / 100);
+  }
+  
+  const cobranza = venta * (pctCob / 100);
+  const comCobranza = cobranza * (comCob / 100);
+  const total = comBase + comCobranza;
+  
+  const el = document.getElementById('sim-resultado');
+  if (el) {
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px;">
+        <div><span style="color:var(--txt2);font-size:11px;">Comisión base</span><br><b>${fmt(comBase)}</b></div>
+        <div><span style="color:var(--txt2);font-size:11px;">Comisión cobranza (${pctCob}%)</span><br><b>${fmt(comCobranza)}</b></div>
+        <div style="background:var(--PL);border-radius:6px;padding:6px;"><span style="color:var(--txt2);font-size:11px;">Total</span><br><b style="color:var(--PD);font-size:18px;">${fmt(total)}</b></div>
+      </div>
+      <div style="font-size:11px;color:var(--txt2);margin-top:6px;">Venta simulada: ${fmt(venta)} · Cobranza: ${fmt(cobranza)}</div>
+    `;
+  }
+}

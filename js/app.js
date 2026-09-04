@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260904-01';
+const APP_VERSION = '20260904-02';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -1595,6 +1595,23 @@ async function traerTodos(tabla, select, orderBy) {
     if (data.length < pageSize) hasMore = false;
   }
   return all;
+}
+
+// ─── WRAPPER DE ERRORES PARA CONSULTAS SUPABASE ───
+async function q(promesa, contexto) {
+  try {
+    const { data, error } = await promesa;
+    if (error) {
+      console.error(`[${contexto}] Error:`, error.message, error.details);
+      toast(`⚠️ No se pudieron cargar los datos de ${contexto}`, 'err', 4000);
+      return null; // null = falló (distinto de [] que significa "sin datos")
+    }
+    return data || [];
+  } catch (e) {
+    console.error(`[${contexto}] Excepción:`, e);
+    toast(`⚠️ Error al cargar ${contexto}`, 'err', 4000);
+    return null;
+  }
 }
 
 // function volverAdmin() {

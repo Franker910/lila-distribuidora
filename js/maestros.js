@@ -27,38 +27,40 @@ async function cargarClientes() {
   let hasMore = true;
 
   while (hasMore) {
-    const { data, error } = await sb
-      .from('clientes')
-      .select('*')
-      .order('nombre')
-      .range(from, from + pageSize - 1);
+    //Envolver la consulta con q() 
+    const result = await q(
+      sb
+        .from('clientes')
+        .select('*')
+        .order('nombre')
+        .range(from, from + pageSize - 1),
+      'clientes (página ' + (Math.floor(from / pageSize) + 1) + ')'
+    );
 
-    if (error) {
-      console.error('[cargarClientes]', error);
-      break;
+    // Si result es null, hubo error → salir y dejar _clientes vacío
+    if (result === null) {
+      _clientes = [];
+      return;
     }
 
-    if (!data || data.length === 0) {
+    if (result.length === 0) {
       hasMore = false;
       break;
     }
 
-    all = all.concat(data);
+    all = all.concat(result);
     from += pageSize;
-
-    if (data.length < pageSize) {
-      hasMore = false;
-    }
+    if (result.length < pageSize) hasMore = false;
   }
 
   // Aplicar filtro por vendedor (si existe)
   if (usuarioActual?.vendedor) {
-    _clientes = (all || []).filter(c => {
+    _clientes = all.filter(c => {
       const v = c.vendedor || '';
       return v === '' || v.toLowerCase().includes(usuarioActual.vendedor.toLowerCase());
     });
   } else {
-    _clientes = all || [];
+    _clientes = all;
   }
 }
 
@@ -75,7 +77,39 @@ async function cargarListasPrecios(){
   try{_clienteListaMap=JSON.parse(localStorage.getItem('lila_cliente_lista')||'{}');}catch{_clienteListaMap={};}
 }
 
-async function cargarProductos(){const {data}=await sb.from('productos').select('*').order('nombre');_productos=data||[];}
+async function cargarProductos() {
+  let all = [];
+  let from = 0;
+  const pageSize = 1000;
+  let hasMore = true;
+
+  while (hasMore) {
+    const result = await q(
+      sb
+        .from('productos')
+        .select('*')
+        .order('nombre')
+        .range(from, from + pageSize - 1),
+      'productos (página ' + (Math.floor(from / pageSize) + 1) + ')'
+    );
+
+    if (result === null) {
+      _productos = [];
+      return;
+    }
+
+    if (result.length === 0) {
+      hasMore = false;
+      break;
+    }
+
+    all = all.concat(result);
+    from += pageSize;
+    if (result.length < pageSize) hasMore = false;
+  }
+
+  _productos = all;
+}
 
 function poblarZonas(){
   // Poblar proveedores desde la tabla real de proveedores

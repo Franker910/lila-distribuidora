@@ -8,33 +8,31 @@ async function cargarRemitos() {
   let hasMore = true;
 
   while (hasMore) {
-    const { data, error } = await sb
-      .from('remitos')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(from, from + pageSize - 1);
+    const result = await q(
+      sb
+        .from('remitos')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, from + pageSize - 1),
+      'remitos (página ' + (Math.floor(from / pageSize) + 1) + ')'
+    );
 
-    if (error) {
-      console.error('[cargarRemitos]', error);
-      // Si falla una página, devolvemos lo que tengamos hasta ahora
-      break;
+    if (result === null) {
+      _remitos = [];
+      return;
     }
 
-    if (!data || data.length === 0) {
+    if (result.length === 0) {
       hasMore = false;
       break;
     }
 
-    all = all.concat(data);
+    all = all.concat(result);
     from += pageSize;
-
-    // Si la página devuelve menos de pageSize, es la última
-    if (data.length < pageSize) {
-      hasMore = false;
-    }
+    if (result.length < pageSize) hasMore = false;
   }
 
-  _remitos = all || [];
+  _remitos = all;
 }
 
 async function cargarCargas(){const {data}=await sb.from('cargas').select('*').order('created_at',{ascending:false});_cargas=data||[];}
@@ -1541,4 +1539,13 @@ async function hrMiRutaAgregarCliente(clienteId){
   document.getElementById('hr-mia-cli-drop').style.display='none';
   document.getElementById('hr-mia-buscador').style.display='none';
   hrVerMiRuta();
+}
+
+/**
+ * Botón "+ Agregar producto" en la vista de nueva carga (Cargas)
+ * Actualmente los productos se agregan seleccionando pedidos, no manualmente.
+ * Esta función muestra un mensaje informativo.
+ */
+function carAgregarItem() {
+  toast('📋 Los productos se agregan seleccionando pedidos de la lista superior.', 'info', 3000);
 }
