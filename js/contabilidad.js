@@ -2166,7 +2166,7 @@ function renderComprobantes(){
     if(estado === 'pendiente' && c.fecha_vencimiento && c.fecha_vencimiento < hoy) estado = 'vencido';
     const badgeClass = estado === 'pagado' ? 'bP' : estado === 'vencido' ? 'bD' : 'bW';
     const diasVenc = c.fecha_vencimiento ? Math.floor((new Date(c.fecha_vencimiento)-new Date())/(864e5)) : null;
-    return `<tr data-comp-id="${c.id}" style="${estado==='vencido'?'background:var(--DL)':''}">
+    return `<tr data-comp-id="${c.id}" style="cursor:pointer; ${estado === 'vencido' ? 'background:var(--DL)' : ''}">
       <td>${c.fecha}</td>
       <td style="font-weight:600">${esc(c.proveedor_nom)}</td>
       <td style="color:var(--txt2);font-size:12px">${c.nro_comprobante||'—'}</td>
@@ -2481,3 +2481,18 @@ function limpiarFiltrosComprobantes() {
   document.getElementById('comp-f-imp').value = '';
   renderComprobantes();
 }
+
+// ─── LISTENER PARA CLIC EN FILAS DE COMPROBANTES (ignorar botones) ───
+document.addEventListener('DOMContentLoaded', function() {
+  const tbody = document.getElementById('comp-tbody');
+  if (tbody) {
+    tbody.addEventListener('click', function(e) {
+      const tr = e.target.closest('tr[data-comp-id]');
+      if (!tr) return;
+      // Si el clic fue en un botón, no hacer nada
+      if (e.target.closest('button')) return;
+      const id = parseInt(tr.dataset.compId);
+      if (id) verComprobanteCompra(id);
+    });
+  }
+});
