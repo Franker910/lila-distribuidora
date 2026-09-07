@@ -2164,7 +2164,7 @@ function renderComprobantes(){
   tbody.innerHTML = sl.length ? sl.map(c => {
     let estado = c.estado;
     if(estado === 'pendiente' && c.fecha_vencimiento && c.fecha_vencimiento < hoy) estado = 'vencido';
-    const badgeClass = estado==='pagado'?'bP':estado==='vencido'?'bD':'bW';
+    const badgeClass = estado === 'pagado' ? 'bP' : estado === 'vencido' ? 'bD' : 'bW';
     const diasVenc = c.fecha_vencimiento ? Math.floor((new Date(c.fecha_vencimiento)-new Date())/(864e5)) : null;
     return `<tr data-comp-id="${c.id}" style="${estado==='vencido'?'background:var(--DL)':''}">
       <td>${c.fecha}</td>
@@ -2174,15 +2174,15 @@ function renderComprobantes(){
       <td style="font-size:12px;${estado==='vencido'?'color:var(--D);font-weight:600':''}">${c.fecha_vencimiento||'—'}${diasVenc!==null&&estado==='pendiente'?` <span style="font-size:10px;color:var(--txt2)">(${diasVenc}d)</span>`:''}</td>
       <td style="font-size:12px">${c.condicion_pago?c.condicion_pago+'d':'Contado'}</td>
       <td style="font-weight:600;color:var(--D)">${fmt(c.importe)}</td>
-      <td><span class="b ${badgeClass}">${estado}</span>${(()=>{ if(estado!=='pagado')return ''; const pago=_pagoDeComprobante(c); const f=pago?.forma; const lbl=f==='efectivo'?'💵':f==='transferencia'?'🏦':f==='cheque'?'📋':''; return lbl?` <span title="Forma de pago" style="font-size:12px">${lbl}</span>`:''; })()}</td>
-      <td style="display:flex;gap:3px;flex-wrap:wrap">
-        ${estado!=='pagado'?`<button class="btn P sm" onclick="pagarComprobante(${c.id})">✓ Pagar</button>`:`<button class="btn sm" onclick="imprimirOrdenPago(${c.id})" title="Reimprimir orden de pago">🧾 Orden</button>`}
-        <button class="btn sm" onclick="editarComprobante(${c.id})" title="Editar comprobante" style="background:var(--bg2);border:1px solid var(--brd);">✏️</button>
-        <button class="btn sm" onclick="abrirCargaArticulos(${c.id})" title="Cargar los productos recibidos: actualiza stock y costo">📦 Artículos${c.items&&c.items.length?` (${c.items.length})`:''}</button>
-        <button class="btn sm" onclick="abrirAjusteComp(${c.id},'nc')" title="Nota de crédito del proveedor" style="background:#dbeafe;color:#1e40af;border:none">NC</button>
-        <button class="btn sm" onclick="abrirAjusteComp(${c.id},'nd')" title="Nota de débito del proveedor" style="background:#fef3c7;color:#92400e;border:none">ND</button>
-        <button class="btn sm" onclick="imprimirComprobante(${c.id})" title="Imprimir">🖨</button>
-        <button class="btn D sm" onclick="eliminarComprobante(${c.id})">🗑</button>
+      <td><span class="b ${badgeClass}">${estado}</span>${(()=>{ if(estado!=='pagado')return ''; const pago=_pagoDeComprobante(c); const f=pago?.forma; const lbl=f==='efectivo'?'💵':f==='transferencia'?'🏦':f==='cheque'?'📋':''; return lbl?` <span title="Forma de pago" style="font-size:10px; padding:1px 6px;">${lbl}</span>`:''; })()}</td>
+      <td style="display:flex; flex-wrap:wrap; gap:3px; align-items:center; min-width:160px;">
+        ${estado!=='pagado' ? `<button class="btn P sm" onclick="pagarComprobante(${c.id})" style="padding:2px 8px; font-size:11px;">✓</button>` : `<button class="btn sm" onclick="imprimirOrdenPago(${c.id})" style="padding:2px 8px; font-size:11px;">🧾</button>`}
+        <button class="btn sm" onclick="editarComprobante(${c.id})" style="padding:2px 8px; font-size:11px;">✏️</button>
+        <button class="btn sm" onclick="abrirCargaArticulos(${c.id})" style="padding:2px 8px; font-size:11px;" title="Cargar artículos">📦</button>
+        <button class="btn sm" onclick="abrirAjusteComp(${c.id},'nc')" style="padding:2px 8px; font-size:11px; background:#dbeafe; color:#1e40af; border:none;">NC</button>
+        <button class="btn sm" onclick="abrirAjusteComp(${c.id},'nd')" style="padding:2px 8px; font-size:11px; background:#fef3c7; color:#92400e; border:none;">ND</button>
+        <button class="btn sm" onclick="imprimirComprobante(${c.id})" style="padding:2px 8px; font-size:11px;">🖨</button>
+        <button class="btn D sm" onclick="eliminarComprobante(${c.id})" style="padding:2px 8px; font-size:11px;">🗑</button>
       </td>
     </tr>`;
   }).join('') : '<tr><td colspan="9"><div class="empty">Sin comprobantes</div></td></tr>';

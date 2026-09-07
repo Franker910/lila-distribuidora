@@ -696,15 +696,20 @@ function imprimirHojaCarga(){
   const vendedor=cg.vendedor||'—';
   const zonasTxt=[...new Set(peds.map(p=>p.localidad||nombreZona(p.zona)||'').filter(Boolean))].join(', ')||'—';
 
-  const bloques=peds.map((p,i)=>{
-    const c=_clientes.find(x=>x.id==p.cliente_id)||{};
-    const codCliente=c.codigo||p.cliente_id||'';
-    const filasProd=(p.items||[]).map((it,j)=>{
-      const esPeso=(it.un||'').toLowerCase()==='kg';
-      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #000">'
-        +'<span style="flex:1">'+(j+1)+'. '+it.cant+' × '+esc(it.nom)+'</span>'
-        +(esPeso?'<span style="border:1px solid #000;width:50px;height:16px;display:inline-block;flex-shrink:0"></span>':'')
-      +'</div>';
+  const bloques = peds.map((p,i)=>{
+    const c = _clientes.find(x=>x.id==p.cliente_id)||{};
+    const codCliente = c.codigo||p.cliente_id||'';
+    const filasProd = (p.items || []).map((it, j) => {
+      const esPeso = (it.un || '').toLowerCase() === 'kg';
+      const peso = it.peso || (esPeso ? it.cant : 0);
+      return `
+        <tr style="border-bottom:1px solid #000;">
+          <td style="padding:4px 8px;text-align:center;width:40px;">${j + 1}</td>
+          <td style="padding:4px 8px;text-align:center;width:60px;">${fmtN(it.cant, 2)}</td>
+          <td style="padding:4px 8px;text-align:left;">${esc(it.nom)}</td>
+          <td style="padding:4px 8px;text-align:center;width:70px;">${esPeso ? fmtN(peso, 2) + ' kg' : '—'}</td>
+        </tr>
+      `;
     }).join('');
 
     return '<div style="margin-bottom:12px;page-break-inside:avoid;border:1.5px solid #000;padding:5px 7px">'
@@ -712,7 +717,19 @@ function imprimirHojaCarga(){
       +'<div style="font-size:11px;margin-bottom:1px">Código: '+codCliente+'</div>'
       +'<div style="font-size:11px;margin-bottom:1px">Localidad: '+esc(p.localidad||c.localidad||'—')+'</div>'
       +'<div style="font-size:11px;font-weight:700;margin-bottom:4px">Vendedor: '+esc(vendedor)+'</div>'
-      +filasProd
+      + '<table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:4px;">'
+      +   '<thead>'
+      +     '<tr style="background:#f0f0f0;border-bottom:2px solid #000;">'
+      +       '<th style="padding:4px 8px;text-align:center;width:40px;">Nro</th>'
+      +       '<th style="padding:4px 8px;text-align:center;width:60px;">Cant.</th>'
+      +       '<th style="padding:4px 8px;text-align:left;">Producto</th>'
+      +       '<th style="padding:4px 8px;text-align:center;width:70px;">Peso</th>'
+      +     '</tr>'
+      +   '</thead>'
+      +   '<tbody>'
+      +     filasProd
+      +   '</tbody>'
+      + '</table>'
     +'</div>';
   }).join('');
 
