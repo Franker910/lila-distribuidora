@@ -2504,57 +2504,64 @@ function agregarItemCostoComp(){
   
   const row = document.createElement('div');
   row.className = 'comp-costo-row';
-  row.style.cssText = 'display:grid; grid-template-columns:55px 1fr 60px 90px 70px 20px; gap:4px; align-items:center;';
+  row.style.cssText = 'display:grid; grid-template-columns:55px 1fr 60px 90px 50px 70px 20px; gap:4px; align-items:center;';
   
   row.innerHTML = `
     <!-- Código -->
     <input type="text" class="comp-costo-cod" placeholder="Cód." autocomplete="off"
-      style="padding:4px 4px; border:1px solid var(--brd); border-radius:6px; font-size:12px; width:100%; box-sizing:border-box; text-align:center;"
+      style="padding:5px 6px; border:1px solid var(--brd); border-radius:6px; font-size:12px; width:100%; box-sizing:border-box; text-align:center; height:32px;"
       onkeydown="if(event.key==='Enter'){event.preventDefault();buscarProductoPorCodigoComp(this.closest('.comp-costo-row'));}"
       onblur="buscarProductoPorCodigoComp(this.closest('.comp-costo-row'))">
     
     <!-- Producto -->
-    <select class="comp-costo-sel" style="padding:5px 6px; border:1px solid var(--brd); border-radius:6px; font-size:12px; width:100%; box-sizing:border-box;"
-      onchange="actualizarCostoAnterior(this); this.closest('.comp-costo-row').dataset.prodId = this.value;">
+    <select class="comp-costo-sel" style="padding:5px 6px; border:1px solid var(--brd); border-radius:6px; font-size:12px; width:100%; box-sizing:border-box; height:32px;"
+      onchange="actualizarCostoAnterior(this); this.closest('.comp-costo-row').dataset.prodId = this.value; habilitarCamposCosto(this.closest('.comp-costo-row'));">
       <option value="">— Producto —</option>
       ${opts}
     </select>
     
     <!-- Cantidad -->
-    <input type="number" class="comp-costo-cant" placeholder="0" min="0" step="0.001"
-      style="padding:4px 4px; border:2px solid var(--P); border-radius:6px; font-size:13px; font-weight:700; text-align:center; width:100%; box-sizing:border-box;">
+    <input type="number" class="comp-costo-cant" placeholder="0" min="0" step="0.001" disabled
+      style="padding:5px 6px; border:2px solid var(--brd); border-radius:6px; font-size:12px; font-weight:700; text-align:center; width:100%; box-sizing:border-box; height:32px; background:var(--bg2);"
+      oninput="recalcularPrecioSugComp(this.closest('.comp-costo-row'))">
     
-    <!-- Costo unitario (más compacto) -->
-    <div style="display:flex; flex-direction:column; gap:1px;">
-      <span class="comp-costo-ant" style="font-size:9px; color:var(--txt2); white-space:nowrap;">Costo anterior: —</span>
-      <input type="number" class="comp-costo-val" placeholder="$ costo" min="0" step="0.01"
-        style="padding:4px 4px; border:1px solid var(--brd); border-radius:6px; font-size:11px; width:100%; box-sizing:border-box; text-align:right;"
-        oninput="mostrarPrecioSugComp(this)">
+    <!-- Costo unitario con label flotante -->
+    <div style="position:relative; height:32px;">
+      <span class="comp-costo-ant" style="position:absolute; top:-14px; left:0; font-size:9px; color:var(--txt2); white-space:nowrap;">Costo anterior: —</span>
+      <input type="number" class="comp-costo-val" placeholder="$ costo" min="0" step="0.01" disabled
+        style="width:100%; height:100%; padding:5px 6px 5px 6px; padding-top:14px; border:1px solid var(--brd); border-radius:6px; font-size:12px; box-sizing:border-box; text-align:right; background:var(--bg2);"
+        oninput="recalcularPrecioSugComp(this.closest('.comp-costo-row'))">
     </div>
     
-    <!-- Precio sugerido (más compacto) -->
-    <span class="comp-precio-sug" style="font-size:10px; color:var(--P); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right;"></span>
+    <!-- Descuento % -->
+    <input type="number" class="comp-costo-dto" placeholder="0" min="0" max="100" step="0.5" disabled
+      style="padding:5px 6px; border:1px solid var(--brd); border-radius:6px; font-size:12px; width:100%; box-sizing:border-box; text-align:center; height:32px; background:var(--bg2);"
+      oninput="recalcularPrecioSugComp(this.closest('.comp-costo-row'))">
+    
+    <!-- Precio sugerido -->
+    <span class="comp-precio-sug" style="font-size:11px; color:var(--P); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right; font-weight:600; height:32px; display:flex; align-items:center; justify-content:flex-end;"></span>
     
     <!-- Botón eliminar -->
     <button type="button" onclick="this.closest('.comp-costo-row').remove()"
-      style="background:none; border:none; cursor:pointer; color:var(--D); font-size:16px; padding:0; line-height:1; text-align:center;">✕</button>
+      style="background:none; border:none; cursor:pointer; color:var(--D); font-size:16px; padding:0; line-height:1; text-align:center; height:32px; display:flex; align-items:center; justify-content:center;">✕</button>
   `;
   
   lista.appendChild(row);
   row.dataset.prodId = '';
   
-  // Evento change del select para actualizar código
+  // Evento change del select para actualizar código y habilitar campos
+  const sel = row.querySelector('.comp-costo-sel');
   sel.addEventListener('change', function() {
     const prod = _productos.find(p => p.id == this.value);
     const codInput = this.closest('.comp-costo-row').querySelector('.comp-costo-cod');
     if (prod && codInput) {
-      codInput.value = prod.codigo || prod.id || ''; // ✅ código real
-      codInput.style.borderColor = 'var(--P)';
-      setTimeout(() => codInput.style.borderColor = '', 1500);
+      codInput.value = prod.codigo || prod.id || '';
     } else if (codInput) {
       codInput.value = '';
     }
     actualizarCostoAnterior(this);
+    habilitarCamposCosto(this.closest('.comp-costo-row'));
+    recalcularPrecioSugComp(this.closest('.comp-costo-row'));
   });
   
   // Poner foco en cantidad
@@ -2590,5 +2597,60 @@ function buscarProductoPorCodigoComp(row) {
     row.dataset.prodId = '';
     codInput.style.borderColor = 'var(--D)';
     setTimeout(() => codInput.style.borderColor = '', 1500);
+  }
+}
+
+function recalcularPrecioSugComp(row) {
+  const sel = row.querySelector('.comp-costo-sel');
+  const cant = parseFloat(row.querySelector('.comp-costo-cant').value) || 0;
+  const costo = parseFloat(row.querySelector('.comp-costo-val').value) || 0;
+  const dto = parseFloat(row.querySelector('.comp-costo-dto').value) || 0;
+  const precioSugEl = row.querySelector('.comp-precio-sug');
+  
+  // Obtener margen objetivo del producto seleccionado
+  const prodId = row.dataset.prodId;
+  const prod = _productos.find(p => p.id == prodId);
+  const margen = prod?.margen_objetivo || 30;
+  
+  if (costo > 0 && margen > 0 && margen < 100) {
+    // Precio sin descuento
+    const precioBase = costo / (1 - margen / 100);
+    // Aplicar descuento (reducir el precio final)
+    const precioFinal = precioBase * (1 - dto / 100);
+    precioSugEl.textContent = fmt(Math.ceil(precioFinal));
+    // Guardar el valor calculado como dataset para usar al guardar
+    precioSugEl.dataset.precioFinal = Math.ceil(precioFinal);
+  } else {
+    precioSugEl.textContent = '—';
+    precioSugEl.dataset.precioFinal = '';
+  }
+}
+
+function habilitarCamposCosto(row) {
+  const prodId = row.dataset.prodId;
+  const cant = row.querySelector('.comp-costo-cant');
+  const costo = row.querySelector('.comp-costo-val');
+  const dto = row.querySelector('.comp-costo-dto');
+  
+  if (prodId) {
+    // Producto seleccionado: habilitar campos
+    [cant, costo, dto].forEach(el => {
+      if (el) {
+        el.disabled = false;
+        el.style.background = '';
+        el.style.borderColor = 'var(--P)';
+      }
+    });
+    if (cant) cant.style.borderColor = 'var(--P)';
+  } else {
+    // Sin producto: deshabilitar campos
+    [cant, costo, dto].forEach(el => {
+      if (el) {
+        el.disabled = true;
+        el.style.background = 'var(--bg2)';
+        el.style.borderColor = 'var(--brd)';
+        el.value = '';
+      }
+    });
   }
 }
