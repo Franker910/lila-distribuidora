@@ -1319,25 +1319,26 @@ function editarComprobante(id) {
       if (!last) return;
       
       const sel = last.querySelector('.comp-costo-sel');
+      const cod = last.querySelector('.comp-costo-cod');
       const cant = last.querySelector('.comp-costo-cant');
       const val = last.querySelector('.comp-costo-val');
       
-      if (sel) {
-        // Buscar producto por ID o nombre
-        const prod = _productos.find(p => p.id === item.producto_id || p.nombre === item.producto_nom);
-        if (prod) {
-          sel.value = prod.id;
-          last.dataset.prodId = prod.id;
-          sel.dispatchEvent(new Event('change'));
-        } else {
-          // Producto no encontrado, agregar opción temporal
-          const opt = document.createElement('option');
-          opt.value = item.producto_id || '';
-          opt.textContent = item.producto_nom || 'Producto desconocido';
-          sel.appendChild(opt);
-          sel.value = opt.value;
-          last.dataset.prodId = item.producto_id || '';
-        }
+      // Buscar producto por ID o nombre
+      const prod = _productos.find(p => p.id === item.producto_id || p.nombre === item.producto_nom);
+      if (prod && sel) {
+        sel.value = prod.id;
+        last.dataset.prodId = prod.id;
+        if (cod) cod.value = prod.codigo || prod.id || '';
+        sel.dispatchEvent(new Event('change'));
+      } else if (sel) {
+        // Producto no encontrado, agregar opción temporal
+        const opt = document.createElement('option');
+        opt.value = item.producto_id || '';
+        opt.textContent = item.producto_nom || 'Producto desconocido';
+        sel.appendChild(opt);
+        sel.value = opt.value;
+        last.dataset.prodId = item.producto_id || '';
+        if (cod) cod.value = item.codigo || '';
       }
       if (cant && item.cantidad) cant.value = item.cantidad;
       if (val && item.costo_unitario) val.value = item.costo_unitario;
@@ -2496,3 +2497,98 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
+function agregarItemCostoComp(){
+  const lista = document.getElementById('comp-costos-lista');
+  const opts = _productos.map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join('');
+  
+  const row = document.createElement('div');
+  row.className = 'comp-costo-row';
+  row.style.cssText = 'display:grid; grid-template-columns:55px 1fr 60px 90px 70px 20px; gap:4px; align-items:center;';
+  
+  row.innerHTML = `
+    <!-- Código -->
+    <input type="text" class="comp-costo-cod" placeholder="Cód." autocomplete="off"
+      style="padding:4px 4px; border:1px solid var(--brd); border-radius:6px; font-size:12px; width:100%; box-sizing:border-box; text-align:center;"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();buscarProductoPorCodigoComp(this.closest('.comp-costo-row'));}"
+      onblur="buscarProductoPorCodigoComp(this.closest('.comp-costo-row'))">
+    
+    <!-- Producto -->
+    <select class="comp-costo-sel" style="padding:5px 6px; border:1px solid var(--brd); border-radius:6px; font-size:12px; width:100%; box-sizing:border-box;"
+      onchange="actualizarCostoAnterior(this); this.closest('.comp-costo-row').dataset.prodId = this.value;">
+      <option value="">— Producto —</option>
+      ${opts}
+    </select>
+    
+    <!-- Cantidad -->
+    <input type="number" class="comp-costo-cant" placeholder="0" min="0" step="0.001"
+      style="padding:4px 4px; border:2px solid var(--P); border-radius:6px; font-size:13px; font-weight:700; text-align:center; width:100%; box-sizing:border-box;">
+    
+    <!-- Costo unitario (más compacto) -->
+    <div style="display:flex; flex-direction:column; gap:1px;">
+      <span class="comp-costo-ant" style="font-size:9px; color:var(--txt2); white-space:nowrap;">Costo anterior: —</span>
+      <input type="number" class="comp-costo-val" placeholder="$ costo" min="0" step="0.01"
+        style="padding:4px 4px; border:1px solid var(--brd); border-radius:6px; font-size:11px; width:100%; box-sizing:border-box; text-align:right;"
+        oninput="mostrarPrecioSugComp(this)">
+    </div>
+    
+    <!-- Precio sugerido (más compacto) -->
+    <span class="comp-precio-sug" style="font-size:10px; color:var(--P); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right;"></span>
+    
+    <!-- Botón eliminar -->
+    <button type="button" onclick="this.closest('.comp-costo-row').remove()"
+      style="background:none; border:none; cursor:pointer; color:var(--D); font-size:16px; padding:0; line-height:1; text-align:center;">✕</button>
+  `;
+  
+  lista.appendChild(row);
+  row.dataset.prodId = '';
+  
+  // Evento change del select para actualizar código
+  sel.addEventListener('change', function() {
+    const prod = _productos.find(p => p.id == this.value);
+    const codInput = this.closest('.comp-costo-row').querySelector('.comp-costo-cod');
+    if (prod && codInput) {
+      codInput.value = prod.codigo || prod.id || ''; // ✅ código real
+      codInput.style.borderColor = 'var(--P)';
+      setTimeout(() => codInput.style.borderColor = '', 1500);
+    } else if (codInput) {
+      codInput.value = '';
+    }
+    actualizarCostoAnterior(this);
+  });
+  
+  // Poner foco en cantidad
+  row.querySelector('.comp-costo-cant').focus();
+}
+
+function buscarProductoPorCodigoComp(row) {
+  const codInput = row.querySelector('.comp-costo-cod');
+  const sel = row.querySelector('.comp-costo-sel');
+  if (!codInput || !sel) return;
+  
+  const cod = codInput.value.trim();
+  if (!cod) {
+    sel.value = '';
+    row.dataset.prodId = '';
+    codInput.style.borderColor = '';
+    return;
+  }
+  
+  // Buscar SOLO por código real 
+  const prod = _productos.find(p => String(p.codigo).trim() === cod);
+  
+  if (prod) {
+    sel.value = prod.id;
+    row.dataset.prodId = prod.id;
+    // El código ya está escrito, no hace falta cambiarlo
+    codInput.style.borderColor = 'var(--P)';
+    setTimeout(() => codInput.style.borderColor = '', 1500);
+    sel.dispatchEvent(new Event('change')); // actualiza costo anterior y otros campos
+  } else {
+    // No encontrado: limpiar selección y resaltar en rojo
+    sel.value = '';
+    row.dataset.prodId = '';
+    codInput.style.borderColor = 'var(--D)';
+    setTimeout(() => codInput.style.borderColor = '', 1500);
+  }
+}
