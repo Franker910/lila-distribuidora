@@ -927,7 +927,7 @@ function navInfTabs(e){
 }
 
 function infTab(tab){
-  const tabs = ['ventas','descuentos','clientes','productos','comisiones','gerencial','comisiones2','cmg-prod','cmg-cli','financiamiento','precios','financiero','plazos','historico'];
+  const tabs = ['ventas','descuentos','descuentos-cliente','clientes','productos','comisiones','gerencial','comisiones2','cmg-prod','cmg-cli','financiamiento','precios','financiero','plazos','calce','historico'];
   
   tabs.forEach(t => {
     const el = document.getElementById('inf-sec-'+t);
@@ -944,6 +944,12 @@ function infTab(tab){
   if (tab === 'historico') setTimeout(() => informeHistoricoChart(null, true), 150);
   if (tab === 'plazos') {
     cargarPeriodosPlazos().then(() => renderPlazos());
+  }
+  if (tab === 'calce') {
+    cargarPeriodosCalce().then(() => renderCalcePlazos());
+  } 
+  if (tab === 'descuentos-cliente') {
+    cargarPeriodosDescuentosCliente().then(() => renderDescuentosCliente());
   }
 }
 
@@ -3647,4 +3653,477 @@ function exportarPlazosCSV() {
   a.download = `plazos_${tipo}_${periodo}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+async function cargarPeriodosCalce() {
+  const sel = document.getElementById('calce-periodo');
+  if (!sel) return;
+  const periodos = new Set();
+  const [resC, resP] = await Promise.all([
+    sb.from('plazos_clientes').select('periodo'),
+    sb.from('plazos_proveedores').select('periodo')
+  ]);
+  if (resC.data) resC.data.forEach(r => periodos.add(r.periodo));
+  if (resP.data) resP.data.forEach(r => periodos.add(r.periodo));
+  const sorted = Array.from(periodos).sort((a,b) => a.localeCompare(b));
+  const current = sel.value;
+  sel.innerHTML = '';
+  if (!sorted.length) {
+    sel.innerHTML = '<option value="">Sin datos</option>';
+    return;
+  }
+  sorted.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p;
+    opt.textContent = p;
+    sel.appendChild(opt);
+  });
+  if (current && sorted.includes(current)) sel.value = current;
+  else if (sorted.length) sel.value = sorted[sorted.length - 1];
+}
+
+async function renderCalcePlazos() {
+  const periodo = document.getElementById('calce-periodo').value;
+  const el = document.getElementById('calce-resultados');
+  if (!periodo) {
+    el.innerHTML = '<div class="empty">Seleccioná un período</div>';
+    return;
+  }
+
+  // 1. Obtener plazos reales por cliente
+  const { data: clientesReal } = await sb.from('plazos_clientes')
+    .select('cliente_id, plazo_real_promedio, monto_involucrado')
+    .eq('periodo', periodo);
+
+  // 2. Obtener plazos reales por proveedor
+  const { data: proveedoresReal } = await sb.from('plazos_proveedores')
+    .select('proveedor_id, plazo_real_promedio, monto_involucrado')
+    .eq('periodo', periodo);
+
+  // 3. Calcular ponderados reales
+  const totalMontoClientes = (clientesReal || []).reduce((s, r) => s + r.monto_involucrado, 0);
+  const totalMontoProveedores = (proveedoresReal || []).reduce((s, r) => s + r.monto_involucrado, 0);
+  const plazoRealClientes = totalMontoClientes > 0
+    ? (clientesReal || []).reduce((s, r) => s + r.plazo_real_promedio * r.monto_involucrado, 0) / totalMontoClientes
+    : null;
+  const plazoRealProveedores = totalMontoProveedores > 0
+    ? (proveedoresReal || []).reduce((s, r) => s + r.plazo_real_promedio * r.monto_involucrado, 0) / totalMontoProveedores
+    : null;
+  const balanceReal = (plazoRealClientes !== null && plazoRealProveedores !== null)
+    ? plazoRealProveedores - plazoRealClientes
+    : null;
+
+  // 4. Calcular plazos pactados ponderados
+  const clientes = _clientes || [];
+  const proveedores = _proveedores || [];
+  const pactadoClientes = clientes.reduce((s, c) => s + (c.condicion_pago || 0), 0) / (clientes.length || 1);
+  const pactadoProveedores = proveedores.reduce((s, p) => s + (p.plazo_pago_dias || 0), 0) / (proveedores.length || 1);
+  const balancePactado = pactadoProveedores - pactadoClientes;
+
+  // 5. Construir HTML
+  const fmt = n => '$' + (n || 0).toLocaleString('es-AR');
+  const dias = (v) => v !== null ? v.toFixed(1) + ' días' : '—';
+  const badgeBalance = (v) => {
+    if (v === null) return '—';
+    if (v > 0) return `<span style="color:var(--P);font-weight:700;">✅ +${v.toFixed(1)} días</span>`;
+    if (v < 0) return `<span style="color:var(--D);font-weight:700;">⚠️ ${v.toFixed(1)} días</span>`;
+    return `<span style="color:var(--txt2);">0 días</span>`;
+  };
+
+  el.innerHTML = `
+    <div class="g2" style="margin-bottom:12px;">
+      <!-- Calce REAL -->
+      <div class="card" style="padding:14px;">
+        <div style="font-weight:700; font-size:14px; color:var(--PD); margin-bottom:10px;">📈 Calce REAL</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div style="background:var(--PL); border-radius:8px; padding:10px; text-align:center;">
+            <div style="font-size:11px; color:var(--txt2);">Clientes (cobro)</div>
+            <div style="font-size:20px; font-weight:700; color:var(--P);">${dias(plazoRealClientes)}</div>
+            <div style="font-size:11px; color:var(--txt2);">Monto: ${fmt(totalMontoClientes)}</div>
+          </div>
+          <div style="background:var(--DL); border-radius:8px; padding:10px; text-align:center;">
+            <div style="font-size:11px; color:var(--txt2);">Proveedores (pago)</div>
+            <div style="font-size:20px; font-weight:700; color:var(--D);">${dias(plazoRealProveedores)}</div>
+            <div style="font-size:11px; color:var(--txt2);">Monto: ${fmt(totalMontoProveedores)}</div>
+          </div>
+        </div>
+        <div style="margin-top:10px; text-align:center; border-top:1px solid var(--brd); padding-top:8px;">
+          <span style="font-size:13px; font-weight:600;">Balance neto (pago − cobro):</span>
+          <span style="font-size:18px; margin-left:8px;">${badgeBalance(balanceReal)}</span>
+          <div style="font-size:11px; color:var(--txt2); margin-top:4px;">
+            ${balanceReal !== null && balanceReal > 0
+              ? '✅ Proveedores te financian ' + balanceReal.toFixed(1) + ' días'
+              : balanceReal !== null && balanceReal < 0
+              ? '⚠️ Estás financiando a tus clientes ' + Math.abs(balanceReal).toFixed(1) + ' días'
+              : 'Sin datos suficientes'}
+          </div>
+        </div>
+      </div>
+
+      <!-- Calce PACTADO -->
+      <div class="card" style="padding:14px;">
+        <div style="font-weight:700; font-size:14px; color:var(--PD); margin-bottom:10px;">📋 Calce PACTADO</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div style="background:var(--PL); border-radius:8px; padding:10px; text-align:center;">
+            <div style="font-size:11px; color:var(--txt2);">Clientes (cobro)</div>
+            <div style="font-size:20px; font-weight:700; color:var(--P);">${dias(pactadoClientes)}</div>
+            <div style="font-size:11px; color:var(--txt2);">Promedio simple</div>
+          </div>
+          <div style="background:var(--DL); border-radius:8px; padding:10px; text-align:center;">
+            <div style="font-size:11px; color:var(--txt2);">Proveedores (pago)</div>
+            <div style="font-size:20px; font-weight:700; color:var(--D);">${dias(pactadoProveedores)}</div>
+            <div style="font-size:11px; color:var(--txt2);">Promedio simple</div>
+          </div>
+        </div>
+        <div style="margin-top:10px; text-align:center; border-top:1px solid var(--brd); padding-top:8px;">
+          <span style="font-size:13px; font-weight:600;">Balance neto (pago − cobro):</span>
+          <span style="font-size:18px; margin-left:8px;">${badgeBalance(balancePactado)}</span>
+          <div style="font-size:11px; color:var(--txt2); margin-top:4px;">
+            ${balancePactado > 0
+              ? '✅ Acordado: proveedores te financian ' + balancePactado.toFixed(1) + ' días'
+              : balancePactado < 0
+              ? '⚠️ Acordado: estás financiando clientes ' + Math.abs(balancePactado).toFixed(1) + ' días'
+              : 'Equilibrio pactado'}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparación real vs pactado -->
+    ${(plazoRealClientes !== null && pactadoClientes > 0) ? `
+    <div class="card">
+      <div style="font-weight:600; font-size:13px; margin-bottom:8px;">🔍 Comparación: Real vs Pactado</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; font-size:13px;">
+        <div>
+          <div style="color:var(--txt2); font-size:11px;">Clientes (cobro)</div>
+          <div>Pactado: <b>${dias(pactadoClientes)}</b></div>
+          <div>Real: <b style="color:${plazoRealClientes !== null && plazoRealClientes > pactadoClientes ? 'var(--D)' : 'var(--P)'};">${dias(plazoRealClientes)}</b></div>
+          <div style="font-size:11px; color:${plazoRealClientes !== null ? (plazoRealClientes > pactadoClientes ? 'var(--D)' : 'var(--P)') : 'var(--txt2)'};">
+            ${plazoRealClientes !== null ? (plazoRealClientes > pactadoClientes ? '⚠️ Mayor a lo pactado' : '✅ Cumple o mejora') : '—'}
+          </div>
+        </div>
+        <div>
+          <div style="color:var(--txt2); font-size:11px;">Proveedores (pago)</div>
+          <div>Pactado: <b>${dias(pactadoProveedores)}</b></div>
+          <div>Real: <b style="color:${plazoRealProveedores !== null && plazoRealProveedores > pactadoProveedores ? 'var(--D)' : 'var(--P)'};">${dias(plazoRealProveedores)}</b></div>
+          <div style="font-size:11px; color:${plazoRealProveedores !== null ? (plazoRealProveedores > pactadoProveedores ? 'var(--D)' : 'var(--P)') : 'var(--txt2)'};">
+            ${plazoRealProveedores !== null ? (plazoRealProveedores > pactadoProveedores ? '⚠️ Pagás más tarde de lo acordado' : '✅ Pagás antes o en plazo') : '—'}
+          </div>
+        </div>
+        <div>
+          <div style="color:var(--txt2); font-size:11px;">Balance neto</div>
+          <div>Pactado: <b>${balancePactado !== null ? balancePactado.toFixed(1) + 'd' : '—'}</b></div>
+          <div>Real: <b style="color:${balanceReal !== null ? (balanceReal > 0 ? 'var(--P)' : 'var(--D)') : 'var(--txt2)'};">${balanceReal !== null ? balanceReal.toFixed(1) + 'd' : '—'}</b></div>
+          <div style="font-size:11px; color:var(--txt2);">
+            ${(balanceReal !== null && balancePactado !== null) ? (balanceReal > balancePactado ? '⬆️ Real mejora el pactado' : balanceReal < balancePactado ? '⬇️ Real empeora el pactado' : '⬌ Coinciden') : '—'}
+          </div>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+
+    <div style="font-size:11px; color:var(--txt2); margin-top:8px; text-align:right;">
+      Datos basados en el período ${periodo}
+    </div>
+  `;
+}
+
+async function cargarPeriodosDescuentosCliente() {
+  const sel = document.getElementById('dc-periodo');
+  if (!sel) return;
+  const { data } = await sb.from('movimientos_mayores').select('periodo');
+  const periodos = [...new Set((data || []).map(r => r.periodo))].sort((a,b) => a.localeCompare(b));
+  const current = sel.value;
+  sel.innerHTML = '';
+  if (!periodos.length) {
+    sel.innerHTML = '<option value="">Sin datos</option>';
+    return;
+  }
+  periodos.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p;
+    opt.textContent = p;
+    sel.appendChild(opt);
+  });
+  if (current && periodos.includes(current)) sel.value = current;
+  else if (periodos.length) sel.value = periodos[periodos.length - 1];
+}
+
+let _dcPg = 1;
+const PP_DC = 50;
+
+async function renderDescuentosCliente() {
+  const periodo = document.getElementById('dc-periodo').value;
+  const orden = document.getElementById('dc-orden').value;
+  const q = (document.getElementById('dc-q').value || '').toLowerCase();
+  const el = document.getElementById('dc-tbody');
+  const resumen = document.getElementById('dc-resumen');
+
+  if (!periodo) {
+    el.innerHTML = '<tr><td colspan="5"><div class="empty">Seleccioná un período</div></td></tr>';
+    resumen.innerHTML = '';
+    return;
+  }
+
+  // 1. Obtener movimientos de Deudores por Ventas (DEBE = venta)
+  const { data: deudores } = await sb.from('movimientos_mayores')
+    .select('concepto, asiento, debe')
+    .eq('periodo', periodo)
+    .eq('cuenta', '11201 Deudores por Ventas');
+
+  // 2. Obtener movimientos de Descuentos Realizados (DEBE = descuento)
+  const { data: descuentos } = await sb.from('movimientos_mayores')
+    .select('concepto, asiento, debe')
+    .eq('periodo', periodo)
+    .eq('cuenta', '50305 Descuentos Realizados');
+
+  // 3. Agrupar ventas por cliente (concepto) y asiento
+  const ventasPorCliente = {};
+  for (const row of deudores || []) {
+    const cliente = (row.concepto || '').trim();
+    if (!cliente) continue;
+    if (!ventasPorCliente[cliente]) ventasPorCliente[cliente] = { montoVendido: 0, asientos: new Set() };
+    ventasPorCliente[cliente].montoVendido += row.debe || 0;
+    ventasPorCliente[cliente].asientos.add(row.asiento);
+  }
+
+  // 4. Agrupar descuentos por cliente (concepto) y asiento
+  const descuentosPorCliente = {};
+  for (const row of descuentos || []) {
+    const cliente = (row.concepto || '').trim();
+    if (!cliente) continue;
+    if (!descuentosPorCliente[cliente]) descuentosPorCliente[cliente] = { montoDescontado: 0, asientos: new Set() };
+    descuentosPorCliente[cliente].montoDescontado += row.debe || 0;
+    descuentosPorCliente[cliente].asientos.add(row.asiento);
+  }
+
+  // 5. Combinar: solo clientes que tienen ventas y descuentos, o solo ventas (descuentos 0)
+  const allClientes = new Set([...Object.keys(ventasPorCliente), ...Object.keys(descuentosPorCliente)]);
+  const datos = [];
+  for (const cliente of allClientes) {
+    const v = ventasPorCliente[cliente] || { montoVendido: 0, asientos: new Set() };
+    const d = descuentosPorCliente[cliente] || { montoDescontado: 0, asientos: new Set() };
+    // Solo considerar clientes con ventas > 0
+    if (v.montoVendido <= 0) continue;
+    const pct = v.montoVendido > 0 ? (d.montoDescontado / v.montoVendido * 100) : 0;
+    datos.push({
+      cliente,
+      montoVendido: v.montoVendido,
+      montoDescontado: d.montoDescontado,
+      pct,
+      asientosVenta: v.asientos.size,
+      asientosDescuento: d.asientos.size
+    });
+  }
+
+  // 6. Ordenar
+  if (orden === 'monto') datos.sort((a, b) => b.montoVendido - a.montoVendido);
+  else if (orden === 'nombre') datos.sort((a, b) => a.cliente.localeCompare(b.cliente));
+  else datos.sort((a, b) => b.pct - a.pct); // ranking
+
+  // 7. Filtrar por búsqueda
+  const filtrados = q ? datos.filter(d => d.cliente.toLowerCase().includes(q)) : datos;
+
+  // 8. Resumen
+  const totalVendido = filtrados.reduce((s, d) => s + d.montoVendido, 0);
+  const totalDescontado = filtrados.reduce((s, d) => s + d.montoDescontado, 0);
+  const pctGlobal = totalVendido > 0 ? (totalDescontado / totalVendido * 100) : 0;
+  const topPct = filtrados.length ? Math.max(...filtrados.map(d => d.pct)) : 0;
+  resumen.innerHTML = `
+    <span><b>${filtrados.length}</b> clientes</span>
+    <span>Vendido: ${fmt(totalVendido)}</span>
+    <span>Descontado: ${fmt(totalDescontado)}</span>
+    <span>% global: ${pctGlobal.toFixed(1)}%</span>
+    <span>Máximo %: ${topPct.toFixed(1)}%</span>
+  `;
+
+  // 9. Paginación
+  const total = filtrados.length;
+  const sl = filtrados.slice((_dcPg - 1) * PP_DC, _dcPg * PP_DC);
+  if (!sl.length) {
+    el.innerHTML = '<tr><td colspan="5"><div class="empty">Sin resultados</div></td></tr>';
+    pag('dc-pg', 0, 1, p => {});
+    return;
+  }
+
+  // 10. Renderizar
+  el.innerHTML = sl.map((d, idx) => {
+    const rank = (_dcPg - 1) * PP_DC + idx + 1;
+    const colorPct = d.pct > 10 ? 'var(--D)' : d.pct > 5 ? 'var(--W)' : 'var(--P)';
+    const badgeRank = rank <= 3 ? `<span class="b bP" style="font-size:12px;">🏆 #${rank}</span>` : `<span style="color:var(--txt2);font-size:12px;">#${rank}</span>`;
+    return `
+      <tr>
+        <td style="font-weight:500;">${esc(d.cliente)}</td>
+        <td style="text-align:right;">${fmt(d.montoVendido)}</td>
+        <td style="text-align:right; color:var(--D);">${fmt(d.montoDescontado)}</td>
+        <td style="text-align:right; font-weight:700; color:${colorPct};">${d.pct.toFixed(1)}%</td>
+        <td style="text-align:center;">${badgeRank}</td>
+      </tr>
+    `;
+  }).join('');
+
+  pag('dc-pg', total, _dcPg, p => { _dcPg = p; renderDescuentosCliente(); });
+}
+
+function exportarDescuentosClienteCSV() {
+  const tbody = document.getElementById('dc-tbody');
+  if (!tbody || !tbody.querySelector('tr')) {
+    alert('No hay datos para exportar.');
+    return;
+  }
+  const rows = [];
+  const headers = ['Cliente', 'Monto vendido', 'Monto descontado', '% Descuento', 'Ranking'];
+  const trs = tbody.querySelectorAll('tr');
+  for (const tr of trs) {
+    const cells = tr.querySelectorAll('td');
+    if (cells.length < 5) continue;
+    const cliente = cells[0].textContent.trim();
+    const monto = cells[1].textContent.trim();
+    const descuento = cells[2].textContent.trim();
+    const pct = cells[3].textContent.trim();
+    const rank = cells[4].textContent.trim();
+    rows.push([cliente, monto, descuento, pct, rank]);
+  }
+  if (!rows.length) { alert('Sin datos'); return; }
+  const BOM = '\uFEFF';
+  const csv = BOM + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `descuentos_clientes.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─── IMPORTAR RESULTADO POR PRODUCTO ──────────────────────────────
+async function importarResultadoProducto() {
+  const fileInput = document.getElementById('res-file');
+  const status = document.getElementById('res-status');
+  if (!fileInput.files.length) {
+    status.textContent = '⚠️ Seleccioná al menos un archivo.';
+    return;
+  }
+
+  // Verificar que XLSX esté disponible
+  if (typeof XLSX === 'undefined') {
+    status.textContent = '❌ La librería XLSX no está cargada. Recargá la página.';
+    return;
+  }
+
+  status.textContent = '⏳ Procesando archivos...';
+  const files = Array.from(fileInput.files);
+  const ordenMeses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto'];
+  const mesNumero = { '01':'Enero', '1':'Enero', '02':'Febrero', '2':'Febrero', '03':'Marzo', '3':'Marzo', '04':'Abril', '4':'Abril', '05':'Mayo', '5':'Mayo', '06':'Junio', '6':'Junio', '07':'Julio', '7':'Julio', '08':'Agosto', '8':'Agosto' };
+
+  let totalInsertados = 0;
+  let errores = [];
+
+  try {
+    for (const file of files) {
+      // ─── Detectar mes ──────────────────────────────────────────────
+      let mes = ordenMeses.find(m => file.name.includes(m));
+      if (!mes) {
+        const match = file.name.match(/\b(0?[1-8])\b/);
+        if (match) {
+          mes = mesNumero[match[1]];
+        }
+      }
+      if (!mes) {
+        status.textContent = `⚠️ No se pudo detectar el mes en: ${file.name}`;
+        errores.push(`Mes no detectado: ${file.name}`);
+        continue;
+      }
+      const mesNum = ordenMeses.indexOf(mes) + 1;
+      const periodo = String(mesNum).padStart(2, '0') + '-2026';
+
+      // ─── Leer archivo ──────────────────────────────────────────────
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      if (!workbook.SheetNames.length) {
+        status.textContent = `⚠️ El archivo ${file.name} no tiene hojas.`;
+        errores.push(`Sin hojas: ${file.name}`);
+        continue;
+      }
+      const ws = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      
+      console.log(`📊 ${file.name}: ${rows.length} filas leídas`);
+
+      // ─── Detectar fila de inicio ──────────────────────────────────
+      let inicio = 11; // fallback
+      for (let i = 0; i < Math.min(rows.length, 20); i++) {
+        const r = rows[i];
+        if (!r || r.length < 3) continue;
+        const cod = String(r[0] || '').trim();
+        if (cod && /^\d+$/.test(cod) && r[1] && String(r[1]).trim()) {
+          inicio = i;
+          break;
+        }
+      }
+      console.log(`📊 Fila de inicio detectada: ${inicio + 1}`);
+
+      // ─── Extraer registros ────────────────────────────────────────
+      const registros = [];
+      for (let i = inicio; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || r.length < 8) continue;
+        const cod = String(r[0] || '').trim();
+        const desc = String(r[1] || '').trim();
+        const cantidad = parseFloat(String(r[2] || '').replace(',', '.')) || 0;
+        const kilos = parseFloat(String(r[3] || '').replace(',', '.')) || 0;
+        const venta_neta = parseFloat(String(r[4] || '').replace(',', '.')) || 0;
+        const costo = parseFloat(String(r[5] || '').replace(',', '.')) || 0;
+        const margen = parseFloat(String(r[6] || '').replace(',', '.')) || 0;
+        const pct_margen = parseFloat(String(r[7] || '').replace(',', '.').replace('%', '')) || 0;
+        // Saltear fila de totales (si el código está vacío o es "TOTAL")
+        if (!cod || !desc || venta_neta <= 0) continue;
+        if (cod.toUpperCase() === 'TOTAL') continue;
+        registros.push({
+          periodo,
+          codigo_producto: cod,
+          descripcion: desc,
+          cantidad,
+          kilos,
+          venta_neta,
+          costo,
+          margen,
+          pct_margen
+        });
+      }
+
+      if (!registros.length) {
+        status.textContent = `⚠️ No se encontraron datos en ${file.name}`;
+        errores.push(`Sin datos: ${file.name}`);
+        continue;
+      }
+
+      // ─── Guardar en Supabase ──────────────────────────────────────
+      await sb.from('resultado_producto').delete().eq('periodo', periodo);
+      const batchSize = 500;
+      for (let i = 0; i < registros.length; i += batchSize) {
+        const batch = registros.slice(i, i + batchSize);
+        const { error } = await sb.from('resultado_producto').insert(batch);
+        if (error) throw error;
+      }
+      totalInsertados += registros.length;
+      status.textContent = `✅ ${registros.length} registros importados para ${periodo} (${mes})`;
+    }
+
+    if (errores.length) {
+      status.textContent += `\n⚠️ ${errores.length} archivo(s) con problemas: ${errores.join(', ')}`;
+    } else {
+      status.textContent = `✅ Importación completada: ${totalInsertados} registros guardados.`;
+    }
+    fileInput.value = '';
+
+  } catch (error) {
+    console.error('❌ Error al importar resultado:', error);
+    status.textContent = `❌ Error: ${error.message}`;
+  }
+}
+
+function limpiarResultadoProducto() {
+  document.getElementById('res-file').value = '';
+  document.getElementById('res-status').textContent = '';
 }
