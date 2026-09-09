@@ -919,7 +919,7 @@ function navInfTabs(e){
 }
 
 function infTab(tab){
-  const tabs=['ventas','descuentos','clientes','productos','comisiones','gerencial','comisiones2','cmg-prod','cmg-cli','financiamiento','precios','historico'];
+  const tabs=['ventas','descuentos','clientes','productos','comisiones','gerencial','comisiones2','cmg-prod','cmg-cli','financiamiento','precios','financiero','historico'];
   if(tab==='gerencial') setTimeout(()=>cargarGerencialSupabase(), 100);
   if(tab==='historico') setTimeout(()=>informeHistoricoChart(), 150);
   tabs.forEach(t=>{
@@ -2853,4 +2853,382 @@ function simularComision() {
       <div style="font-size:11px;color:var(--txt2);margin-top:6px;">Venta simulada: ${fmt(venta)} · Cobranza: ${fmt(cobranza)}</div>
     `;
   }
+}
+
+// ─── LECTURA DE HOJAS DE MAYORES ──────────────────────────────────────
+function leerHojaMayor(workbook, nombreHoja) {
+  if (!workbook.SheetNames.includes(nombreHoja)) return [];
+  const ws = workbook.Sheets[nombreHoja];
+  const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+  const out = [];
+  for (let i = 5; i < data.length; i++) {
+    const row = data[i];
+    if (!row || row.length < 5) continue;
+    const [fechaRaw, asiento, concepto, debe, haber] = row;
+    if (!fechaRaw || concepto === 'TOTAL MES') continue;
+    const partes = fechaRaw.split('/');
+    const fecha = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]));
+    out.push({
+      fecha,
+      asiento: parseInt(asiento),
+      concepto: (concepto || '').trim().toUpperCase(),
+      debe: parseFloat(debe) || 0,
+      haber: parseFloat(haber) || 0
+    });
+  }
+  return out;
+}
+
+// ─── FIFO MATCH (genérico) ────────────────────────────────────────────
+function fifoMatch(transacciones, lotSide, paySide, windowStart, windowEnd) {
+  const porConcepto = {};
+  transacciones.forEach(t => {
+    if (!porConcepto[t.concepto]) porConcepto[t.concepto] = [];
+    porConcepto[t.concepto].push(t);
+  });
+
+  const matches = [];
+  let pendientes = 0;
+  let noAtribuible = 0;
+
+  for (const concepto in porConcepto) {
+    const txs = porConcepto[concepto].sort((a, b) => a.fecha - b.fecha || a.asiento - b.asiento);
+    const cola = [];
+
+    for (const t of txs) {
+      const loteMonto = t[lotSide];
+      const pagoMonto = t[paySide];
+
+      if (loteMonto > 0) {
+        cola.push([t.fecha, loteMonto, t.asiento]);
+      }
+
+      if (pagoMonto > 0) {
+        let restante = pagoMonto;
+        while (restante > 0.005 && cola.length) {
+          const [fechaLote, montoLote, asientoLote] = cola[0];
+          const tomado = Math.min(montoLote, restante);
+          matches.push({
+            concepto: concepto,
+            fechaLote: fechaLote,
+            fechaPago: t.fecha,
+            monto: tomado,
+            asientoPago: t.asiento,
+            dias: Math.floor((t.fecha - fechaLote) / (1000 * 60 * 60 * 24))
+          });
+          cola[0][1] -= tomado;
+          restante -= tomado;
+          if (cola[0][1] <= 0.005) cola.shift();
+        }
+        if (restante > 0.005) noAtribuible += restante;
+      }
+    }
+
+    for (const [fechaLote, montoLote] of cola) {
+      if (fechaLote >= windowStart && fechaLote <= windowEnd) {
+        pendientes += montoLote;
+      }
+    }
+  }
+
+  return { matches, pendientes, noAtribuible };
+}
+
+// ─── SAME-DAY THEN FIFO (para Deudores) ──────────────────────────────
+function sameDayThenFifoMatch(transacciones, lotSide, paySide, windowStart, windowEnd) {
+  const porConcepto = {};
+  transacciones.forEach(t => {
+    if (!porConcepto[t.concepto]) porConcepto[t.concepto] = [];
+    porConcepto[t.concepto].push(t);
+  });
+
+  const matches = [];
+  let pendientes = 0;
+  let noAtribuible = 0;
+
+  for (const concepto in porConcepto) {
+    const txs = porConcepto[concepto].sort((a, b) => a.fecha - b.fecha || a.asiento - b.asiento);
+
+    const porFecha = {};
+    for (const t of txs) {
+      const d = t.fecha.getTime();
+      if (!porFecha[d]) porFecha[d] = { debe: 0, haber: 0, asientoPago: null };
+      porFecha[d][lotSide] += t[lotSide];
+      if (t[paySide] > 0) {
+        porFecha[d][paySide] += t[paySide];
+        porFecha[d].asientoPago = t.asiento;
+      }
+    }
+
+    const fechas = Object.keys(porFecha).map(Number).sort((a, b) => a - b);
+    const cola = [];
+
+    for (const ts of fechas) {
+      const dia = porFecha[ts];
+      const fecha = new Date(ts);
+      const loteDia = dia[lotSide];
+      const pagoDia = dia[paySide];
+      const neteado = Math.min(loteDia, pagoDia);
+
+      if (neteado > 0.005) {
+        matches.push({
+          concepto: concepto,
+          fechaLote: fecha,
+          fechaPago: fecha,
+          monto: neteado,
+          asientoPago: dia.asientoPago,
+          dias: 0
+        });
+      }
+
+      const excedenteLote = loteDia - neteado;
+      const excedentePago = pagoDia - neteado;
+
+      if (excedenteLote > 0.005) {
+        cola.push([fecha, excedenteLote]);
+      }
+
+      if (excedentePago > 0.005) {
+        let restante = excedentePago;
+        while (restante > 0.005 && cola.length) {
+          const [fechaLote, montoLote] = cola[0];
+          const tomado = Math.min(montoLote, restante);
+          matches.push({
+            concepto: concepto,
+            fechaLote: fechaLote,
+            fechaPago: fecha,
+            monto: tomado,
+            asientoPago: dia.asientoPago,
+            dias: Math.floor((fecha - fechaLote) / (1000 * 60 * 60 * 24))
+          });
+          cola[0][1] -= tomado;
+          restante -= tomado;
+          if (cola[0][1] <= 0.005) cola.shift();
+        }
+        if (restante > 0.005) noAtribuible += restante;
+      }
+    }
+
+    for (const [fechaLote, montoLote] of cola) {
+      if (fechaLote >= windowStart && fechaLote <= windowEnd) {
+        pendientes += montoLote;
+      }
+    }
+  }
+
+  return { matches, pendientes, noAtribuible };
+}
+
+function analizarMes(mes, workbook, siguienteWorkbook) {
+  const mesNum = {Enero:1,Febrero:2,Marzo:3,Abril:4,Mayo:5,Junio:6,Julio:7,Agosto:8}[mes];
+  const start = new Date(2026, mesNum - 1, 1);
+  const end = new Date(2026, mesNum, 0);
+
+  const deu = leerHojaMayor(workbook, '11201 Deudores por Ventas');
+  const deuSiguiente = siguienteWorkbook ? leerHojaMayor(siguienteWorkbook, '11201 Deudores por Ventas') : [];
+  const deuTodo = deu.concat(deuSiguiente);
+
+  const prov = leerHojaMayor(workbook, '21101 Proveedores');
+  const provSiguiente = siguienteWorkbook ? leerHojaMayor(siguienteWorkbook, '21101 Proveedores') : [];
+  const provTodo = prov.concat(provSiguiente);
+
+  const caja = leerHojaMayor(workbook, '11101 Caja');
+  const banco = leerHojaMayor(workbook, '11102 Banco Macro Cta. Cte.');
+  const asientosCaja = new Set(caja.map(t => t.asiento));
+  const asientosBanco = new Set(banco.map(t => t.asiento));
+
+  const resDeu = sameDayThenFifoMatch(deuTodo, 'debe', 'haber', start, end);
+  const matchesDeu = resDeu.matches.filter(m => m.fechaLote >= start && m.fechaLote <= end);
+
+  const totalVendido = deu.reduce((s, t) => s + t.debe, 0);
+  const totalMatcheado = matchesDeu.reduce((s, m) => s + m.monto, 0);
+  const mismoDia = matchesDeu.filter(m => m.dias === 0);
+  const conAtraso = matchesDeu.filter(m => m.dias > 0);
+  const totalMismoDia = mismoDia.reduce((s, m) => s + m.monto, 0);
+  const totalAtraso = conAtraso.reduce((s, m) => s + m.monto, 0);
+  const diasPromCobranza = totalAtraso > 0 ? conAtraso.reduce((s, m) => s + m.dias * m.monto, 0) / totalAtraso : null;
+
+  const nVentas = deu.filter(t => t.debe > 0).length;
+  const nClientes = new Set(deu.filter(t => t.debe > 0).map(t => t.concepto)).size;
+
+  const resProv = fifoMatch(provTodo, 'haber', 'debe', start, end);
+  const matchesProv = resProv.matches.filter(m => m.fechaLote >= start && m.fechaLote <= end);
+
+  const totalComprado = prov.reduce((s, t) => s + t.haber, 0);
+  const totalPmatcheado = matchesProv.reduce((s, m) => s + m.monto, 0);
+  const diasPromPago = totalPmatcheado > 0 ? matchesProv.reduce((s, m) => s + m.dias * m.monto, 0) / totalPmatcheado : null;
+
+  const nCompras = prov.filter(t => t.haber > 0).length;
+  const nProveedores = new Set(prov.filter(t => t.haber > 0).map(t => t.concepto)).size;
+
+  const sueldosTotal = prov.filter(t => t.concepto === 'SUELDOS').reduce((s, t) => s + t.debe, 0);
+
+  function distribuirVia(txs, campo) {
+    const via = { Caja: 0, Banco: 0, Otro: 0 };
+    for (const t of txs) {
+      if (t[campo] > 0) {
+        if (asientosCaja.has(t.asiento)) via.Caja += t[campo];
+        else if (asientosBanco.has(t.asiento)) via.Banco += t[campo];
+        else via.Otro += t[campo];
+      }
+    }
+    return via;
+  }
+  const viaCobros = distribuirVia(deu, 'haber');
+  const viaPagos = distribuirVia(prov, 'debe');
+
+  return {
+    mes,
+    totalVendido,
+    nVentas,
+    nClientes,
+    totalMismoDia,
+    totalAtraso,
+    pctMismoDia: totalMatcheado > 0 ? (totalMismoDia / totalMatcheado * 100) : null,
+    diasPromCobranza,
+    pendienteCobro: resDeu.pendientes,
+    totalComprado,
+    nCompras,
+    nProveedores,
+    diasPromPago,
+    pendientePago: resProv.pendientes,
+    sueldosTotal,
+    viaCobros,
+    viaPagos
+  };
+}
+
+let _finResultados = [];
+
+async function importarMayores() {
+  const fileInput = document.getElementById('fin-file');
+  const status = document.getElementById('fin-status');
+  const resultadosDiv = document.getElementById('fin-resultados');
+
+  if (!fileInput.files.length) {
+    status.textContent = '⚠️ Seleccioná al menos un archivo.';
+    return;
+  }
+
+  status.textContent = '⏳ Procesando archivos...';
+  resultadosDiv.innerHTML = '';
+
+  const files = Array.from(fileInput.files);
+  const resultados = [];
+
+  // Ordenar archivos por mes (Enero, Febrero, ...)
+  const ordenMeses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto'];
+  files.sort((a, b) => {
+    const ma = ordenMeses.findIndex(m => a.name.includes(m));
+    const mb = ordenMeses.findIndex(m => b.name.includes(m));
+    return ma - mb;
+  });
+
+  try {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const mes = ordenMeses.find(m => file.name.includes(m));
+      if (!mes) {
+        status.textContent = `⚠️ No se pudo detectar el mes en el archivo: ${file.name}`;
+        continue;
+      }
+
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+
+      // Buscar el siguiente mes (para cargar la cuenta del mes siguiente)
+      const idx = ordenMeses.indexOf(mes);
+      const siguiente = (idx + 1 < ordenMeses.length) ? ordenMeses[idx + 1] : null;
+      let siguienteWorkbook = null;
+      if (siguiente) {
+        const nextFile = files.find(f => f.name.includes(siguiente));
+        if (nextFile) {
+          const nextData = await nextFile.arrayBuffer();
+          siguienteWorkbook = XLSX.read(nextData, { type: 'array' });
+        }
+      }
+
+      const resultado = analizarMes(mes, workbook, siguienteWorkbook);
+      resultado.mes = mes;
+      resultados.push(resultado);
+      status.textContent = `✅ Procesado: ${mes}`;
+    }
+
+    if (!resultados.length) {
+      status.textContent = '❌ No se pudo procesar ningún archivo. Verificá que sean los archivos de Mayores.';
+      return;
+    }
+
+    _finResultados = resultados;
+    renderResultadosFinancieros(resultados);
+    status.textContent = `✅ ${resultados.length} mes(es) procesados correctamente.`;
+
+  } catch (error) {
+    console.error('Error al procesar archivos:', error);
+    status.textContent = `❌ Error: ${error.message}`;
+  }
+}
+
+function limpiarFinanciero() {
+  document.getElementById('fin-file').value = '';
+  document.getElementById('fin-status').textContent = '';
+  document.getElementById('fin-resultados').innerHTML = '';
+  _finResultados = [];
+}
+
+function renderResultadosFinancieros(resultados) {
+  const el = document.getElementById('fin-resultados');
+  if (!el) return;
+
+  let html = '';
+  for (const r of resultados) {
+    const fmt = n => '$' + (n || 0).toLocaleString('es-AR');
+    const pct = (v) => v !== null ? v.toFixed(1) + '%' : '—';
+    const dias = (v) => v !== null ? v.toFixed(1) + ' días' : '—';
+
+    html += `
+      <div class="card" style="margin-bottom:16px;">
+        <div style="font-weight:700;font-size:16px;color:var(--PD);margin-bottom:8px;">📅 ${r.mes} 2026</div>
+        <div class="g2" style="margin-bottom:12px;">
+          <div style="background:var(--PL);border-radius:8px;padding:12px;">
+            <div style="font-size:11px;color:var(--txt2);">Ventas</div>
+            <div style="font-size:18px;font-weight:700;">${fmt(r.totalVendido)}</div>
+            <div style="font-size:11px;color:var(--txt2);">${r.nVentas} ventas · ${r.nClientes} clientes</div>
+            <div style="font-size:11px;color:var(--txt2);">Mismo día: ${fmt(r.totalMismoDia)} (${pct(r.pctMismoDia)})</div>
+            <div style="font-size:11px;color:var(--txt2);">Con atraso: ${fmt(r.totalAtraso)}</div>
+            <div style="font-size:12px;font-weight:600;color:var(--P);">Prom. cobranza: ${dias(r.diasPromCobranza)}</div>
+            <div style="font-size:11px;color:var(--D);">Pendiente: ${fmt(r.pendienteCobro)}</div>
+          </div>
+          <div style="background:var(--bg2);border-radius:8px;padding:12px;">
+            <div style="font-size:11px;color:var(--txt2);">Compras</div>
+            <div style="font-size:18px;font-weight:700;">${fmt(r.totalComprado)}</div>
+            <div style="font-size:11px;color:var(--txt2);">${r.nCompras} compras · ${r.nProveedores} proveedores</div>
+            <div style="font-size:12px;font-weight:600;color:var(--D);">Prom. pago: ${dias(r.diasPromPago)}</div>
+            <div style="font-size:11px;color:var(--D);">Pendiente: ${fmt(r.pendientePago)}</div>
+            ${r.sueldosTotal > 0 ? `<div style="font-size:11px;color:var(--txt2);">Sueldos: ${fmt(r.sueldosTotal)}</div>` : ''}
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;">
+          <div>
+            <div style="font-weight:600;color:var(--txt2);margin-bottom:4px;">💵 Cobros por vía</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <span style="background:var(--PL);padding:4px 10px;border-radius:6px;">Caja: ${fmt(r.viaCobros.Caja)}</span>
+              <span style="background:var(--AL);padding:4px 10px;border-radius:6px;">Banco: ${fmt(r.viaCobros.Banco)}</span>
+              <span style="background:var(--bg2);padding:4px 10px;border-radius:6px;">Otro: ${fmt(r.viaCobros.Otro)}</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-weight:600;color:var(--txt2);margin-bottom:4px;">💸 Pagos por vía</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <span style="background:var(--PL);padding:4px 10px;border-radius:6px;">Caja: ${fmt(r.viaPagos.Caja)}</span>
+              <span style="background:var(--AL);padding:4px 10px;border-radius:6px;">Banco: ${fmt(r.viaPagos.Banco)}</span>
+              <span style="background:var(--bg2);padding:4px 10px;border-radius:6px;">Otro: ${fmt(r.viaPagos.Otro)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  el.innerHTML = html;
 }
