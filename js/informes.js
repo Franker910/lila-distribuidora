@@ -1,5 +1,13 @@
 // ─── INFORMES: dashboard, reportes, comparativos, stock, gerencial ───
 
+// ─── CONSTANTES PARA MOVIMIENTOS DE MAYORES ───
+const CUENTAS_MAYORES = [
+  '11201 Deudores por Ventas',
+  '21101 Proveedores',
+  '11101 Caja',
+  '11102 Banco Macro Cta. Cte.'
+];
+
 // ─── MÓDULO GERENCIAL ───
 // Permitir scroll sobre los canvas de Chart.js
 document.addEventListener('DOMContentLoaded', function() {
@@ -3180,7 +3188,6 @@ async function importarMayores() {
     return;
   }
 
-  // Asegurar que clientes y proveedores estén cargados
   if (!_clientes || !_clientes.length) {
     status.textContent = '⏳ Cargando clientes...';
     await cargarClientes();
@@ -3275,22 +3282,52 @@ async function importarMayores() {
         }
       }
 
+      // ─── GUARDAR MOVIMIENTOS DE MAYORES ──────────────────────
+      // Limpiar movimientos viejos del mismo período
+      await sb.from('movimientos_mayores').delete().eq('periodo', periodo);
+
+      const movimientos = [];
+      for (const cuenta of CUENTAS_MAYORES) {
+        const txs = leerHojaMayor(workbook, cuenta);
+        for (const t of txs) {
+          movimientos.push({
+            cuenta: cuenta,
+            fecha: t.fecha.toISOString().split('T')[0],
+            asiento: t.asiento,
+            concepto: t.concepto,
+            debe: t.debe,
+            haber: t.haber,
+            periodo: periodo
+          });
+        }
+      }
+      if (movimientos.length) {
+        const batchSize = 500;
+        for (let j = 0; j < movimientos.length; j += batchSize) {
+          const batch = movimientos.slice(j, j + batchSize);
+          const { error } = await sb.from('movimientos_mayores').insert(batch);
+          if (error) console.error(`❌ Error al guardar movimientos:`, error);
+        }
+        console.log(`✅ ${movimientos.length} movimientos guardados para ${periodo}`);
+      }
+
     } // fin for
 
     if (!resultados.length) {
-      status.textContent = '❌ No se pudo procesar ningún archivo. Verificá que sean los archivos de Mayores.';
+      status.textContent = '❌ No se pudo procesar ningún archivo.';
       return;
     }
 
     _finResultados = resultados;
     renderResultadosFinancieros(resultados);
-    status.textContent = `✅ ${resultados.length} mes(es) procesados correctamente. Datos guardados en la base de datos.`;
+    status.textContent = `✅ ${resultados.length} mes(es) procesados. Datos guardados en la base de datos.`;
 
   } catch (error) {
     console.error('❌ Error al procesar archivos:', error);
     status.textContent = `❌ Error: ${error.message}`;
   }
 }
+
 
 function limpiarFinanciero() {
   document.getElementById('fin-file').value = '';
@@ -3394,12 +3431,12 @@ async function renderPlazos() {
   const tolerancia = parseInt(document.getElementById('plz-tolerancia').value) || 20;
 
   if (!periodo) {
-    document.getElementById('plz-tbody').innerHTML = '<tr><td colspan="6"><div class="empty">Seleccioná un período</div></td></tr>';
+    document.getElementById('plz-tbody').innerHTML = '<tr><td colspan="9"><div class="empty">Seleccioná un período</div></td></tr>';
     document.getElementById('plz-resumen').innerHTML = '';
     return;
   }
 
-  // Obtener plazos reales
+  // 1. Obtener plazos reales (igual que antes)
   let plazosReales = [];
   if (tipo === 'clientes') {
     const { data } = await sb.from('plazos_clientes').select('*').eq('periodo', periodo);
@@ -3409,7 +3446,34 @@ async function renderPlazos() {
     plazosReales = data || [];
   }
 
-  // Obtener plazos pactados
+  // 2. Obtener movimientos para distribuir por vía
+  const cuentaMov = tipo === 'clientes' ? '11201 Deudores por Ventas' : '21101 Proveedores';
+  const campoMonto = tipo === 'clientes' ? 'haber' : 'debe';
+  
+  const [movRes, cajaRes, bancoRes] = await Promise.all([
+    sb.from('movimientos_mayores').select('concepto, asiento, ' + campoMonto).eq('periodo', periodo).eq('cuenta', cuentaMov),
+    sb.from('movimientos_mayores').select('asiento').eq('periodo', periodo).eq('cuenta', '11101 Caja'),
+    sb.from('movimientos_mayores').select('asiento').eq('periodo', periodo).eq('cuenta', '11102 Banco Macro Cta. Cte.')
+  ]);
+
+  const movimientos = movRes.data || [];
+  const asientosCaja = new Set((cajaRes.data || []).map(r => r.asiento));
+  const asientosBanco = new Set((bancoRes.data || []).map(r => r.asiento));
+
+  // Agrupar por concepto (nombre del cliente/proveedor)
+  const viaMap = {};
+  for (const row of movimientos) {
+    const concepto = (row.concepto || '').trim().toUpperCase();
+    if (!concepto) continue;
+    if (!viaMap[concepto]) viaMap[concepto] = { caja: 0, banco: 0, otro: 0 };
+    const monto = row[campoMonto] || 0;
+    if (monto <= 0) continue;
+    if (asientosCaja.has(row.asiento)) viaMap[concepto].caja += monto;
+    else if (asientosBanco.has(row.asiento)) viaMap[concepto].banco += monto;
+    else viaMap[concepto].otro += monto;
+  }
+
+  // 3. Construir datos (plazos pactados + reales + vía)
   let datos = [];
   if (tipo === 'clientes') {
     const clientes = _clientes || [];
@@ -3418,13 +3482,23 @@ async function renderPlazos() {
     datos = clientes.map(c => {
       const real = plazosMap[c.id];
       const pactado = c.condicion_pago || null;
+      const concepto = (c.nombre || '').trim().toUpperCase();
+      const via = viaMap[concepto] || { caja: 0, banco: 0, otro: 0 };
+      const total = via.caja + via.banco + via.otro;
       return {
         id: c.id,
         nombre: c.nombre,
         pactado: pactado,
         real: real ? real.plazo_real_promedio : null,
         monto: real ? real.monto_involucrado : 0,
-        n: real ? real.n_ventas : 0
+        n: real ? real.n_ventas : 0,
+        viaCaja: via.caja,
+        viaBanco: via.banco,
+        viaOtro: via.otro,
+        viaTotal: total,
+        pctCaja: total > 0 ? (via.caja / total * 100) : 0,
+        pctBanco: total > 0 ? (via.banco / total * 100) : 0,
+        pctOtro: total > 0 ? (via.otro / total * 100) : 0
       };
     });
   } else {
@@ -3434,23 +3508,30 @@ async function renderPlazos() {
     datos = proveedores.map(p => {
       const real = plazosMap[p.id];
       const pactado = p.plazo_pago_dias || null;
+      const concepto = (p.nombre || '').trim().toUpperCase();
+      const via = viaMap[concepto] || { caja: 0, banco: 0, otro: 0 };
+      const total = via.caja + via.banco + via.otro;
       return {
         id: p.id,
         nombre: p.nombre,
         pactado: pactado,
         real: real ? real.plazo_real_promedio : null,
         monto: real ? real.monto_involucrado : 0,
-        n: real ? real.n_compras : 0
+        n: real ? real.n_compras : 0,
+        viaCaja: via.caja,
+        viaBanco: via.banco,
+        viaOtro: via.otro,
+        viaTotal: total,
+        pctCaja: total > 0 ? (via.caja / total * 100) : 0,
+        pctBanco: total > 0 ? (via.banco / total * 100) : 0,
+        pctOtro: total > 0 ? (via.otro / total * 100) : 0
       };
     });
   }
 
-  // Filtrar por búsqueda
-  if (q) {
-    datos = datos.filter(d => d.nombre.toLowerCase().includes(q));
-  }
+  // 4. Filtrar, calcular diferencia y estado (igual que antes)
+  if (q) datos = datos.filter(d => d.nombre.toLowerCase().includes(q));
 
-  // Calcular diferencia y estado
   datos.forEach(d => {
     if (d.pactado !== null && d.real !== null) {
       d.diferencia = d.real - d.pactado;
@@ -3467,10 +3548,9 @@ async function renderPlazos() {
     }
   });
 
-  // Ordenar por nombre
   datos.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-  // Resumen
+  // 5. Resumen
   const conDatos = datos.filter(d => d.real !== null);
   const totalMonto = conDatos.reduce((s, d) => s + d.monto, 0);
   const verde = conDatos.filter(d => d.estado === 'verde');
@@ -3487,12 +3567,12 @@ async function renderPlazos() {
     <span><b>Monto total:</b> ${fmt(totalMonto)}</span>
   `;
 
-  // Paginación
+  // 6. Paginación y renderizado (con nuevas columnas)
   const total = datos.length;
   const sl = datos.slice((_plzPg - 1) * PP_PLZ, _plzPg * PP_PLZ);
   const tbody = document.getElementById('plz-tbody');
   if (!sl.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty">Sin resultados</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty">Sin resultados</div></td></tr>';
     pag('plz-pg', 0, 1, p => {});
     return;
   }
@@ -3508,6 +3588,13 @@ async function renderPlazos() {
     return map[estado] || map.sin_datos;
   };
 
+  // Función para mostrar el indicador de vía
+  const viaBadge = (pct) => {
+    if (pct <= 0) return '—';
+    const color = pct > 50 ? 'var(--P)' : 'var(--txt2)';
+    return `<span style="font-weight:600;color:${color};">${pct.toFixed(0)}%</span>`;
+  };
+
   tbody.innerHTML = sl.map(d => `
     <tr>
       <td style="font-weight:500;">${esc(d.nombre)}</td>
@@ -3518,6 +3605,9 @@ async function renderPlazos() {
       </td>
       <td style="text-align:center;">${estadoBadge(d.estado)}</td>
       <td style="text-align:right; font-weight:600;">${d.monto > 0 ? fmt(d.monto) : '—'}</td>
+      <td style="text-align:center;">${viaBadge(d.pctCaja)}</td>
+      <td style="text-align:center;">${viaBadge(d.pctBanco)}</td>
+      <td style="text-align:center;">${viaBadge(d.pctOtro)}</td>
     </tr>
   `).join('');
 
