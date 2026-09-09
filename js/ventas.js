@@ -1678,89 +1678,86 @@ function abrirPedidoMovil(){
     panel.innerHTML = window._pmPanelOriginal;
   }
   
+  // Resetear estado
   _pmCliId = null;
   _pmCarrito = [];
   _pmMarcaActual = null;
   _pmProdActual = null;
+  _pmClientesZonaActual = [];
+  _cobZonaInput = '';
   
   go('pedido-movil');
   
-  // --- Limpiar paso de cliente ---
+  // ─── Limpiar paso de cliente ────────────────────────────────────────
   const nomEl = document.getElementById('pm-cli-nombre');
   const saldoEl = document.getElementById('pm-cli-saldo');
-  const qEl = document.getElementById('pm-cli-q');
-  const listaEl = document.getElementById('pm-cli-lista');
+  const saldoWrap = document.getElementById('pm-cli-saldo-wrap');
   const pasoCliEl = document.getElementById('cobm-paso-cliente');
   const pasoProdEl = document.getElementById('pm-paso-productos');
   const pasoResEl = document.getElementById('pm-paso-resumen');
-  const saldoWrap = document.getElementById('pm-cli-saldo-wrap');
+
+  // Estado inicial: buscador clientes visible, productos oculto
+  const cliBusq = document.getElementById('pm-cli-busq-wrap');
+  const proBusq = document.getElementById('pm-pro-busq-wrap');
+  if (cliBusq) cliBusq.style.display = 'block';
+  if (proBusq) proBusq.style.display = 'none';
+
   
   if (nomEl) nomEl.textContent = 'Seleccioná un cliente';
   if (saldoEl) saldoEl.textContent = '';
-  if (qEl) qEl.value = '';
-  if (listaEl) {
-    listaEl.innerHTML = '';
-    listaEl.style.display = 'none'; // Oculto hasta que se seleccione zona
-  }
+  if (saldoWrap) saldoWrap.style.display = 'none';
   if (pasoCliEl) pasoCliEl.style.display = 'block';
   if (pasoProdEl) {
     pasoProdEl.style.display = 'none';
     pasoProdEl.classList.remove('on');
   }
   if (pasoResEl) pasoResEl.style.display = 'none';
-  if (saldoWrap) saldoWrap.style.display = 'none';
   
-  // --- Limpiar buscador de zonas (input, sugerencias y contenedores) ---
+  // ─── Limpiar elementos viejos (para compatibilidad) ────────────────
   const inputZona = document.getElementById('cobm-zona-input');
   if (inputZona) inputZona.value = '';
-  
   const sugerencias = document.getElementById('cobm-zona-sugerencias');
   if (sugerencias) {
     sugerencias.style.display = 'none';
     sugerencias.innerHTML = '';
   }
-  
-  // Limpiar contenedor de clientes por zona (modo cobranza)
   const clientesPorZona = document.getElementById('cobm-clientes-por-zona');
   if (clientesPorZona) {
     clientesPorZona.innerHTML = '';
     clientesPorZona.style.display = 'none';
   }
-  
-  // Limpiar contenedor de ruta de hoy
   const clientesRuta = document.getElementById('cobm-clientes-ruta-hoy');
   if (clientesRuta) {
     clientesRuta.innerHTML = '';
     clientesRuta.style.display = 'none';
   }
   
-  // Limpiar buscador de clientes dentro de la zona
-  const buscadorCli = document.getElementById('pm-cli-buscador');
-  if (buscadorCli) {
-    buscadorCli.style.display = 'none';
-    const filtro = document.getElementById('pm-cli-filtro');
-    if (filtro) filtro.value = '';
+  // ─── Limpiar NUEVO buscador global y resultados ────────────────────
+  const busqGlobal = document.getElementById('pm-cli-busq');
+  if (busqGlobal) busqGlobal.value = '';
+  const resultadosBusq = document.getElementById('pm-cli-resultados-busqueda');
+  if (resultadosBusq) {
+    resultadosBusq.style.display = 'none';
+    resultadosBusq.innerHTML = '';
   }
   
-  // --- Resetear variables globales ---
-  _cobZonaInput = '';
-  _pmClientesZonaActual = [];
+  // ─── Renderizar acordeones de zonas ────────────────────────────────
+  renderClientesPorZona();
   
-  // --- Inicializar buscador de zonas (recargar sugerencias) ---
-  setTimeout(() => {
-    if (document.getElementById('cobm-zona-input')) {
-      if (typeof initBuscadorZonasCob === 'function') {
-        initBuscadorZonasCob();
-      }
-    }
-  }, 300);
-
-  // Poblar selector de zona (si existe)
-  poblarSelectZona('pm-cli-zon');
+  // ─── Actualizar carrito ─────────────────────────────────────────────
   actualizarCarritoBar();
   
-  // Poner foco en el input de búsqueda de clientes
-  setTimeout(() => document.getElementById('pm-cli-q')?.focus(), 100);
+  // Poner foco en el buscador global
+  setTimeout(() => {
+    const busq = document.getElementById('pm-cli-busq');
+    if (busq) busq.focus();
+  }, 300);
+
+  // Limpiar buscador de clientes (header)
+  const busqCli = document.getElementById('pm-cli-busq');
+  if (busqCli) busqCli.value = '';
+  const resCli = document.getElementById('pm-cli-busq-resultados');
+  if (resCli) { resCli.style.display = 'none'; resCli.innerHTML = ''; }
 }
 
 function pmBuscarPorCod(){const cod=(document.getElementById('pm-cli-cod')?.value||'').trim();if(!cod)return;const c=_clientes.find(x=>String(x.codigo||x.id)===cod);if(c){selClienteMovil(c.id);document.getElementById('pm-cli-cod').style.borderColor='var(--P)';}else{document.getElementById('pm-cli-cod').style.borderColor='var(--D)';}}
@@ -1796,6 +1793,12 @@ function selClienteMovil(id){
   
   console.log('✅ Cliente seleccionado:', c.nombre);
   _pmCliId = id;
+
+  // Ocultar buscador de clientes, mostrar buscador de productos
+  const cliBusq = document.getElementById('pm-cli-busq-wrap');
+  const proBusq = document.getElementById('pm-pro-busq-wrap');
+  if (cliBusq) cliBusq.style.display = 'none';
+  if (proBusq) proBusq.style.display = 'block';
   
   // Mostrar nombre del cliente en el header
   const nombreEl = document.getElementById('pm-cli-nombre');
@@ -2252,37 +2255,67 @@ async function confirmarPedidoMovil(){
 }
 
 function mostrarConfirmacionMovil(tipo, cliente, detalle, cobId){
-  // Mostrar panel de éxito con opciones
-  const panel=document.getElementById('p-pedido-movil');
-  if(!panel)return;
-  const esCobranza=tipo==='cobro';
-  panel.innerHTML=`
-    <div style="max-width:480px;padding:20px">
-      <div style="text-align:center;padding:30px 0 20px">
-        <div style="font-size:48px">✅</div>
-        <div style="font-size:18px;font-weight:700;color:var(--P);margin-top:10px">${esCobranza?'Cobro confirmado':'Pedido confirmado'}</div>
-        <div style="font-size:15px;font-weight:600;margin-top:8px">${cliente}</div>
-        <div style="font-size:13px;color:var(--txt2);margin-top:4px">${detalle}</div>
+  const panel = document.getElementById('p-pedido-movil');
+  if (!panel) return;
+  
+  const esCobranza = tipo === 'cobro';
+  
+  // ─── Crear contenedor de confirmación (si no existe) ──────────────
+  let confirmDiv = document.getElementById('pm-confirmacion-overlay');
+  if (!confirmDiv) {
+    confirmDiv = document.createElement('div');
+    confirmDiv.id = 'pm-confirmacion-overlay';
+    confirmDiv.style.cssText = `
+      position:absolute; inset:0; z-index:100; 
+      background:var(--bg); 
+      display:flex; align-items:center; justify-content:center;
+      padding:20px;
+      overflow-y:auto;
+    `;
+    // Asegurar que el panel tenga position:relative para que el overlay se posicione correctamente
+    if (!panel.style.position || panel.style.position === 'static') {
+      panel.style.position = 'relative';
+    }
+    panel.appendChild(confirmDiv);
+  }
+  
+  // ─── Rellenar contenido ─────────────────────────────────────────────
+  confirmDiv.innerHTML = `
+    <div style="max-width:480px; width:100%;">
+      <div style="text-align:center;padding:30px 0 20px;">
+        <div style="font-size:48px;">✅</div>
+        <div style="font-size:18px;font-weight:700;color:var(--P);margin-top:10px;">
+          ${esCobranza ? 'Cobro confirmado' : 'Pedido confirmado'}
+        </div>
+        <div style="font-size:15px;font-weight:600;margin-top:8px;">${cliente}</div>
+        <div style="font-size:13px;color:var(--txt2);margin-top:4px;">${detalle}</div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        ${esCobranza&&cobId?`<button onclick="imprimirRecibo(${cobId})"
-          style="width:100%;padding:14px;background:var(--P);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer">
-          🧾 Ver / imprimir recibo
-        </button>`:''}
-        <button onclick="${esCobranza?'go(\'cobranza\')':'resetYNuevoPedido()'}"
-          style="width:100%;padding:14px;background:${esCobranza?'var(--bg2)':'var(--P)'};color:${esCobranza?'var(--PD)':'#fff'};border:${esCobranza?'2px solid var(--P)':'none'};border-radius:10px;font-size:16px;font-weight:600;cursor:pointer">
-          ${esCobranza?'💰 Cargar otro cobro':'🆕 Nuevo pedido'}
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${esCobranza && cobId ? `
+          <button onclick="imprimirRecibo(${cobId}); document.getElementById('pm-confirmacion-overlay').remove();" 
+            style="width:100%;padding:14px;background:var(--P);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;">
+            🧾 Ver / imprimir recibo
+          </button>
+        ` : ''}
+        <button onclick="${esCobranza ? 'go(\'cobranza\')' : 'resetYNuevoPedido()'}" 
+          style="width:100%;padding:14px;background:${esCobranza ? 'var(--bg2)' : 'var(--P)'};color:${esCobranza ? 'var(--PD)' : '#fff'};border:${esCobranza ? '2px solid var(--P)' : 'none'};border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;">
+          ${esCobranza ? '💰 Cargar otro cobro' : '🆕 Nuevo pedido'}
         </button>
-        <button onclick="${esCobranza?'go(\'cobranza\');setTimeout(()=>cobmAbrirMisCobranzas(),50);setTimeout(()=>cobmSetPeriodo(\'dia\'),80)':'verMisPedidosHoy()'}"
-          style="width:100%;padding:14px;background:var(--bg2);color:var(--PD);border:2px solid var(--P);border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">
-          ${esCobranza?'📊 Ver mis cobros de hoy':'📋 Ver mis pedidos de hoy'}
+        <button onclick="${esCobranza ? 'go(\'cobranza\');setTimeout(()=>cobmAbrirMisCobranzas(),50);setTimeout(()=>cobmSetPeriodo(\'dia\'),80)' : 'verMisPedidosHoy()'}" 
+          style="width:100%;padding:14px;background:var(--bg2);color:var(--PD);border:2px solid var(--P);border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;">
+          ${esCobranza ? '📊 Ver mis cobros de hoy' : '📋 Ver mis pedidos de hoy'}
         </button>
-        <button onclick="go('vendedor-home')"
-          style="width:100%;padding:12px;background:transparent;color:var(--txt2);border:1px solid var(--brd);border-radius:10px;font-size:14px;cursor:pointer">
+        <button onclick="go('vendedor-home')" 
+          style="width:100%;padding:12px;background:transparent;color:var(--txt2);border:1px solid var(--brd);border-radius:10px;font-size:14px;cursor:pointer;">
           🏠 Volver al inicio
         </button>
       </div>
-    </div>`;
+    </div>
+  `;
+  
+  confirmDiv.style.display = 'flex';
+  
+  // Asegurar que el panel esté en la vista correcta
   go('pedido-movil');
 }
 
@@ -2351,24 +2384,15 @@ function verCobranzaHoy(){
 }
 
 function resetYNuevoPedido(){
-  const panel=document.getElementById('p-pedido-movil');
-  if(panel && window._pmPanelOriginal){
-    panel.innerHTML = window._pmPanelOriginal;
-  }
-  _pmCliId=null;_pmCarrito=[];_pmMarcaActual=null;_pmProdActual=null;
-  const pc=document.getElementById('pm-paso-cliente');if(pc)pc.style.display='block';
-  const pp=document.getElementById('pm-paso-productos');if(pp)pp.style.display='none';
-  const pr=document.getElementById('pm-paso-resumen');if(pr)pr.style.display='none';
-  const nomEl=document.getElementById('pm-cli-nombre');if(nomEl)nomEl.textContent='Seleccioná un cliente';
-  const saldoWrap=document.getElementById('pm-cli-saldo-wrap');if(saldoWrap)saldoWrap.style.display='none';
-  const qEl=document.getElementById('pm-cli-q');if(qEl){qEl.value='';setTimeout(()=>qEl.focus(),100);}
-  const listaEl=document.getElementById('pm-cli-lista');if(listaEl)listaEl.innerHTML='';
-  const busqWrap = document.getElementById('pm-pro-busq-wrap');
-  if (busqWrap) busqWrap.style.display = 'none';
-  actualizarCarritoBar();
-  go('pedido-movil');
+  // Eliminar overlay de confirmación si existe
+  const overlay = document.getElementById('pm-confirmacion-overlay');
+  if (overlay) overlay.remove();
+  
+  // Resto del código de reset (si tienes alguna lógica extra)
+  // Si tu resetYNuevoPedido ya llama a abrirPedidoMovil, que así sea.
+  // La versión actual que tengas debe funcionar.
+  abrirPedidoMovil();
 }
-
 
 // Para el modal de nuevo pedido (PC y móvil)
 
@@ -3272,102 +3296,74 @@ function volverHeaderPedidoMovil() {
   const pasoProductos = document.getElementById('pm-paso-productos');
   const pasoCliente = document.getElementById('cobm-paso-cliente');
   
-  // Si estamos en productos, volver a clientes
-  if (pasoProductos && pasoProductos.style.display !== 'none' && pasoProductos.classList.contains('on')) {
-    // Ocultar paso de productos
+  // ─── Determinar si estamos en el paso de productos ──────────────────
+  const enProductos = pasoProductos && 
+                      pasoProductos.style.display !== 'none' && 
+                      pasoProductos.classList.contains('on');
+
+  // ─── Si estamos en productos, volver a clientes ────────────────────
+  if (enProductos) {
+    // 1. Cambiar visibilidad de pasos
     pasoProductos.style.display = 'none';
     pasoProductos.classList.remove('on');
-    
-    // Mostrar paso de cliente
-    if (pasoCliente) {
-      pasoCliente.style.display = 'block';
+    if (pasoCliente) pasoCliente.style.display = 'block';
+
+    // 2. Cambiar visibilidad de buscadores (header)
+    const cliBusq = document.getElementById('pm-cli-busq-wrap');
+    const proBusq = document.getElementById('pm-pro-busq-wrap');
+    if (cliBusq) cliBusq.style.display = 'block';
+    if (proBusq) proBusq.style.display = 'none';
+
+    // 3. Limpiar buscador de clientes (input y resultados)
+    const busqCli = document.getElementById('pm-cli-busq');
+    if (busqCli) busqCli.value = '';
+    const resCli = document.getElementById('pm-cli-busq-resultados');
+    if (resCli) {
+      resCli.style.display = 'none';
+      resCli.innerHTML = '';
     }
-    
-    // Limpiar header del cliente
+
+    // 4. Limpiar buscador de productos (input y resultados) - por si acaso
+    const busqPro = document.getElementById('pm-pro-busq');
+    if (busqPro) busqPro.value = '';
+    const resPro = document.getElementById('pm-pro-busq-resultados');
+    if (resPro) {
+      resPro.style.display = 'none';
+      resPro.innerHTML = '';
+    }
+
+    // 5. Limpiar header del cliente (nombre, saldo, etc.)
     const nombreEl = document.getElementById('pm-cli-nombre');
-    if (nombreEl) {
-      nombreEl.textContent = 'Seleccioná un cliente';
-    }
+    if (nombreEl) nombreEl.textContent = 'Seleccioná un cliente';
     const detalleEl = document.getElementById('pm-cli-detalle');
     if (detalleEl) detalleEl.textContent = '';
     const saldoEl = document.getElementById('pm-cli-saldo');
     if (saldoEl) saldoEl.textContent = '';
     const saldoWrap = document.getElementById('pm-cli-saldo-wrap');
     if (saldoWrap) saldoWrap.style.display = 'none';
-    
-    // Limpiar campos de cliente
-    const codCliente = document.getElementById('pm-cli-cod');
-    if (codCliente) { codCliente.value = ''; codCliente.style.borderColor = ''; }
-    const qCliente = document.getElementById('pm-cli-q');
-    if (qCliente) qCliente.value = '';
-    const cliId = document.getElementById('pm-cli-id');
-    if (cliId) cliId.value = '';
-    
-    const listaClientes = document.getElementById('pm-cli-lista');
-    if (listaClientes) {
-      listaClientes.innerHTML = '';          // Vacío
-      listaClientes.style.display = 'block'; // Asegurar que sea visible
-    }
-    
-    // Limpiar buscador de clientes dentro de la zona
-    const buscadorCli = document.getElementById('pm-cli-buscador');
-    if (buscadorCli) {
-      buscadorCli.style.display = 'none';
-      const filtro = document.getElementById('pm-cli-filtro');
-      if (filtro) filtro.value = '';
-    }
-    
-    // Limpiar variables de estado
-    _pmClientesZonaActual = [];
+
+    // 6. Resetear variables de estado
     _pmCliId = null;
-    _cobZonaInput = '';   // <--- NUEVO: resetear filtro de zonas
-    
-    // Limpiar input de zona
-    const inputZona = document.getElementById('cobm-zona-input');
-    if (inputZona) {
-      inputZona.value = '';
-    }
-    
-    // Limpiar sugerencias de zonas
-    const sugerencias = document.getElementById('cobm-zona-sugerencias');
-    if (sugerencias) {
-      sugerencias.style.display = 'none';
-      sugerencias.innerHTML = '';
-    }
-    
-    // Limpiar contenedor de clientes por zona (modo cobranza)
-    const clientesPorZona = document.getElementById('cobm-clientes-por-zona');
-    if (clientesPorZona) {
-      clientesPorZona.innerHTML = '';
-      clientesPorZona.style.display = 'none';
-    }
-    
-    // Limpiar contenedor de ruta de hoy
-    const clientesRuta = document.getElementById('cobm-clientes-ruta-hoy');
-    if (clientesRuta) {
-      clientesRuta.innerHTML = '';
-      clientesRuta.style.display = 'none';
-    }
-    
-    // Ocultar carrito
+    _pmClientesZonaActual = [];
+    _cobZonaInput = '';
+
+    // 7. Ocultar carrito (si está visible)
     const carritoBar = document.getElementById('pm-carrito-bar');
     if (carritoBar) carritoBar.style.display = 'none';
 
-    // Ocultar el buscador de productos
-    const busqWrap = document.getElementById('pm-pro-busq-wrap');
-    if (busqWrap) busqWrap.style.display = 'none';
-    
-    // Poner foco en input de zona
+    // 8. Volver a renderizar los acordeones de zonas (estado inicial)
+    renderClientesPorZona();
+
+    // 9. Poner foco en el buscador de clientes (header)
     setTimeout(() => {
-      const input = document.getElementById('cobm-zona-input');
-      if (input) input.focus();
+      const busq = document.getElementById('pm-cli-busq');
+      if (busq) busq.focus();
     }, 100);
-    
+
   } else {
-    // Si estamos en clientes o resumen, ir al home
+    // ─── Si no estamos en productos, ir al home ──────────────────────
     go('vendedor-home');
   }
-  
 }
 
 function toggleItemsPedido() {
@@ -3471,4 +3467,118 @@ function limpiarBuscadorProductosMovil() {
 function calcNCItem() {
   // Re-renderizar la lista de items de la NC
   renderItemsNC();
+}
+
+function renderClientesPorZona() {
+  const contenedor = document.getElementById('pm-zonas-lista');
+  const busqueda = document.getElementById('pm-cli-busq');
+  const resultadosBusq = document.getElementById('pm-cli-resultados-busqueda');
+  if (!contenedor) return;
+
+  // Si hay búsqueda activa, no mostrar acordeones (se maneja en filtrarClientesPorZonaGlobal)
+  if (busqueda && busqueda.value.trim().length > 0) return;
+
+  // Agrupar clientes activos por zona
+  const clientesActivos = _clientes.filter(c => c.activo !== false);
+  const zonasMap = {};
+  clientesActivos.forEach(c => {
+    const zona = c.zona || 'Sin zona';
+    if (!zonasMap[zona]) zonasMap[zona] = [];
+    zonasMap[zona].push(c);
+  });
+
+  // Ordenar zonas alfabéticamente
+  const zonasOrdenadas = Object.keys(zonasMap).sort((a,b) => a.localeCompare(b));
+
+  if (!zonasOrdenadas.length) {
+    contenedor.innerHTML = '<div class="empty">No hay clientes cargados</div>';
+    return;
+  }
+
+  let html = '';
+  zonasOrdenadas.forEach(zona => {
+    const clientes = zonasMap[zona].sort((a,b) => a.nombre.localeCompare(b.nombre));
+    const zonaDisplay = zona === 'Sin zona' ? '🌍 Sin zona' : (nombreZona(zona) || zona);
+    html += `
+      <div class="zona-acordeon" style="border:1px solid var(--brd); border-radius:10px; margin-bottom:8px; overflow:hidden;">
+        <div class="zona-header" onclick="toggleZonaAcordeon(this)" 
+          style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--bg2); cursor:pointer; user-select:none;">
+          <div style="font-weight:700; font-size:15px;">${esc(zonaDisplay)}</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:12px; color:var(--txt2);">${clientes.length} cliente${clientes.length!==1?'s':''}</span>
+            <span class="zona-chevron" style="font-size:14px; color:var(--txt2); transition:transform 0.2s;">▶</span>
+          </div>
+        </div>
+        <div class="zona-clientes" style="display:none; padding:4px 0;">
+          ${clientes.map(c => `
+            <div onclick="selClienteMovil(${c.id})" 
+              style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-bottom:1px solid var(--brd); cursor:pointer; background:#fff;"
+              onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='#fff'">
+              <div>
+                <div style="font-size:14px; font-weight:600;">${esc(c.nombre)}</div>
+                <div style="font-size:12px; color:var(--txt2);">${esc(c.localidad||'')} ${c.telefono ? '· '+c.telefono : ''}</div>
+              </div>
+              <div style="font-size:14px; font-weight:700; color:${(c.saldo||0)>0?'var(--D)':'var(--P)'};">${fmt(c.saldo||0)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  });
+
+  contenedor.innerHTML = html;
+}
+
+function toggleZonaAcordeon(header) {
+  const clientesDiv = header.nextElementSibling;
+  const chevron = header.querySelector('.zona-chevron');
+  if (!clientesDiv) return;
+  const isOpen = clientesDiv.style.display === 'block';
+  clientesDiv.style.display = isOpen ? 'none' : 'block';
+  if (chevron) chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+}
+
+function filtrarClientesPorZonaGlobal() {
+  const input = document.getElementById('pm-cli-busq');
+  const contenedor = document.getElementById('pm-zonas-lista');
+  const resultadosBusq = document.getElementById('pm-cli-busq-resultados'); // ✅ cambiar a este
+  if (!input || !contenedor || !resultadosBusq) return;
+
+  const q = input.value.trim().toLowerCase();
+  
+  if (q.length === 0) {
+    contenedor.style.display = 'block';
+    resultadosBusq.style.display = 'none';
+    resultadosBusq.innerHTML = '';
+    renderClientesPorZona();
+    return;
+  }
+
+  const clientesActivos = _clientes.filter(c => c.activo !== false);
+  const coincidencias = clientesActivos.filter(c => 
+    (c.nombre || '').toLowerCase().includes(q) ||
+    String(c.codigo || '').includes(q) ||
+    (c.localidad || '').toLowerCase().includes(q)
+  );
+
+  contenedor.style.display = 'none';
+
+  if (!coincidencias.length) {
+    resultadosBusq.style.display = 'block';
+    resultadosBusq.innerHTML = '<div style="padding:20px; text-align:center; color:var(--txt2);">❌ No se encontraron clientes</div>';
+    return;
+  }
+
+  resultadosBusq.style.display = 'block';
+  resultadosBusq.innerHTML = coincidencias.map(c => `
+    <div onclick="selClienteMovil(${c.id})" 
+      style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border-bottom:1px solid var(--brd); cursor:pointer; background:#fff;"
+      onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='#fff'">
+      <div>
+        <div style="font-size:14px; font-weight:600;">${esc(c.nombre)}</div>
+        <div style="font-size:12px; color:var(--txt2);">${esc(c.localidad||'')} ${c.telefono ? '· '+c.telefono : ''}</div>
+      </div>
+      <div style="font-size:14px; font-weight:700; color:${(c.saldo||0)>0?'var(--D)':'var(--P)'};">${fmt(c.saldo||0)}</div>
+    </div>
+  `).join('');
 }
