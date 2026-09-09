@@ -3073,6 +3073,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button id="inf-tab-financiamiento" class="btn sm" onclick="infTab('financiamiento')" tabindex="-1">🏭 Financiamiento</button>
     <button id="inf-tab-precios" class="btn sm" onclick="infTab('precios')" tabindex="-1">💰 Análisis de precios</button>
     <button id="inf-tab-financiero" class="btn sm" onclick="infTab('financiero')" tabindex="-1">📊 Mayores</button>
+    <button id="inf-tab-plazos" class="btn sm" onclick="infTab('plazos')" tabindex="-1">📋 Plazos</button>
     <button id="inf-tab-historico" class="btn sm" onclick="infTab('historico')" tabindex="-1">📈 Evolución histórica</button>
   </div>
 
@@ -3096,9 +3097,63 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
       <div id="fin-status" style="font-size:13px;color:var(--txt2);margin-top:8px;min-height:20px;"></div>
     </div>
-    
+
     <!-- Contenedor de resultados -->
     <div id="fin-resultados"></div>
+  </div>
+
+  <!-- ─── PLAZO POR CLIENTE / PROVEEDOR ─── -->
+  <div id="inf-sec-plazos" style="display:none;">
+    <div class="card" style="margin-bottom:12px;">
+      <div style="font-weight:600; margin-bottom:8px;">📋 Plazo por Cliente / Proveedor</div>
+      <p style="font-size:12px; color:var(--txt2); margin-bottom:10px;">
+        Compara el plazo pactado (manual) con el plazo real calculado desde los Mayores.
+        El semáforo indica si se está cumpliendo o no.
+      </p>
+      <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; margin-bottom:10px;">
+        <div class="fg" style="flex:0 0 150px;">
+          <label style="font-size:12px; font-weight:600; color:var(--txt2);">Tipo</label>
+          <select id="plz-tipo" style="width:100%; padding:6px 10px; border:1px solid var(--brd); border-radius:6px; font-size:13px; font-family:inherit;" onchange="renderPlazos()">
+            <option value="clientes">Clientes</option>
+            <option value="proveedores">Proveedores</option>
+          </select>
+        </div>
+        <div class="fg" style="flex:0 0 150px;">
+          <label style="font-size:12px; font-weight:600; color:var(--txt2);">Período</label>
+          <select id="plz-periodo" style="width:100%; padding:6px 10px; border:1px solid var(--brd); border-radius:6px; font-size:13px; font-family:inherit;" onchange="renderPlazos()"></select>
+        </div>
+        <div class="fg" style="flex:1; min-width:150px;">
+          <label style="font-size:12px; font-weight:600; color:var(--txt2);">Buscar</label>
+          <input id="plz-q" placeholder="Nombre..." style="width:100%; padding:6px 10px; border:1px solid var(--brd); border-radius:6px; font-size:13px; font-family:inherit;" oninput="renderPlazos()">
+        </div>
+        <div class="fg" style="flex:0 0 120px;">
+          <label style="font-size:12px; font-weight:600; color:var(--txt2);">Tolerancia %</label>
+          <input id="plz-tolerancia" type="number" value="20" min="0" max="100" step="5" style="width:100%; padding:6px 10px; border:1px solid var(--brd); border-radius:6px; font-size:13px; font-family:inherit;" oninput="renderPlazos()">
+        </div>
+        <button class="btn A sm" onclick="exportarPlazosCSV()" style="padding:6px 14px;">📊 Exportar CSV</button>
+      </div>
+      <div id="plz-resumen" style="display:flex; gap:12px; flex-wrap:wrap; font-size:12px; color:var(--txt2); margin-top:4px;"></div>
+    </div>
+
+    <!-- Tabla -->
+    <div style="flex:1; overflow-y:auto; min-height:0; border:1px solid var(--brd); border-radius:8px; padding:4px;">
+      <div class="tbl-wrap">
+        <table class="tbl" style="font-size:12px;">
+          <thead>
+            <tr>
+              <th style="min-width:150px;">Nombre</th>
+              <th style="width:110px; text-align:center;">Plazo pactado</th>
+              <th style="width:110px; text-align:center;">Plazo real</th>
+              <th style="width:110px; text-align:center;">Diferencia</th>
+              <th style="width:120px; text-align:center;">Estado</th>
+              <th style="width:130px; text-align:right;">Monto involucrado</th>
+            </tr>
+          </thead>
+          <tbody id="plz-tbody"></tbody>
+        </table>
+      </div>
+      <div class="pg" id="plz-pg"></div>
+    </div>
   </div>
 
   <!-- VENTAS -->
@@ -4808,13 +4863,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260909-01"></script>
-<script src="js/maestros.js?v=20260909-01"></script>
-<script src="js/ventas.js?v=20260909-01"></script>
-<script src="js/tesoreria.js?v=20260909-01"></script>
-<script src="js/contabilidad.js?v=20260909-01"></script>
-<script src="js/informes.js?v=20260909-01"></script>
-<script src="js/logistica.js?v=20260909-01"></script>
+<script src="js/app.js?v=20260909-02"></script>
+<script src="js/maestros.js?v=20260909-02"></script>
+<script src="js/ventas.js?v=20260909-02"></script>
+<script src="js/tesoreria.js?v=20260909-02"></script>
+<script src="js/contabilidad.js?v=20260909-02"></script>
+<script src="js/informes.js?v=20260909-02"></script>
+<script src="js/logistica.js?v=20260909-02"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

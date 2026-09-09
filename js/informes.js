@@ -919,19 +919,24 @@ function navInfTabs(e){
 }
 
 function infTab(tab){
-  const tabs=['ventas','descuentos','clientes','productos','comisiones','gerencial','comisiones2','cmg-prod','cmg-cli','financiamiento','precios','financiero','historico'];
-  if(tab==='gerencial') setTimeout(()=>cargarGerencialSupabase(), 100);
-  if(tab==='historico') setTimeout(()=>informeHistoricoChart(), 150);
-  tabs.forEach(t=>{
-    const el=document.getElementById('inf-sec-'+t);
-    if(el)el.style.display=t===tab?'block':'none';
-    const btn=document.getElementById('inf-tab-'+t);
-    if(btn){
-      btn.style.background=t===tab?'var(--P)':'';
-      btn.style.color=t===tab?'#fff':'';
-      btn.tabIndex=t===tab?0:-1;
+  const tabs = ['ventas','descuentos','clientes','productos','comisiones','gerencial','comisiones2','cmg-prod','cmg-cli','financiamiento','precios','financiero','plazos','historico'];
+  
+  tabs.forEach(t => {
+    const el = document.getElementById('inf-sec-'+t);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
+    const btn = document.getElementById('inf-tab-'+t);
+    if (btn) {
+      btn.style.background = t === tab ? 'var(--P)' : '';
+      btn.style.color = t === tab ? '#fff' : '';
+      btn.tabIndex = t === tab ? 0 : -1;
     }
   });
+
+  if (tab === 'gerencial') setTimeout(() => cargarGerencialSupabase(), 100);
+  if (tab === 'historico') setTimeout(() => informeHistoricoChart(null, true), 150);
+  if (tab === 'plazos') {
+    cargarPeriodosPlazos().then(() => renderPlazos());
+  }
 }
 
 function informeFinanciamiento(){
@@ -3077,6 +3082,68 @@ function analizarMes(mes, workbook, siguienteWorkbook) {
   const viaCobros = distribuirVia(deu, 'haber');
   const viaPagos = distribuirVia(prov, 'debe');
 
+  // --- Detalle por cliente ---
+  const detalleClientes = {};
+  for (const t of deu) {
+    if (t.debe > 0) {
+      if (!detalleClientes[t.concepto]) {
+        detalleClientes[t.concepto] = { ventas: 0, mismoDia: 0, conAtraso: 0, diasPonderado: 0 };
+      }
+      detalleClientes[t.concepto].ventas += t.debe;
+    }
+  }
+  for (const m of matchesDeu) {
+    const c = detalleClientes[m.concepto];
+    if (!c) continue;
+    if (m.dias === 0) c.mismoDia += m.monto;
+    else {
+      c.conAtraso += m.monto;
+      c.diasPonderado += m.monto * m.dias;
+    }
+  }
+  const detalleClientesArray = Object.keys(detalleClientes).map(cliente => {
+    const d = detalleClientes[cliente];
+    const pendiente = d.ventas - d.mismoDia - d.conAtraso;
+    return {
+      cliente,
+      nVentas: deu.filter(t => t.concepto === cliente && t.debe > 0).length,
+      montoVendido: d.ventas,
+      mismoDia: d.mismoDia,
+      conAtraso: d.conAtraso,
+      diasPromedio: d.conAtraso > 0 ? d.diasPonderado / d.conAtraso : null,
+      pendiente
+    };
+  });
+
+  // --- Detalle por proveedor ---
+  const detalleProveedores = {};
+  for (const t of prov) {
+    if (t.haber > 0) {
+      if (!detalleProveedores[t.concepto]) {
+        detalleProveedores[t.concepto] = { compras: 0, pagado: 0, diasPonderado: 0 };
+      }
+      detalleProveedores[t.concepto].compras += t.haber;
+    }
+  }
+  for (const m of matchesProv) {
+    const p = detalleProveedores[m.concepto];
+    if (!p) continue;
+    p.pagado += m.monto;
+    p.diasPonderado += m.monto * m.dias;
+  }
+  const detalleProveedoresArray = Object.keys(detalleProveedores).map(proveedor => {
+    const d = detalleProveedores[proveedor];
+    const pendiente = d.compras - d.pagado;
+    return {
+      proveedor,
+      nCompras: prov.filter(t => t.concepto === proveedor && t.haber > 0).length,
+      montoComprado: d.compras,
+      pagado: d.pagado,
+      diasPromedio: d.pagado > 0 ? d.diasPonderado / d.pagado : null,
+      pendiente
+    };
+  });
+
   return {
     mes,
     totalVendido,
@@ -3094,12 +3161,15 @@ function analizarMes(mes, workbook, siguienteWorkbook) {
     pendientePago: resProv.pendientes,
     sueldosTotal,
     viaCobros,
-    viaPagos
+    viaPagos,
+    detalleClientes: detalleClientesArray,
+    detalleProveedores: detalleProveedoresArray
   };
 }
 
 let _finResultados = [];
 
+// ─── IMPORTAR MAYORES Y GUARDAR PLAZOS REALES ────────────────────────
 async function importarMayores() {
   const fileInput = document.getElementById('fin-file');
   const status = document.getElementById('fin-status');
@@ -3110,13 +3180,21 @@ async function importarMayores() {
     return;
   }
 
+  // Asegurar que clientes y proveedores estén cargados
+  if (!_clientes || !_clientes.length) {
+    status.textContent = '⏳ Cargando clientes...';
+    await cargarClientes();
+  }
+  if (!_proveedores || !_proveedores.length) {
+    status.textContent = '⏳ Cargando proveedores...';
+    await cargarProveedores();
+  }
+
   status.textContent = '⏳ Procesando archivos...';
   resultadosDiv.innerHTML = '';
 
   const files = Array.from(fileInput.files);
   const resultados = [];
-
-  // Ordenar archivos por mes (Enero, Febrero, ...)
   const ordenMeses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto'];
   files.sort((a, b) => {
     const ma = ordenMeses.findIndex(m => a.name.includes(m));
@@ -3136,8 +3214,10 @@ async function importarMayores() {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data, { type: 'array' });
 
-      // Buscar el siguiente mes (para cargar la cuenta del mes siguiente)
       const idx = ordenMeses.indexOf(mes);
+      const mesNum = idx + 1;
+      const periodo = String(mesNum).padStart(2, '0') + '-2026';
+
       const siguiente = (idx + 1 < ordenMeses.length) ? ordenMeses[idx + 1] : null;
       let siguienteWorkbook = null;
       if (siguiente) {
@@ -3152,7 +3232,50 @@ async function importarMayores() {
       resultado.mes = mes;
       resultados.push(resultado);
       status.textContent = `✅ Procesado: ${mes}`;
-    }
+
+      // ─── GUARDAR PLAZOS REALES EN SUPABASE ──────────────────────────
+
+      // 1. Plazos por cliente
+      if (resultado.detalleClientes && resultado.detalleClientes.length) {
+        for (const item of resultado.detalleClientes) {
+          const nombreCliente = item.cliente.trim().toUpperCase();
+          const cliente = _clientes.find(c => c.nombre.trim().toUpperCase() === nombreCliente);
+          if (cliente) {
+            await sb.from('plazos_clientes').upsert({
+              cliente_id: cliente.id,
+              periodo: periodo,
+              plazo_real_promedio: item.diasPromedio,
+              monto_involucrado: item.montoVendido,
+              n_ventas: item.nVentas,
+              fecha_actualizacion: new Date().toISOString()
+            }, { onConflict: 'cliente_id,periodo' });
+          } else {
+            console.warn(`⚠️ Cliente no encontrado en base local: ${item.cliente}`);
+          }
+        }
+      }
+
+      // 2. Plazos por proveedor
+      if (resultado.detalleProveedores && resultado.detalleProveedores.length) {
+        for (const item of resultado.detalleProveedores) {
+          const nombreProv = item.proveedor.trim().toUpperCase();
+          const proveedor = _proveedores.find(p => p.nombre.trim().toUpperCase() === nombreProv);
+          if (proveedor) {
+            await sb.from('plazos_proveedores').upsert({
+              proveedor_id: proveedor.id,
+              periodo: periodo,
+              plazo_real_promedio: item.diasPromedio,
+              monto_involucrado: item.montoComprado,
+              n_compras: item.nCompras,
+              fecha_actualizacion: new Date().toISOString()
+            }, { onConflict: 'proveedor_id,periodo' });
+          } else {
+            console.warn(`⚠️ Proveedor no encontrado en base local: ${item.proveedor}`);
+          }
+        }
+      }
+
+    } // fin for
 
     if (!resultados.length) {
       status.textContent = '❌ No se pudo procesar ningún archivo. Verificá que sean los archivos de Mayores.';
@@ -3161,10 +3284,10 @@ async function importarMayores() {
 
     _finResultados = resultados;
     renderResultadosFinancieros(resultados);
-    status.textContent = `✅ ${resultados.length} mes(es) procesados correctamente.`;
+    status.textContent = `✅ ${resultados.length} mes(es) procesados correctamente. Datos guardados en la base de datos.`;
 
   } catch (error) {
-    console.error('Error al procesar archivos:', error);
+    console.error('❌ Error al procesar archivos:', error);
     status.textContent = `❌ Error: ${error.message}`;
   }
 }
@@ -3231,4 +3354,207 @@ function renderResultadosFinancieros(resultados) {
   }
 
   el.innerHTML = html;
+}
+
+async function cargarPeriodosPlazos() {
+  const sel = document.getElementById('plz-periodo');
+  if (!sel) return;
+  const periodos = new Set();
+  // Obtener períodos desde plazos_clientes y plazos_proveedores
+  const [resC, resP] = await Promise.all([
+    sb.from('plazos_clientes').select('periodo'),
+    sb.from('plazos_proveedores').select('periodo')
+  ]);
+  if (resC.data) resC.data.forEach(r => periodos.add(r.periodo));
+  if (resP.data) resP.data.forEach(r => periodos.add(r.periodo));
+  const sorted = Array.from(periodos).sort((a,b) => a.localeCompare(b));
+  const current = sel.value;
+  sel.innerHTML = '';
+  if (!sorted.length) {
+    sel.innerHTML = '<option value="">Sin datos</option>';
+    return;
+  }
+  sorted.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p;
+    opt.textContent = p;
+    sel.appendChild(opt);
+  });
+  if (current && sorted.includes(current)) sel.value = current;
+  else sel.value = sorted[sorted.length - 1]; // último período
+}
+
+let _plzPg = 1;
+const PP_PLZ = 50;
+
+async function renderPlazos() {
+  const tipo = document.getElementById('plz-tipo').value;
+  const periodo = document.getElementById('plz-periodo').value;
+  const q = (document.getElementById('plz-q').value || '').toLowerCase();
+  const tolerancia = parseInt(document.getElementById('plz-tolerancia').value) || 20;
+
+  if (!periodo) {
+    document.getElementById('plz-tbody').innerHTML = '<tr><td colspan="6"><div class="empty">Seleccioná un período</div></td></tr>';
+    document.getElementById('plz-resumen').innerHTML = '';
+    return;
+  }
+
+  // Obtener plazos reales
+  let plazosReales = [];
+  if (tipo === 'clientes') {
+    const { data } = await sb.from('plazos_clientes').select('*').eq('periodo', periodo);
+    plazosReales = data || [];
+  } else {
+    const { data } = await sb.from('plazos_proveedores').select('*').eq('periodo', periodo);
+    plazosReales = data || [];
+  }
+
+  // Obtener plazos pactados
+  let datos = [];
+  if (tipo === 'clientes') {
+    const clientes = _clientes || [];
+    const plazosMap = {};
+    plazosReales.forEach(p => plazosMap[p.cliente_id] = p);
+    datos = clientes.map(c => {
+      const real = plazosMap[c.id];
+      const pactado = c.condicion_pago || null;
+      return {
+        id: c.id,
+        nombre: c.nombre,
+        pactado: pactado,
+        real: real ? real.plazo_real_promedio : null,
+        monto: real ? real.monto_involucrado : 0,
+        n: real ? real.n_ventas : 0
+      };
+    });
+  } else {
+    const proveedores = _proveedores || [];
+    const plazosMap = {};
+    plazosReales.forEach(p => plazosMap[p.proveedor_id] = p);
+    datos = proveedores.map(p => {
+      const real = plazosMap[p.id];
+      const pactado = p.plazo_pago_dias || null;
+      return {
+        id: p.id,
+        nombre: p.nombre,
+        pactado: pactado,
+        real: real ? real.plazo_real_promedio : null,
+        monto: real ? real.monto_involucrado : 0,
+        n: real ? real.n_compras : 0
+      };
+    });
+  }
+
+  // Filtrar por búsqueda
+  if (q) {
+    datos = datos.filter(d => d.nombre.toLowerCase().includes(q));
+  }
+
+  // Calcular diferencia y estado
+  datos.forEach(d => {
+    if (d.pactado !== null && d.real !== null) {
+      d.diferencia = d.real - d.pactado;
+      const margen = (tolerancia / 100) * d.pactado;
+      if (d.diferencia <= 0) d.estado = 'verde';
+      else if (d.diferencia <= margen) d.estado = 'amarillo';
+      else d.estado = 'rojo';
+    } else if (d.real !== null) {
+      d.diferencia = null;
+      d.estado = 'gris';
+    } else {
+      d.diferencia = null;
+      d.estado = 'sin_datos';
+    }
+  });
+
+  // Ordenar por nombre
+  datos.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  // Resumen
+  const conDatos = datos.filter(d => d.real !== null);
+  const totalMonto = conDatos.reduce((s, d) => s + d.monto, 0);
+  const verde = conDatos.filter(d => d.estado === 'verde');
+  const amarillo = conDatos.filter(d => d.estado === 'amarillo');
+  const rojo = conDatos.filter(d => d.estado === 'rojo');
+  const sinPactado = conDatos.filter(d => d.estado === 'gris');
+
+  document.getElementById('plz-resumen').innerHTML = `
+    <span><b>${conDatos.length}</b> con plazo real</span>
+    <span style="color:var(--P);">✅ ${verde.length} cumplen</span>
+    <span style="color:var(--W);">⚠️ ${amarillo.length} se pasan un poco</span>
+    <span style="color:var(--D);">🔴 ${rojo.length} incumplen</span>
+    <span style="color:var(--txt2);">⬜ ${sinPactado.length} sin pactado</span>
+    <span><b>Monto total:</b> ${fmt(totalMonto)}</span>
+  `;
+
+  // Paginación
+  const total = datos.length;
+  const sl = datos.slice((_plzPg - 1) * PP_PLZ, _plzPg * PP_PLZ);
+  const tbody = document.getElementById('plz-tbody');
+  if (!sl.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty">Sin resultados</div></td></tr>';
+    pag('plz-pg', 0, 1, p => {});
+    return;
+  }
+
+  const estadoBadge = (estado) => {
+    const map = {
+      'verde': '<span class="b bP">✅ Cumple</span>',
+      'amarillo': '<span class="b bW">⚠️ Se pasa un poco</span>',
+      'rojo': '<span class="b bD">🔴 Incumple</span>',
+      'gris': '<span class="b" style="background:var(--bg2);color:var(--txt2);">⬜ Sin pactado</span>',
+      'sin_datos': '<span class="b" style="background:var(--bg2);color:var(--txt2);">—</span>'
+    };
+    return map[estado] || map.sin_datos;
+  };
+
+  tbody.innerHTML = sl.map(d => `
+    <tr>
+      <td style="font-weight:500;">${esc(d.nombre)}</td>
+      <td style="text-align:center;">${d.pactado !== null ? d.pactado + ' días' : '—'}</td>
+      <td style="text-align:center; font-weight:600;">${d.real !== null ? d.real.toFixed(1) + ' días' : '—'}</td>
+      <td style="text-align:center; font-weight:600; color:${d.diferencia !== null ? (d.diferencia > 0 ? 'var(--D)' : 'var(--P)') : 'var(--txt2)'}">
+        ${d.diferencia !== null ? (d.diferencia > 0 ? '+' : '') + d.diferencia.toFixed(1) + 'd' : '—'}
+      </td>
+      <td style="text-align:center;">${estadoBadge(d.estado)}</td>
+      <td style="text-align:right; font-weight:600;">${d.monto > 0 ? fmt(d.monto) : '—'}</td>
+    </tr>
+  `).join('');
+
+  pag('plz-pg', total, _plzPg, p => { _plzPg = p; renderPlazos(); });
+}
+
+function exportarPlazosCSV() {
+  const tipo = document.getElementById('plz-tipo').value;
+  const periodo = document.getElementById('plz-periodo').value;
+  const tbody = document.getElementById('plz-tbody');
+  if (!tbody || !tbody.querySelector('tr')) {
+    alert('No hay datos para exportar.');
+    return;
+  }
+  // Recolectar datos de la tabla
+  const rows = [];
+  const headers = ['Nombre', 'Plazo pactado', 'Plazo real', 'Diferencia', 'Estado', 'Monto involucrado'];
+  const trs = tbody.querySelectorAll('tr');
+  for (const tr of trs) {
+    const cells = tr.querySelectorAll('td');
+    if (cells.length < 6) continue;
+    const nombre = cells[0].textContent.trim();
+    const pactado = cells[1].textContent.trim();
+    const real = cells[2].textContent.trim();
+    const diff = cells[3].textContent.trim();
+    const estado = cells[4].textContent.trim();
+    const monto = cells[5].textContent.trim();
+    rows.push([nombre, pactado, real, diff, estado, monto]);
+  }
+  if (!rows.length) { alert('Sin datos'); return; }
+  const BOM = '\uFEFF';
+  const csv = BOM + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `plazos_${tipo}_${periodo}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
