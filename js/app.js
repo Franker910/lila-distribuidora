@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260910-03';
+const APP_VERSION = '20260910-04';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -814,10 +814,15 @@ document.addEventListener('click',e=>{
 });
 
 function go(p) {
+  // Hoja de ruta en móvil: solo para repartidores. Los vendedores no la ven
+  // (ni por botón ni por URL vieja / go('hoja-ruta') colado desde algún lado).
+  const esRepartidorMovil = usuarioActual?.rol === 'repartidor';
+
   //  VERIFICAR ACCESO A ESCRITORIO
   if (usuarioActual?.vista === 'movil') {
     // Paneles permitidos en móvil
-    const panelesMoviles = ['vendedor-home', 'pedido-movil', 'cobranza-hoy', 'cobranza', 'hoja-ruta', 'pedidos', 'cuentas', 'nc-movil'];
+    const panelesMoviles = ['vendedor-home', 'pedido-movil', 'cobranza-hoy', 'cobranza', 'pedidos', 'cuentas', 'nc-movil'];
+    if (esRepartidorMovil) panelesMoviles.push('hoja-ruta');
     
     // Si el panel no está en la lista de permitidos
     if (!panelesMoviles.includes(p) && p !== 'vendedor-home') {
@@ -840,7 +845,8 @@ function go(p) {
   
   // Si es móvil y el panel no es móvil, redirigir al home
   if (usuarioActual?.vista === 'movil' && p !== 'vendedor-home') {
-    const panelesMoviles = ['vendedor-home', 'pedido-movil', 'cobranza-hoy', 'cobranza', 'hoja-ruta', 'nc-movil'];
+    const panelesMoviles = ['vendedor-home', 'pedido-movil', 'cobranza-hoy', 'cobranza', 'nc-movil'];
+    if (esRepartidorMovil) panelesMoviles.push('hoja-ruta');
     if (!panelesMoviles.includes(p)) {
       // Si es admin, mostrar opción de cambiar
       if (usuarioActual.esAdmin) {

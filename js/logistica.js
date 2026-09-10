@@ -1159,8 +1159,22 @@ function _renderGastosHoy(){
   const vendedor=usuarioActual?.nombre||'';
   const gastos=(_gastosReparto||[]).filter(g=>g.fecha===fecha&&(g.vendedor||'').toLowerCase()===vendedor.toLowerCase());
   const total=gastos.reduce((a,g)=>a+(g.importe||0),0);
+
+  // Total dentro del bloque colapsable
   const totalEl=document.getElementById('hr-mia-gastos-total');
   if(totalEl)totalEl.textContent=fmt(total);
+
+  // Texto del botón: siempre lleva el total si hay gastos, y el verbo "cerrar" según estado
+  const btn=document.getElementById('hr-mia-btn-gastos');
+  if(btn){
+    const abierto=document.getElementById('hr-mia-gastos-body')?.style.display==='block';
+    const totalTxt=total>0?` (${fmt(total)})`:'';
+    btn.textContent = abierto
+      ? `✕ Cerrar gastos${totalTxt}`
+      : `⛽ Gastos de hoy${totalTxt}`;
+  }
+
+  // Lista de gastos del día (dentro del bloque)
   const listaEl=document.getElementById('hr-mia-gastos-lista');
   if(listaEl){
     listaEl.innerHTML=gastos.map(g=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;color:var(--txt2)">
@@ -1190,7 +1204,15 @@ function hrInit(){
   const hoy = hoyLocal();
   document.getElementById('hr-fecha').value = hoy;
   document.getElementById('hr-fecha-mia').value = hoy;
-  
+
+  // Resetear bloques colapsables (arrancan cerrados al entrar)
+  const buscador=document.getElementById('hr-mia-buscador');
+  if(buscador) buscador.style.display='none';
+  const btnAgregar=document.getElementById('hr-mia-btn-agregar');
+  if(btnAgregar) btnAgregar.textContent='+ Agregar cliente sobre la marcha';
+  const gastosBody=document.getElementById('hr-mia-gastos-body');
+  if(gastosBody) gastosBody.style.display='none';
+
   // DETECTAR ROL
   const esAdmin = usuarioActual?.esAdmin || usuarioActual?.rol === 'admin' || usuarioActual?.rol_original === 'admin';
   const esMovil = usuarioActual?.vista === 'movil' || usuarioActual?.rol === 'vendedor' || usuarioActual?.rol === 'repartidor';
@@ -1213,7 +1235,7 @@ function hrInit(){
     return;
   }
   
-  // ⭐ Si es admin (escritorio) → mostrar "Armar ruta"
+  // Si es admin (escritorio) → mostrar "Armar ruta"
   if (esAdmin && !esMovil) {
     if (panelAdmin) panelAdmin.style.display = 'block';
     if (panelMia) panelMia.style.display = 'none';
@@ -1514,13 +1536,24 @@ async function _generarHojaRutaParaCarga(cargaId){
 // ─── Agregar cliente sobre la marcha (vista móvil del repartidor/vendedor) ──
 function hrMiRutaAgregarToggle(){
   const w=document.getElementById('hr-mia-buscador');if(!w)return;
+  const btn=document.getElementById('hr-mia-btn-agregar');
   const abrir=w.style.display==='none';
   w.style.display=abrir?'block':'none';
+  if(btn) btn.textContent = abrir ? '✕ Cerrar buscador' : '+ Agregar cliente sobre la marcha';
   if(abrir){
     document.getElementById('hr-mia-cli-q').value='';
     hrMiRutaFiltrar();
     setTimeout(()=>document.getElementById('hr-mia-cli-q')?.focus(),100);
   }
+}
+
+// ─── Gastos de hoy: toggle colapsable ──────────────────────────────────────
+function hrMiRutaGastosToggle(){
+  const body=document.getElementById('hr-mia-gastos-body');if(!body)return;
+  const abrir=body.style.display==='none';
+  body.style.display=abrir?'block':'none';
+  // Actualizar el texto del botón con el estado actual (y el total si hay)
+  _renderGastosHoy();
 }
 
 function hrMiRutaFiltrar(){
