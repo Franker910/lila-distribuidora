@@ -1588,6 +1588,7 @@ async function guardarND(){
 
 // ─── PEDIDO MÓVIL (estilo Moviler) ───
 let _pmCliId=null, _pmCarrito=[], _pmMarcaActual=null, _pmProdActual=null;
+let _pmMarcaAbierta = null; // {marca, key, pref} - acordeón actualmente abierto
 
 function renderVendedorHome(){
   const saludo = document.getElementById('vh-saludo');
@@ -1685,6 +1686,7 @@ function abrirPedidoMovil(){
   _pmProdActual = null;
   _pmClientesZonaActual = [];
   _cobZonaInput = '';
+  _pmMarcaAbierta = null;
   
   go('pedido-movil');
   
@@ -2017,15 +2019,34 @@ function _pmMarcaDe(p){ return p.proveedor_nom||p.rubro||'OTROS'; }
 // Items ya cargados: en edición son los del pedido; si no, el carrito nuevo.
 function _pmItemsActuales(){ return _editPedMovil?_editPedMovil.items:_pmCarrito; }
 
-function _pmRenderMarcas(cont,pref){
-  if(!cont)return;
-  const items=_pmItemsActuales()||[];
-  const marcas=[...new Set(_productos.filter(p=>p.activo!==false).map(_pmMarcaDe).filter(Boolean))].sort();
-  cont.innerHTML=marcas.map(m=>{
-    const key=m.replace(/[^a-zA-Z0-9]/g,'_');
-    const enCarrito=items.filter(x=>{const prod=_productos.find(p=>p.id===x.id);return prod&&_pmMarcaDe(prod)===m;});
-    const badge=enCarrito.length>0?`<span style="background:var(--P);color:#fff;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:700">${enCarrito.length} ✓</span>`:'';
-    return `<div><div onclick="toggleMarcaMovil('${m.replace(/'/g,"\\'")}','${key}','${pref}')" style="display:flex;justify-content:space-between;align-items:center;padding:16px 14px;border-bottom:1px solid var(--brd);cursor:pointer;background:var(--P);color:#fff;"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px;font-weight:700">${m}</span>${badge}</div><span id="${pref}-chevron-${key}" style="color:#fff;font-size:20px;font-weight:300">›</span></div><div id="${pref}-prods-${key}" style="display:none;background:var(--bg2)"></div></div>`;
+function _pmRenderMarcas(cont, pref) {
+  if (!cont) return;
+  const items = _pmItemsActuales() || [];
+  const marcas = [...new Set(_productos.filter(p => p.activo !== false).map(_pmMarcaDe).filter(Boolean))].sort();
+  
+  cont.innerHTML = marcas.map(m => {
+    const key = m.replace(/[^a-zA-Z0-9]/g, '_');
+    const enCarrito = items.filter(x => {
+      const prod = _productos.find(p => p.id === x.id);
+      return prod && _pmMarcaDe(prod) === m;
+    });
+    
+    // Badge con ID para poder actualizarlo individualmente
+    const badge = enCarrito.length > 0
+      ? `<span id="${pref}-badge-${key}" style="background:var(--P);color:#fff;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:700">${enCarrito.length} ✓</span>`
+      : `<span id="${pref}-badge-${key}" style="display:none;background:var(--P);color:#fff;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:700"></span>`;
+    
+    return `<div>
+      <div onclick="toggleMarcaMovil('${m.replace(/'/g, "\\'")}', '${key}', '${pref}')" 
+        style="display:flex;justify-content:space-between;align-items:center;padding:16px 14px;border-bottom:1px solid var(--brd);cursor:pointer;background:var(--P);color:#fff;">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:16px;font-weight:700">${m}</span>
+          ${badge}
+        </div>
+        <span id="${pref}-chevron-${key}" style="color:#fff;font-size:20px;font-weight:300">›</span>
+      </div>
+      <div id="${pref}-prods-${key}" style="display:none;background:var(--bg2)"></div>
+    </div>`;
   }).join('');
 }
 
@@ -2033,19 +2054,28 @@ function cargarMarcasMovil(){
   _pmRenderMarcas(document.getElementById('pm-marcas-lista'),'pm');
 }
 
-function toggleMarcaMovil(marca,key,pref){
-  pref=pref||'pm';
-  const div=document.getElementById(pref+'-prods-'+key);
-  const chev=document.getElementById(pref+'-chevron-'+key);
-  if(!div)return;
-  const open=div.style.display!=='none';
-  if(open){div.style.display='none';if(chev)chev.textContent='›';}
-  else{
-    const items=_pmItemsActuales()||[];
-    const prods=_productos.filter(p=>_pmMarcaDe(p)===marca&&p.activo!==false);
-    div.innerHTML=prods.map(p=>{const enCarrito=items.find(x=>x.id===p.id);const si=_stockInfo(p);return `<div onclick="abrirPopupMovil(${p.id})" style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--brd);cursor:pointer;background:${enCarrito?'var(--PL)':'#fff'};border-left:${enCarrito?'4px solid var(--P)':'4px solid transparent'}"><div style="flex:1"><div style="font-size:15px;font-weight:${enCarrito?'700':'500'}">${esc(p.nombre)}</div><div style="font-size:12px;color:${si.color};font-weight:${si.peso};margin-top:2px">${si.txt}</div>${enCarrito?`<div style="font-size:12px;color:var(--P);font-weight:600">✓ ${enCarrito.cant} ${p.unidad||''} en pedido</div>`:''}</div><div style="text-align:right;margin-left:12px"><div style="font-size:15px;font-weight:700;color:var(--PD)">${fmt(p.precio||0)}</div><div style="width:30px;height:30px;border-radius:50%;background:var(--P);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;margin-left:auto;margin-top:2px">+</div></div></div>`;}).join('')||`<div style="padding:14px 18px;color:var(--txt2);font-size:13px">Sin productos</div>`;
-    div.style.display='block';if(chev)chev.textContent='⌄';
-    div.scrollIntoView({behavior:'smooth',block:'nearest'});
+function toggleMarcaMovil(marca, key, pref) {
+  pref = pref || 'pm';
+  const div = document.getElementById(pref + '-prods-' + key);
+  const chev = document.getElementById(pref + '-chevron-' + key);
+  if (!div) return;
+  const open = div.style.display !== 'none';
+  
+  if (open) {
+    // Cerrar
+    div.style.display = 'none';
+    if (chev) chev.textContent = '›';
+    // Si esta era la marca abierta, limpiarla
+    if (_pmMarcaAbierta && _pmMarcaAbierta.key === key && _pmMarcaAbierta.pref === pref) {
+      _pmMarcaAbierta = null;
+    }
+  } else {
+    // Abrir: renderizar productos y recordar marca abierta
+    _pmRenderProductosEnAcordeon(marca, key, pref);
+    div.style.display = 'block';
+    if (chev) chev.textContent = '⌄';
+    _pmMarcaAbierta = { marca, key, pref };
+    div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 }
 
@@ -2091,47 +2121,72 @@ function pmCantidad(delta){
 }
 
 function agregarAlCarrito(){
-  if(!_pmProdActual)return;
-  const cant=parseFloat(document.getElementById('pm-cant').value)||0;
-  const dto=parseFloat(document.getElementById('pm-dto').value)||0;
-  const _ppLista=_pmCliId?getPrecioParaCliente(_pmProdActual?.id,_pmCliId):null;
-  const precio=_ppLista!=null?_ppLista:(_pmProdActual?.precio||0);
+  if(!_pmProdActual) return;
+  
+  // Guardar referencia del producto ANTES de cerrar el popup
+  const prodActual = _pmProdActual;
+  const prodId = prodActual.id;
+  
+  const cant = parseFloat(document.getElementById('pm-cant').value) || 0;
+  const dto = parseFloat(document.getElementById('pm-dto').value) || 0;
+  const _ppLista = _pmCliId ? getPrecioParaCliente(prodId, _pmCliId) : null;
+  const precio = _ppLista != null ? _ppLista : (prodActual?.precio || 0);
 
   if(_editPedMovil){
-    // Modo edición: guardar referencia antes de cerrar el popup (que nula _pmProdActual)
-    const prod=_pmProdActual;
+    // Modo edición
     cerrarPopupMovil();
-    const idx=_editPedMovil.items.findIndex(x=>x.id===prod.id);
-    if(cant<=0){
-      if(idx>=0) _editPedMovil.items.splice(idx,1);
+    const idx = _editPedMovil.items.findIndex(x => x.id === prodId);
+    if(cant <= 0){
+      if(idx >= 0) _editPedMovil.items.splice(idx, 1);
     } else {
-      const _precioLP=_pmCliId?getPrecioParaCliente(prod.id,_pmCliId):null;
-      const item={id:prod.id,nom:prod.nombre,un:prod.unidad||'un',cant,precio:_precioLP!=null?_precioLP:(prod.precio||0),dto,iva:prod.iva||21};
-      if(idx>=0) _editPedMovil.items[idx]=item; else _editPedMovil.items.push(item);
+      const _precioLP = _pmCliId ? getPrecioParaCliente(prodId, _pmCliId) : null;
+      const item = {
+        id: prodId,
+        nom: prodActual.nombre,
+        un: prodActual.unidad || 'un',
+        cant,
+        precio: _precioLP != null ? _precioLP : (prodActual.precio || 0),
+        dto,
+        iva: prodActual.iva || 21
+      };
+      if(idx >= 0) _editPedMovil.items[idx] = item;
+      else _editPedMovil.items.push(item);
     }
-    const busq=document.getElementById('epm-busq');
-    if(busq)busq.value='';
+    const busq = document.getElementById('epm-busq');
+    if(busq) busq.value = '';
     renderEditPedidoMovil();
-    // Redibujar el catálogo para que se actualice el contador "✓ en pedido",
-    // igual que hace cargarMarcasMovil() en la toma de pedido original.
     filtrarAgregarMovil();
-    limpiarBuscadorProductosMovil();
     return;
   }
 
-  // Modo nuevo pedido: actualizar _pmCarrito
-  if(cant<=0){
-    _pmCarrito=_pmCarrito.filter(x=>x.id!==_pmProdActual.id);
+  // Modo nuevo pedido
+  if(cant <= 0){
+    _pmCarrito = _pmCarrito.filter(x => x.id !== prodId);
   } else {
-    const neto=precio*cant*(1-dto/100);
-    const idx=_pmCarrito.findIndex(x=>x.id===_pmProdActual.id);
-    const item={id:_pmProdActual.id,nom:_pmProdActual.nombre,precio,cant,dto,un:_pmProdActual.unidad||'',neto};
-    if(idx>=0)_pmCarrito[idx]=item;else _pmCarrito.push(item);
+    const neto = precio * cant * (1 - dto/100);
+    const idx = _pmCarrito.findIndex(x => x.id === prodId);
+    const item = {
+      id: prodId,
+      nom: prodActual.nombre,
+      precio,
+      cant,
+      dto,
+      un: prodActual.unidad || '',
+      neto
+    };
+    if(idx >= 0) _pmCarrito[idx] = item;
+    else _pmCarrito.push(item);
   }
+  
   cerrarPopupMovil();
-  limpiarBuscadorProductosMovil();
   actualizarCarritoBar();
-  cargarMarcasMovil();
+  
+  // ✅ Actualizar badge de la marca y re-renderizar el acordeón abierto
+  // (usando prodId guardado, no _pmProdActual que ya es null)
+  _pmActualizarBadgeMarca(prodId);
+  if (_pmMarcaAbierta) {
+    _pmRenderProductosEnAcordeon(_pmMarcaAbierta.marca, _pmMarcaAbierta.key, _pmMarcaAbierta.pref);
+  }
 }
 
 function actualizarCarritoBar(){
@@ -2143,7 +2198,7 @@ function actualizarCarritoBar(){
   
   const itemsEl = document.getElementById('pm-carrito-items');
   const totalEl = document.getElementById('pm-carrito-total');
-  const btn = bar.querySelector('button');
+  const btnVer = document.getElementById('pm-carrito-btn-ver');
   
   if (itemsEl) itemsEl.textContent = n + ' producto' + (n !== 1 ? 's' : '');
   if (totalEl) totalEl.textContent = fmt(tot);
@@ -2154,14 +2209,8 @@ function actualizarCarritoBar(){
   
   if (n > 0) {
     bar.style.display = 'flex';
-    if (btn) {
-      if (resumenVisible) {
-        btn.textContent = '← Seguir agregando';
-        btn.onclick = volverProductosMovil;
-      } else {
-        btn.textContent = 'Ver pedido →';
-        btn.onclick = mostrarResumenMovil;
-      }
+    if (btnVer) {
+      btnVer.textContent = resumenVisible ? '← Seguir agregando' : 'Ver pedido →';
     }
   } else {
     bar.style.display = 'none';
@@ -2229,29 +2278,45 @@ function volverProductosMovil(){
 }
 
 async function confirmarPedidoMovil(){
-  // Guardar HTML original del panel si aún no está guardado
-  if(!window._pmPanelOriginal){
-    const panel=document.getElementById('p-pedido-movil');
-    if(panel) window._pmPanelOriginal = panel.innerHTML;
-  }
   if(!_pmCliId){alert('Seleccioná un cliente');return;}
   if(!_pmCarrito.length){alert('Agregá al menos un producto');return;}
-  const c=_clientes.find(x=>x.id===_pmCliId);
-  const tot=_pmCarrito.reduce((a,x)=>a+x.neto,0);
-  const items=_pmCarrito.map(x=>({id:x.id,nom:x.nom,precio:x.precio,cant:x.cant,dto:x.dto,un:x.un}));
-  const {error}=await sb.from('pedidos').insert({
-    cliente_id:_pmCliId,cliente:c?.nombre||'?',
-    localidad:c?.localidad||'',zona:c?.zona||'',
-    vendedor:usuarioActual?.nombre||'',
-    fecha:hoyLocal(),
-    items,total:tot,estado:'pendiente',
-    visita:document.getElementById('pm-visita').value||null,
-    observaciones:document.getElementById('pm-obs').value||null
+  
+  const c = _clientes.find(x => x.id === _pmCliId);
+  const tot = _pmCarrito.reduce((a,x) => a + x.neto, 0);
+  const items = _pmCarrito.map(x => ({
+    id: x.id,
+    nom: x.nom,
+    precio: x.precio,
+    cant: x.cant,
+    dto: x.dto,
+    un: x.un
+  }));
+  
+  // Valores seguros (por si el resumen está cerrado)
+  const visita = document.getElementById('pm-visita')?.value || 'pedido tomado';
+  const obs = document.getElementById('pm-obs')?.value || '';
+  
+  const {error} = await sb.from('pedidos').insert({
+    cliente_id: _pmCliId,
+    cliente: c?.nombre || '?',
+    localidad: c?.localidad || '',
+    zona: c?.zona || '',
+    vendedor: usuarioActual?.nombre || '',
+    fecha: hoyLocal(),
+    items,
+    total: tot,
+    estado: 'pendiente',
+    visita,
+    observaciones: obs
   });
-  if(error){alert('Error: '+error.message);return;}
-  await cargarPedidos();renderDash();
-  // Mostrar pantalla de confirmación con opciones
-  mostrarConfirmacionMovil('pedido', c?.nombre, _pmCarrito.length+' productos · '+fmt(tot));
+  
+  if(error){alert('Error: ' + error.message);return;}
+  
+  await cargarPedidos();
+  renderDash();
+  
+  // Mostrar pantalla de confirmación
+  mostrarConfirmacionMovil('pedido', c?.nombre, _pmCarrito.length + ' productos · ' + fmt(tot));
 }
 
 function mostrarConfirmacionMovil(tipo, cliente, detalle, cobId){
@@ -3581,4 +3646,59 @@ function filtrarClientesPorZonaGlobal() {
       <div style="font-size:14px; font-weight:700; color:${(c.saldo||0)>0?'var(--D)':'var(--P)'};">${fmt(c.saldo||0)}</div>
     </div>
   `).join('');
+}
+
+// ─── RENDERIZAR PRODUCTOS DENTRO DE UN ACORDEÓN ───
+function _pmRenderProductosEnAcordeon(marca, key, pref) {
+  const div = document.getElementById(`${pref}-prods-${key}`);
+  if (!div) return;
+  const items = _pmItemsActuales() || [];
+  const prods = _productos.filter(p => _pmMarcaDe(p) === marca && p.activo !== false);
+  div.innerHTML = prods.map(p => {
+    const enCarrito = items.find(x => x.id === p.id);
+    const si = _stockInfo(p);
+    return `<div onclick="abrirPopupMovil(${p.id})" 
+      style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--brd);cursor:pointer;background:${enCarrito?'var(--PL)':'#fff'};border-left:${enCarrito?'4px solid var(--P)':'4px solid transparent'}">
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:${enCarrito?'700':'500'}">${esc(p.nombre)}</div>
+        <div style="font-size:12px;color:${si.color};font-weight:${si.peso};margin-top:2px">${si.txt}</div>
+        ${enCarrito?`<div style="font-size:12px;color:var(--P);font-weight:600">✓ ${enCarrito.cant} ${p.unidad||''} en pedido</div>`:''}
+      </div>
+      <div style="text-align:right;margin-left:12px">
+        <div style="font-size:15px;font-weight:700;color:var(--PD)">${fmt(p.precio||0)}</div>
+        <div style="width:30px;height:30px;border-radius:50%;background:var(--P);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;margin-left:auto;margin-top:2px">+</div>
+      </div>
+    </div>`;
+  }).join('') || `<div style="padding:14px 18px;color:var(--txt2);font-size:13px">Sin productos</div>`;
+}
+
+// ─── ACTUALIZAR BADGE DEL ACORDEÓN DE UNA MARCA ───
+function _pmActualizarBadgeMarca(prodId) {
+  const prod = _productos.find(p => p.id === prodId);
+  if (!prod) return;
+  const marca = _pmMarcaDe(prod);
+  const key = marca.replace(/[^a-zA-Z0-9]/g, '_');
+  const badgeEl = document.getElementById(`pm-badge-${key}`);
+  if (!badgeEl) return;
+  const items = _pmItemsActuales() || [];
+  const enCarrito = items.filter(x => {
+    const p = _productos.find(pp => pp.id === x.id);
+    return p && _pmMarcaDe(p) === marca;
+  });
+  if (enCarrito.length > 0) {
+    badgeEl.textContent = `${enCarrito.length} ✓`;
+    badgeEl.style.display = 'inline-block';
+  } else {
+    badgeEl.textContent = '';
+    badgeEl.style.display = 'none';
+  }
+}
+
+function toggleResumenCarrito() {
+  const resumen = document.getElementById('pm-paso-resumen');
+  if (resumen && resumen.style.display === 'block') {
+    volverProductosMovil(); // cerrar resumen
+  } else {
+    mostrarResumenMovil(); // abrir resumen
+  }
 }
