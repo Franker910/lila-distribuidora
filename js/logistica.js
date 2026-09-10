@@ -713,10 +713,8 @@ function imprimirHojaCarga(){
     }).join('');
 
     return '<div style="margin-bottom:12px;page-break-inside:avoid;border:1.5px solid #000;padding:5px 7px">'
-      +'<div style="font-weight:900;font-size:13px;border-bottom:1.5px solid #000;padding-bottom:3px;margin-bottom:3px">'+(i+1)+'. Cliente: '+esc(p.cliente)+'</div>'
-      +'<div style="font-size:11px;margin-bottom:1px">Código: '+codCliente+'</div>'
-      +'<div style="font-size:11px;margin-bottom:1px">Localidad: '+esc(p.localidad||c.localidad||'—')+'</div>'
-      +'<div style="font-size:11px;font-weight:700;margin-bottom:4px">Vendedor: '+esc(vendedor)+'</div>'
+      +'<div style="font-weight:900;font-size:13px;border-bottom:1.5px solid #000;padding-bottom:3px;margin-bottom:1px">'+(i+1)+' — '+esc(p.cliente)+' (Cód. '+codCliente+') — '+esc(p.localidad||c.localidad||'—')+'</div>'
+      +'<div style="font-size:10px;margin-bottom:4px">Vendedor: '+esc(vendedor)+'&nbsp;&nbsp;&nbsp;&nbsp;Carga #'+cg.id+'</div>'
       + '<table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:4px;">'
       +   '<thead>'
       +     '<tr style="background:#f0f0f0;border-bottom:2px solid #000;">'
