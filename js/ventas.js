@@ -2514,54 +2514,85 @@ function detalleMovilHTML(p){
 }
 
 function verMisPedidosHoy(){
-  const hoy=hoyLocal();
-  const misPedidos=_pedidos.filter(p=>
-    p.vendedor===usuarioActual?.nombre && p.fecha===hoy
-  ).sort((a,b)=>b.id-a.id);
-  const panel=document.getElementById('p-pedido-movil');
-  if(!panel)return;
-  const stBadge=s=>s==='pendiente'?`<span style="background:var(--WL);color:var(--W);border-radius:20px;padding:2px 8px;font-size:12px;font-weight:600">Pendiente</span>`:s==='en_carga'?`<span style="background:var(--AL);color:var(--A);border-radius:20px;padding:2px 8px;font-size:12px;font-weight:600">En carga</span>`:s==='remitado'?`<span style="background:var(--PL);color:var(--PD);border-radius:20px;padding:2px 8px;font-size:12px;font-weight:600">Remitado</span>`:'';
-  panel.innerHTML=`
-    <div style="max-width:520px;padding:14px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-        <button onclick="go('vendedor-home')" style="background:none;border:none;font-size:22px;cursor:pointer;padding:8px;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center">←</button>
-        <div>
-          <h2 style="font-size:17px;font-weight:700;color:var(--PD);margin:0">📋 Mis pedidos de hoy</h2>
-          <div style="font-size:13px;color:var(--txt2)">${misPedidos.length} pedido${misPedidos.length!==1?'s':''} · ${hoy}</div>
+  const hoy = hoyLocal();
+  const misPedidos = _pedidos.filter(p =>
+    p.vendedor === usuarioActual?.nombre && p.fecha === hoy
+  ).sort((a,b) => b.id - a.id);
+  
+  const panel = document.getElementById('p-pedido-movil');
+  if (!panel) return;
+  
+  const stBadge = s => s==='pendiente'
+    ? `<span style="background:var(--WL);color:var(--W);border-radius:20px;padding:2px 8px;font-size:12px;font-weight:600">Pendiente</span>`
+    : s==='en_carga'
+    ? `<span style="background:var(--AL);color:var(--A);border-radius:20px;padding:2px 8px;font-size:12px;font-weight:600">En carga</span>`
+    : s==='remitado'
+    ? `<span style="background:var(--PL);color:var(--PD);border-radius:20px;padding:2px 8px;font-size:12px;font-weight:600">Remitado</span>`
+    : '';
+  
+  panel.innerHTML = `
+    <div style="height:100%; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px;">
+      <div style="max-width:520px; margin:0 auto; padding-bottom:20px;">
+        
+        <!-- Header -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <button onclick="go('vendedor-home')" 
+            style="background:none;border:none;font-size:22px;cursor:pointer;padding:8px;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;">
+            ←
+          </button>
+          <div>
+            <h2 style="font-size:17px;font-weight:700;color:var(--PD);margin:0;">📋 Mis pedidos de hoy</h2>
+            <div style="font-size:13px;color:var(--txt2);">${misPedidos.length} pedido${misPedidos.length!==1?'s':''} · ${hoy}</div>
+          </div>
         </div>
+        
+        <!-- Lista de pedidos -->
+        ${misPedidos.length ? misPedidos.map(p => `
+          <div style="background:var(--bg);border:1.5px solid var(--brd);border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+            <div onclick="toggleDetallePedMovil(${p.id})" style="display:flex;justify-content:space-between;align-items:center;padding:14px;cursor:pointer;border-left:4px solid var(--P);">
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.cliente)}</div>
+                <div style="font-size:13px;color:var(--txt2);margin-top:3px;">${p.items?.length||0} productos · ${esc(p.localidad||'')}${p.visita?' · '+p.visita:''}</div>
+                <div style="margin-top:5px;">${stBadge(p.estado)}</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;margin-left:12px;flex-shrink:0;">
+                <div style="font-size:19px;font-weight:700;color:var(--P);">${fmt(p.total)}</div>
+                <span id="ped-mov-chevron-${p.id}" style="font-size:18px;color:var(--txt2);transition:transform 0.2s;">▼</span>
+              </div>
+            </div>
+            <div id="ped-mov-det-${p.id}" style="display:none;border-top:1px solid var(--brd);">
+              <div id="ped-mov-det-inner-${p.id}" style="padding:14px 16px;">
+                ${detalleMovilHTML(p)}
+              </div>
+              ${p.estado==='pendiente' ? `
+                <div style="display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--brd);">
+                  <button onclick="event.stopPropagation();editarPedidoMovil(${p.id})" 
+                    style="flex:2;min-height:52px;background:var(--AL);color:var(--A);border:1.5px solid var(--A);border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+                    ✏️ Editar
+                  </button>
+                  <button onclick="event.stopPropagation();elimPedidoMovil(${p.id})" 
+                    style="flex:1;min-height:52px;background:var(--DL);color:var(--D);border:1.5px solid var(--D);border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+                    🗑
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `).join('') : `
+          <div style="text-align:center;color:var(--txt2);padding:40px 20px;font-size:15px;">
+            Sin pedidos cargados hoy
+          </div>
+        `}
+        
+        <!-- Botón nuevo pedido -->
+        <button onclick="abrirPedidoMovil()" 
+          style="width:100%;margin-top:6px;padding:16px;background:var(--P);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          + Nuevo pedido
+        </button>
       </div>
-      ${misPedidos.length?misPedidos.map(p=>`
-        <div style="background:var(--bg);border:1.5px solid var(--brd);border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
-          <div onclick="toggleDetallePedMovil(${p.id})" style="display:flex;justify-content:space-between;align-items:center;padding:14px;cursor:pointer;border-left:4px solid var(--P)">
-            <div style="flex:1;min-width:0">
-              <div style="font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.cliente)}</div>
-              <div style="font-size:13px;color:var(--txt2);margin-top:3px">${p.items?.length||0} productos · ${esc(p.localidad||'')}${p.visita?' · '+p.visita:''}</div>
-              <div style="margin-top:5px">${stBadge(p.estado)}</div>
-            </div>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;margin-left:12px;flex-shrink:0">
-              <div style="font-size:19px;font-weight:700;color:var(--P)">${fmt(p.total)}</div>
-              <span id="ped-mov-chevron-${p.id}" style="font-size:18px;color:var(--txt2);transition:transform 0.2s">▼</span>
-            </div>
-          </div>
-          <div id="ped-mov-det-${p.id}" style="display:none;border-top:1px solid var(--brd)">
-            <div id="ped-mov-det-inner-${p.id}" style="padding:14px 16px">
-              ${detalleMovilHTML(p)}
-            </div>
-            ${p.estado==='pendiente'?`<div style="display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--brd)">
-              <button onclick="event.stopPropagation();editarPedidoMovil(${p.id})" style="flex:2;min-height:52px;background:var(--AL);color:var(--A);border:1.5px solid var(--A);border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-                ✏️ Editar
-              </button>
-              <button onclick="event.stopPropagation();elimPedidoMovil(${p.id})" style="flex:1;min-height:52px;background:var(--DL);color:var(--D);border:1.5px solid var(--D);border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-                🗑
-              </button>
-            </div>`:''}
-          </div>
-        </div>`).join('')
-      :'<div style="text-align:center;color:var(--txt2);padding:40px 20px;font-size:15px">Sin pedidos cargados hoy</div>'}
-      <button onclick="abrirPedidoMovil()" style="width:100%;margin-top:6px;padding:16px;background:var(--P);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
-        + Nuevo pedido
-      </button>
-    </div>`;
+    </div>
+  `;
+  
   go('pedido-movil');
 }
 
