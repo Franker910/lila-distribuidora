@@ -1097,17 +1097,36 @@ async function emitirRemitoRapido(){
   const c=_clientes.find(x=>x.id==cid);
   let tot=0;_rrItems.forEach(it=>{const q=it.esPeso?(it.peso||0):it.cant;tot+=it.precio*q*(1-it.dto/100);});
   tot=Math.round(tot*100)/100;
+
+  // IDEMPOTENCIA: si este remito viene de un pedido, chequear que el pedido no
+  // tenga ya un remito emitido. Evita duplicados si se hizo doble toque, o si
+  // se combinó "facturar con pesaje" + "emitir remitos" en la misma carga.
+  if(_rrPedidoId){
+    const {data:yaExiste}=await sb.from('remitos').select('id').eq('pedido_id',_rrPedidoId).maybeSingle();
+    if(yaExiste){
+      alert('⚠️ Este pedido ya tiene remito emitido (R-'+String(yaExiste.id).padStart(4,'0')+'). No se crea un duplicado.');
+      await sb.from('pedidos').update({estado:'remitado',remito_id:yaExiste.id}).eq('id',_rrPedidoId);
+      const pedMem=_pedidos.find(p=>p.id===_rrPedidoId);
+      if(pedMem){pedMem.estado='remitado';pedMem.remito_id=yaExiste.id;}
+      const pedMem2=_pedidosTodos.find(p=>p.id===_rrPedidoId);
+      if(pedMem2){pedMem2.estado='remitado';pedMem2.remito_id=yaExiste.id;}
+      limpiarRR();
+      if(_facturandoCargaId)_facturarSiguientePedidoCarga();
+      return null;
+    }
+  }
+
   const cargaNumVal=document.getElementById('rr-carga-num')?.value.trim();
   const {data:rem,error}=await sb.from('remitos').insert({
     cliente_id:parseInt(cid),cliente:c?.nombre||'?',localidad:c?.localidad||'',
     zona:c?.zona||'',vendedor:document.getElementById('rr-ven').value||c?.vendedor||'',
     fecha:document.getElementById('rr-fecha').value||hoyLocal(),
-    items:_rrItems,total:tot,cobrado:false,
+    items:_rrItems,total:tot,cobrado:false,saldo_pendiente:tot,
     observaciones:document.getElementById('rr-obs').value,
     lugar_entrega:document.getElementById('rr-lugar')?.value||'',
     direccion:c?.direccion||c?.domicilio||'',
     telefono:c?.telefono||'',
-    carga_id:cargaNumVal?(parseInt(cargaNumVal)||null):null,
+    carga_id:_facturandoCargaId||(cargaNumVal?(parseInt(cargaNumVal)||null):null),
     pedido_id:_rrPedidoId||null
   }).select().single();
   if(error){alert('Error: '+error.message);return;}
@@ -1143,7 +1162,19 @@ async function emitirRemitoRapido(){
   await descontarStock(_rrItems);
   if(_rrPedidoId){
     const {error:errPed}=await sb.from('pedidos').update({estado:'remitado',remito_id:rem.id}).eq('id',_rrPedidoId);
-    if(errPed)alert('⚠️ El remito se grabó pero no se pudo marcar el pedido como remitado: '+errPed.message);
+    if(errPed){
+      // No dejar un remito huérfano: si no se pudo marcar el pedido, se borra
+      // el remito recién creado para que no aparezca después como duplicado.
+      await sb.from('remitos').delete().eq('id',rem.id);
+      alert('⚠️ No se pudo marcar el pedido como remitado: '+errPed.message+' — el remito fue revertido, reintentá.');
+      return;
+    }
+    // Actualizar el estado en memoria para que _facturarSiguientePedidoCarga()
+    // vea el pedido como remitado sin tener que recargar toda la lista.
+    const pedMem=_pedidos.find(p=>p.id===_rrPedidoId);
+    if(pedMem){pedMem.estado='remitado';pedMem.remito_id=rem.id;}
+    const pedMem2=_pedidosTodos.find(p=>p.id===_rrPedidoId);
+    if(pedMem2){pedMem2.estado='remitado';pedMem2.remito_id=rem.id;}
   }
   await Promise.all([cargarRemitos(),cargarClientes(),cargarProductos(),cargarPedidos()]);
   limpiarRR();

@@ -171,11 +171,22 @@ function renderCargas(){
     const peds=_pedidos.filter(p=>(cg.pedidos||[]).includes(p.id));
     const fechaFmt=cg.fecha?cg.fecha.split('-').reverse().join('/'):'—';
     // Detectar si hay remitos vinculados a esta carga
+    // Detectar si hay remitos vinculados a esta carga
     const pedIds=(cg.pedidos||[]);
     const remsCarga=_remitos.filter(r=>pedIds.includes(r.pedido_id)||r.carga_id===cg.id);
     // Fallback: remitos del mismo día y vendedor si no hay por pedido_id
-    const remsDisp=remsCarga.length>0?remsCarga:
+    let remsDisp=remsCarga.length>0?remsCarga:
       (cg.fecha&&cg.vendedor?_remitos.filter(r=>r.fecha===cg.fecha&&(r.vendedor||'').toLowerCase()===(cg.vendedor||'').toLowerCase()):[]);
+    // Deduplicar por pedido_id (conservar el más viejo). Los remitos sin
+    // pedido_id (emitidos sueltos) se conservan todos con clave única.
+    {
+      const porPedido={};
+      remsDisp.forEach(r=>{
+        if(r.pedido_id==null){porPedido['_'+r.id]=r;return;}
+        if(!porPedido[r.pedido_id]||r.id<porPedido[r.pedido_id].id){porPedido[r.pedido_id]=r;}
+      });
+      remsDisp=Object.values(porPedido);
+    }
     const tieneRemitos=remsDisp.length>0;
     return `<div class="ccard">
       <div class="ccard-h">
@@ -218,6 +229,16 @@ function imprimirRemitosCarga(cargaId){
   // Fallback: misma fecha y vendedor
   if(!rems.length&&cg.fecha&&cg.vendedor){
     rems=_remitos.filter(r=>r.fecha===cg.fecha&&(r.vendedor||'').toLowerCase()===(cg.vendedor||'').toLowerCase());
+  }
+  // Deduplicar: por id (por si acaso) y por pedido_id (conservar el más viejo).
+  rems=[...new Map(rems.map(r=>[r.id,r])).values()];
+  {
+    const porPedido={};
+    rems.forEach(r=>{
+      if(r.pedido_id==null){porPedido['_'+r.id]=r;return;}
+      if(!porPedido[r.pedido_id]||r.id<porPedido[r.pedido_id].id){porPedido[r.pedido_id]=r;}
+    });
+    rems=Object.values(porPedido);
   }
   if(!rems.length){alert('No hay remitos emitidos para esta carga todavía.');return;}
 
@@ -354,58 +375,101 @@ async function eliminarCarga(id){
   toast('Carga eliminada — pedidos devueltos a pendiente');
 }
 
+let _emitiendoRemitos=false;
+
 async function emitirRemitos(cargaId){
+  // Guard antidoble-toque: si ya está corriendo, no arranca de nuevo.
+  if(_emitiendoRemitos){toast('Ya se están emitiendo remitos para esta carga...','warn');return;}
   const cg=_cargas.find(x=>x.id===cargaId);if(!cg)return;
-  const peds=_pedidos.filter(p=>(cg.pedidos||[]).includes(p.id)&&p.estado!=='remitado'&&!p.remito_id);
-  if(!peds.length){toast('Todos los pedidos de esta carga ya tienen remito.');return;}
-  const hoy=hoyLocal();
-  
-  // Acumular totales por cliente
-  const acumCliente={};
-  for(const p of peds){acumCliente[p.cliente_id]=(acumCliente[p.cliente_id]||{total:0,comprado:0,fecha:hoy});acumCliente[p.cliente_id].total+=p.total;acumCliente[p.cliente_id].comprado+=p.total;}
-  
-  for(const p of peds){
-    const c=_clientes.find(x=>x.id===p.cliente_id);
-    const {data:rem}=await sb.from('remitos').insert({
-      pedido_id:p.id,cliente_id:p.cliente_id,cliente:p.cliente,localidad:p.localidad,
-      zona:p.zona,vendedor:p.vendedor,fecha:hoy,
-      items:p.items,total:p.total,cobrado:false,
-      direccion:c?.direccion||c?.domicilio||'',telefono:c?.telefono||''
-    }).select().single();
-    
-    //Actualizar pedido (sin carga_id, solo estado y remito_id)
-    await sb.from('pedidos').update({
-      estado:'remitado',
-      remito_id:rem.id
-    }).eq('id',p.id);
-    
-    await descontarStock(p.items||[]);
-    // Asiento contable
-    const totDesc=(p.items||[]).reduce((a,it)=>{const bruto=it.precio*it.cant;return a+(bruto-bruto*(1-(it.dto||0)/100));},0);
-    const {data:asiento}=await sb.from('asientos').insert({
-      fecha:rem.fecha,descripcion:`Remito R-${String(rem.id).padStart(4,'0')} - ${esc(p.cliente)}`,
-      tipo:'VENTA',referencia_id:rem.id,referencia_tipo:'remito'
-    }).select().single();
-    if(asiento){
-      const det=[
-        {asiento_id:asiento.id,cuenta_cod:'11201',cuenta_nom:'Deudores por Ventas',debe:p.total,haber:0},
-        {asiento_id:asiento.id,cuenta_cod:'40100',cuenta_nom:'Ventas',debe:0,haber:p.total+(totDesc||0)},
-      ];
-      if(totDesc>0)det.push({asiento_id:asiento.id,cuenta_cod:'50305',cuenta_nom:'Descuentos Concedidos',debe:totDesc,haber:0});
-      await sb.from('asientos_detalle').insert(det);
+  _emitiendoRemitos=true;
+
+  // Feedback visual: deshabilitar y cambiar el texto del botón mientras corre
+  document.querySelectorAll(`button[onclick*="emitirRemitos(${cargaId})"]`).forEach(b=>{
+    b.dataset.txtOriginal=b.textContent;
+    b.textContent='⏳ Emitiendo...';
+    b.disabled=true;
+  });
+
+  try{
+    const peds=_pedidos.filter(p=>(cg.pedidos||[]).includes(p.id)&&p.estado!=='remitado'&&!p.remito_id);
+    if(!peds.length){toast('Todos los pedidos de esta carga ya tienen remito.');return;}
+    const hoy=hoyLocal();
+
+    // Acumular totales por cliente
+    const acumCliente={};
+    for(const p of peds){acumCliente[p.cliente_id]=(acumCliente[p.cliente_id]||{total:0,comprado:0,fecha:hoy});acumCliente[p.cliente_id].total+=p.total;acumCliente[p.cliente_id].comprado+=p.total;}
+
+    for(const p of peds){
+      // IDEMPOTENCIA: consultar la base. Si este pedido ya tiene remito (por
+      // doble toque, pesaje + lote, o cualquier otra vía), salteamos la
+      // creación y nos aseguramos de que el pedido quede marcado como remitado.
+      const {data:yaExiste}=await sb.from('remitos').select('id').eq('pedido_id',p.id).maybeSingle();
+      if(yaExiste){
+        await sb.from('pedidos').update({estado:'remitado',remito_id:yaExiste.id}).eq('id',p.id);
+        // No sumar al acumCliente: el saldo ya se sumó cuando se creó el remito original
+        delete acumCliente[p.cliente_id];
+        continue;
+      }
+
+      const c=_clientes.find(x=>x.id===p.cliente_id);
+      const {data:rem,error:errRem}=await sb.from('remitos').insert({
+        pedido_id:p.id,cliente_id:p.cliente_id,cliente:p.cliente,localidad:p.localidad,
+        zona:p.zona,vendedor:p.vendedor,fecha:hoy,
+        items:p.items,total:p.total,cobrado:false,saldo_pendiente:p.total,
+        direccion:c?.direccion||c?.domicilio||'',telefono:c?.telefono||'',
+        carga_id:cg.id
+      }).select().single();
+
+      if(errRem){
+        console.error('[emitirRemitos] Error al insertar remito para pedido',p.id,errRem);
+        delete acumCliente[p.cliente_id];
+        continue;
+      }
+
+      // Actualizar pedido
+      await sb.from('pedidos').update({
+        estado:'remitado',
+        remito_id:rem.id
+      }).eq('id',p.id);
+
+      await descontarStock(p.items||[]);
+
+      // Asiento contable
+      const totDesc=(p.items||[]).reduce((a,it)=>{const bruto=it.precio*it.cant;return a+(bruto-bruto*(1-(it.dto||0)/100));},0);
+      const {data:asiento}=await sb.from('asientos').insert({
+        fecha:rem.fecha,descripcion:`Remito R-${String(rem.id).padStart(4,'0')} - ${esc(p.cliente)}`,
+        tipo:'VENTA',referencia_id:rem.id,referencia_tipo:'remito'
+      }).select().single();
+      if(asiento){
+        const det=[
+          {asiento_id:asiento.id,cuenta_cod:'11201',cuenta_nom:'Deudores por Ventas',debe:p.total,haber:0},
+          {asiento_id:asiento.id,cuenta_cod:'40100',cuenta_nom:'Ventas',debe:0,haber:p.total+(totDesc||0)},
+        ];
+        if(totDesc>0)det.push({asiento_id:asiento.id,cuenta_cod:'50305',cuenta_nom:'Descuentos Concedidos',debe:totDesc,haber:0});
+        await sb.from('asientos_detalle').insert(det);
+      }
     }
+
+    // Actualizar saldo de cada cliente — solo de los que efectivamente
+    // recibieron remito nuevo (los salteados se borraron del acumulador).
+    for(const [cliId,ac] of Object.entries(acumCliente)){
+      const c=_clientes.find(x=>x.id==cliId);
+      if(c)await sb.from('clientes').update({saldo:(c.saldo||0)+ac.total,total_comprado:(c.total_comprado||0)+ac.comprado,ultimo_remito:hoy}).eq('id',c.id);
+    }
+
+    // Marcar carga como emitida
+    await sb.from('cargas').update({estado:'emitida'}).eq('id',cargaId);
+    await cargarTodo();
+    await _generarHojaRutaParaCarga(cargaId);
+    renderCargas();renderRemitos();renderDash();
+    toast(`${peds.length} remito(s) procesado(s).`);go('remitos');
+  } finally {
+    _emitiendoRemitos=false;
+    document.querySelectorAll(`button[onclick*="emitirRemitos(${cargaId})"]`).forEach(b=>{
+      if(b.dataset.txtOriginal){b.textContent=b.dataset.txtOriginal;delete b.dataset.txtOriginal;}
+      b.disabled=false;
+    });
   }
-  // Actualizar saldo de cada cliente una sola vez (acumulando todos sus pedidos)
-  for(const [cliId,ac] of Object.entries(acumCliente)){
-    const c=_clientes.find(x=>x.id==cliId);
-    if(c)await sb.from('clientes').update({saldo:(c.saldo||0)+ac.total,total_comprado:(c.total_comprado||0)+ac.comprado,ultimo_remito:hoy}).eq('id',c.id);
-  }
-  // Marcar carga como emitida
-  await sb.from('cargas').update({estado:'emitida'}).eq('id',cargaId);
-  await cargarTodo();
-  await _generarHojaRutaParaCarga(cargaId);
-  renderCargas();renderRemitos();renderDash();
-  toast(`${peds.length} remito(s) emitido(s).`);go('remitos');
 }
 
 // ─── Facturación secuencial de una carga con peso real ────────────────────
@@ -442,8 +506,10 @@ function _facturarSiguientePedidoCarga(){
     // flujo en lote. Sin esto, el celu del repartidor (que solo busca
     // cargas con estado 'emitida') nunca la encontraba.
     sb.from('cargas').update({estado:'emitida'}).eq('id',cg.id).then(async()=>{
+      await cargarPedidos();
       await cargarCargas();
       await _generarHojaRutaParaCarga(cg.id);
+      renderPedidos();
       renderCargas();
     });
     go('carga');
@@ -509,9 +575,14 @@ function _renderCargaSidebar(pedidoActualId){
   if(totalEl)totalEl.innerHTML=`<span>Total facturado</span><span>${fmt(totalAcum)}</span>`;
 }
 
-function cancelarFacturarCarga(){
+async function cancelarFacturarCarga(){
   _facturandoCargaId=null;
   _renderCargaSidebar();
+  // Refrescar el estado de los pedidos: si quedaron algunos remitados en la
+  // base por el pesaje parcial, que _pedidos lo refleje antes de la próxima
+  // acción (evita que un "Emitir remitos" posterior vea pendientes viejos).
+  await cargarPedidos();
+  renderPedidos();
   toast('Facturación por carga cancelada — podés seguir emitiendo remitos sueltos.');
 }
 
@@ -704,16 +775,16 @@ function imprimirHojaCarga(){
       const peso = it.peso || (esPeso ? it.cant : 0);
       return `
         <tr style="border-bottom:1px solid #000;">
-          <td style="padding:4px 8px;text-align:center;width:40px;">${j + 1}</td>
-          <td style="padding:4px 8px;text-align:center;width:60px;">${fmtN(it.cant, 2)}</td>
-          <td style="padding:4px 8px;text-align:left;">${esc(it.nom)}</td>
-          <td style="padding:4px 8px;text-align:center;width:70px;">${esPeso ? fmtN(peso, 2) + ' kg' : '—'}</td>
+          <td style="padding:10px 8px;text-align:center;width:40px;">${j + 1}</td>
+          <td style="padding:10px 8px;text-align:center;width:60px;">${fmtN(it.cant, 2)}</td>
+          <td style="padding:10px 8px;text-align:left;">${esc(it.nom)}</td>
+          <td style="padding:10px 8px;text-align:center;width:90px;">${esPeso ? fmtN(peso, 2) + ' kg' : '—'}</td>
         </tr>
       `;
     }).join('');
 
     return '<div style="margin-bottom:12px;page-break-inside:avoid;border:1.5px solid #000;padding:5px 7px">'
-      +'<div style="font-weight:900;font-size:13px;border-bottom:1.5px solid #000;padding-bottom:3px;margin-bottom:1px">'+(i+1)+' — '+esc(p.cliente)+' (Cód. '+codCliente+') — '+esc(p.localidad||c.localidad||'—')+'</div>'
+      +'<div style="font-weight:900;font-size:13px;border-bottom:1.5px solid #000;padding-bottom:3px;margin-bottom:1px">'+(i+1)+' — '+esc(p.cliente)+' ('+codCliente+') — '+esc(p.localidad||c.localidad||'—')+'</div>'
       +'<div style="font-size:10px;margin-bottom:4px">Vendedor: '+esc(vendedor)+'&nbsp;&nbsp;&nbsp;&nbsp;Carga #'+cg.id+'</div>'
       + '<table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:4px;">'
       +   '<thead>'
