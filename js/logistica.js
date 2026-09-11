@@ -1126,12 +1126,9 @@ let _hrClientesHoy = null;
 
 // Carga/reparto activo del repartidor para hoy (o null si no tiene ninguna carga emitida hoy)
 let _cargaActivaHoy = null;
-// Si ya se tocó una carga en "Mi ruta" para ver sus clientes (se resetea al
-// re-entrar a la pestaña, para siempre arrancar mostrando el/los nombres).
-let _hrCargaExpandida = false;
 
  // null = no cargado, [] = cargado sin ruta, [ids] = ruta del día
-async function cargarHojaRutaRepartidor(){
+async function cargarHojaRutaRepartidor(fechaSel){
   if(usuarioActual?.rol!=='repartidor'&&usuarioActual?.rol!=='vendedor'){_hrClientesHoy=null;_cargaActivaHoy=null;return;}
   const hoy=hoyLocal();
   const nombre=usuarioActual.nombre||'';
@@ -1139,13 +1136,20 @@ async function cargarHojaRutaRepartidor(){
   const ids=(data||[]).map(r=>r.cliente_id).filter(Boolean);
   _hrClientesHoy=ids.length?ids:[];
 
-  // Carga/reparto activo: no siempre reparte la misma persona, así que no
-  // se filtra por nombre de chofer — se muestran las cargas emitidas de los
-  // últimos días (no solo las de HOY, para no perderlas de vista apenas
-  // pasa la medianoche mientras todavía se está cobrando) y, si hay más de
-  // una, el repartidor elige cuál está haciendo.
-  const desdeCarga=hoyLocalOffset(-3);
-  _cargasHoyCandidatas=(_cargas||[]).filter(c=>c.estado==='emitida'&&c.fecha>=desdeCarga).sort((a,b)=>b.id-a.id);
+  // Cargas candidatas filtradas por la FECHA QUE EL USUARIO TIENE SELECCIONADA
+  // en "Mi ruta", no por el día real de hoy. Si la fecha seleccionada es HOY,
+  // además incluimos las emitidas de los últimos 3 días (para no perder de vista
+  // la carga de anoche apenas pasa la medianoche mientras se sigue cobrando).
+  // Si es otra fecha (pasada o futura), solo las exactas de ese día.
+  const fecha = fechaSel || document.getElementById('hr-fecha-mia')?.value || hoy;
+  let cargasFiltradas;
+  if(fecha === hoy){
+    const desdeCarga = hoyLocalOffset(-3);
+    cargasFiltradas = (_cargas||[]).filter(c=>c.estado==='emitida' && c.fecha>=desdeCarga && c.fecha<=hoy);
+  } else {
+    cargasFiltradas = (_cargas||[]).filter(c=>c.estado==='emitida' && c.fecha===fecha);
+  }
+  _cargasHoyCandidatas = cargasFiltradas.sort((a,b)=>b.id-a.id);
   if(_cargasHoyCandidatas.length===1) _cargaActivaHoy=_cargasHoyCandidatas[0];
   else if(!_cargasHoyCandidatas.some(c=>c.id===_cargaActivaHoy?.id)) _cargaActivaHoy=null;
 
@@ -1255,6 +1259,117 @@ function _renderGastosHoy(){
   }
 }
 
+// ─── Hoja de ruta móvil: acordeones de cargas + buscador ──────────────────
+
+// HTML de la lista de paradas de una carga (reutilizado por el acordeón y por
+// la vista de carga única elegida).
+function _hrPedidosDeCargaHTML(cargaId){
+  const peds = _pedidosDeCarga(cargaId);
+  if(!peds.length) return '<div style="padding:20px;text-align:center;color:var(--txt2);font-size:13px">Sin paradas cargadas</div>';
+  return peds.map((p,i)=>{
+    const rem = p.remito_id ? _remitos.find(r=>r.id===p.remito_id) : null;
+    const cobrado = rem?.cobrado;
+    const cli = _clientes.find(x=>x.id===p.cliente_id);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:${cobrado?'var(--PL)':'var(--bg)'};border-bottom:1px solid var(--brd)">
+      <div style="font-size:20px;font-weight:700;min-width:36px;text-align:center;color:${cobrado?'var(--P)':'var(--txt2)'}">${cobrado?'✓':i+1}</div>
+      <div onclick="hrIrACobrar(${p.cliente_id})" style="flex:1;min-width:0;cursor:pointer">
+        <div style="font-weight:700;font-size:14px;${cobrado?'text-decoration:line-through;color:var(--txt2)':''}">${esc(p.cliente)}</div>
+        ${(cli?.direccion||p.localidad) ? `<div style="font-size:11px;color:var(--txt2);margin-top:2px">${esc([cli?.direccion,p.localidad].filter(Boolean).join(' · '))}</div>` : ''}
+        ${cli?.telefono ? `<a href="tel:${esc(cli.telefono.replace(/\D/g,''))}" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:12px;color:var(--P);font-weight:600;text-decoration:none">📞 ${esc(cli.telefono)}</a>` : ''}
+      </div>
+      <div onclick="hrIrACobrar(${p.cliente_id})" style="font-size:12px;color:var(--P);text-align:right;flex-shrink:0;font-weight:700;cursor:pointer;padding:6px 4px">${cobrado?'Cobrar<br>de nuevo':'💵 Cobrar'}</div>
+    </div>`;
+  }).join('');
+}
+
+// Acordeón de UNA carga: header clickeable + lista de paradas (colapsable).
+function _hrAcordeonCargaHTML(c, abierto){
+  const peds = _pedidosDeCarga(c.id);
+  const total = peds.length;
+  const fechaFmt = c.fecha ? c.fecha.split('-').reverse().join('/') : '';
+  const titulo = `🚚 Carga #${c.id}${c.nombre ? ' · '+esc(c.nombre) : ''}`;
+  const subtitulo = `${total} parada${total!==1?'s':''}${fechaFmt?' · '+fechaFmt:''}`;
+  return `<div class="carga-acordeon" data-carga-id="${c.id}" style="border:1.5px solid var(--brd);border-radius:12px;margin-bottom:8px;overflow:hidden;background:#fff">
+    <div onclick="hrToggleCargaAcordeon(${c.id})" style="display:flex;justify-content:space-between;align-items:center;padding:14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:15px">${titulo}</div>
+        <div style="font-size:12px;color:var(--txt2);margin-top:2px">${subtitulo}</div>
+      </div>
+      <span class="carga-chevron" style="font-size:16px;color:var(--txt2);transition:transform 0.2s;transform:${abierto?'rotate(90deg)':'rotate(0deg)'}">▶</span>
+    </div>
+    <div class="carga-pedidos" style="display:${abierto?'block':'none'};border-top:1px solid var(--brd)">${_hrPedidosDeCargaHTML(c.id)}</div>
+  </div>`;
+}
+
+// Abrir/cerrar acordeón. Single-open: al abrir uno se cierran los otros.
+// Al abrir, se setea _cargaActivaHoy para que un cobro quede vinculado a esta carga.
+function hrToggleCargaAcordeon(cargaId){
+  const cont = document.querySelector(`.carga-acordeon[data-carga-id="${cargaId}"]`);
+  if(!cont) return;
+  const pedidos = cont.querySelector('.carga-pedidos');
+  const chev = cont.querySelector('.carga-chevron');
+  if(!pedidos) return;
+
+  const abierto = pedidos.style.display !== 'none';
+  if(abierto){
+    pedidos.style.display = 'none';
+    if(chev) chev.style.transform = 'rotate(0deg)';
+    return;
+  }
+  // Cerrar todos los demás
+  document.querySelectorAll('.carga-acordeon .carga-pedidos').forEach(p=>{p.style.display='none';});
+  document.querySelectorAll('.carga-acordeon .carga-chevron').forEach(ch=>{ch.style.transform='rotate(0deg)';});
+  // Abrir este
+  pedidos.style.display = 'block';
+  if(chev) chev.style.transform = 'rotate(90deg)';
+  // Setear como carga activa: si el usuario cobra desde acá, queda vinculado bien.
+  _cargaActivaHoy = _cargasHoyCandidatas.find(c=>c.id===cargaId) || null;
+}
+
+// Filtro del buscador: filtra las cargas candidatas por nombre o número.
+// Si queda 1 sola, la muestra abierta directo. Si no hay coincidencias, avisa.
+function hrFiltrarCargas(){
+  const input = document.getElementById('hr-mia-carga-busq');
+  const lista = document.getElementById('hr-mia-cargas-lista');
+  if(!input || !lista) return;
+  const q = (input.value||'').toLowerCase().trim();
+
+  let cargas = _cargasHoyCandidatas;
+  if(q){
+    cargas = cargas.filter(c=>{
+      const nombre = (c.nombre||'').toLowerCase();
+      const num = String(c.id);
+      return nombre.includes(q) || num.includes(q);
+    });
+  }
+
+  if(!cargas.length){
+    lista.innerHTML = '<div style="padding:20px;text-align:center;color:var(--txt2);font-size:14px">❌ Sin coincidencias</div>';
+    return;
+  }
+
+  // Un solo resultado: mostrarlo ya abierto, para no pedir otro toque.
+  if(q && cargas.length === 1){
+    _cargaActivaHoy = cargas[0];
+    lista.innerHTML = _hrAcordeonCargaHTML(cargas[0], true);
+    return;
+  }
+
+  lista.innerHTML = cargas.map(c=>_hrAcordeonCargaHTML(c,false)).join('');
+}
+
+// Vista de "una carga ya elegida": header con botón cambiar + lista de paradas.
+function _hrRenderPedidosDeCargaActiva(){
+  const c = _cargaActivaHoy;
+  if(!c) return '';
+  const hayMasDeUna = _cargasHoyCandidatas.length > 1;
+  const header = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px">
+    <div style="font-size:13px;color:var(--txt2);font-weight:600">🚚 Carga #${c.id}${c.nombre?' · '+esc(c.nombre):''}</div>
+    ${hayMasDeUna?`<button onclick="_cargaActivaHoy=null;hrVerMiRuta()" style="background:none;border:none;color:var(--P);font-size:13px;cursor:pointer;font-weight:600;padding:4px 8px;font-family:inherit;-webkit-tap-highlight-color:transparent">‹ cambiar carga</button>`:''}
+  </div>`;
+  return header + _hrPedidosDeCargaHTML(c.id);
+}
+
 // ─── HOJA DE RUTA ──────────────────────────────────────────────
 let _hrRuta = [];
 
@@ -1271,7 +1386,6 @@ function hrTab(tab){
 }
 
 function hrInit(){
-  _hrCargaExpandida = false;
   const hoy = hoyLocal();
   document.getElementById('hr-fecha').value = hoy;
   document.getElementById('hr-fecha-mia').value = hoy;
@@ -1449,23 +1563,48 @@ async function hrCerrarYGenerarRendicion(){
   hrCargarRuta();
 }
 
+// Devuelve el mensaje correcto según si la fecha seleccionada es hoy o no.
+// Un mismo texto ("Sin clientes asignados para hoy") no aplica si el usuario
+// está parado en otra fecha del calendario.
+function _hrMensajeVacio(fecha){
+  const hoy = hoyLocal();
+  if(fecha === hoy) return 'Sin clientes asignados para hoy';
+  return 'Sin cargas ni clientes para esa fecha';
+}
+
+// Avanza (delta=+1) o retrocede (delta=-1) un día la fecha de "Mi ruta"
+// y recarga la vista. Parsea el valor del input manualmente en vez de usar
+// new Date('YYYY-MM-DD') para evitar el corrimiento de zona horaria (UTC vs
+// local) que haría cambiar de día en algunos navegadores.
+function hrCambiarDia(delta){
+  const inp = document.getElementById('hr-fecha-mia');
+  if(!inp || !inp.value) return;
+  const [y,m,d] = inp.value.split('-').map(Number);
+  if(!y || !m || !d) return;
+  const fecha = new Date(y, m-1, d);
+  fecha.setDate(fecha.getDate() + delta);
+  const pad = n => String(n).padStart(2,'0');
+  inp.value = `${fecha.getFullYear()}-${pad(fecha.getMonth()+1)}-${pad(fecha.getDate())}`;
+  hrVerMiRuta();
+}
+
 let _hrMiaRutaActual = [];
 
 async function hrVerMiRuta(){
   const fecha = document.getElementById('hr-fecha-mia').value;
   const vend = usuarioActual?.nombre||'';
   if(!fecha) return;
-  
+
   // Gastos de reparto
   _renderGastosHoy();
-  
+
   // Obtener la hoja de ruta del día
   const q = sb.from('hoja_ruta').select('*').eq('fecha', fecha);
   if(vend) q.eq('vendedor', vend);
   const {data} = await q.order('orden');
   const ruta = data||[];
   _hrMiaRutaActual = ruta;
-  
+
   // Verificar si está cerrada
   const cerrada = ruta.length>0 && ruta.every(r=>r.cerrada);
   const btnAgregar = document.getElementById('hr-mia-btn-agregar');
@@ -1474,80 +1613,192 @@ async function hrVerMiRuta(){
     const buscador=document.getElementById('hr-mia-buscador');
     if(buscador) buscador.style.display='none';
   }
-  
+
   const el = document.getElementById('hr-mia-lista');
-  
-  // ✅ FILTRO: ocultar visitados (por defecto activado)
-  const ocultarVisitados = document.getElementById('hr-ocultar-visitados')?.checked !== false; // true por defecto
+
+  // FILTRO: ocultar visitados (por defecto activado)
+  const ocultarVisitados = document.getElementById('hr-ocultar-visitados')?.checked !== false;
   let rutaFiltrada = ruta;
-  if (ocultarVisitados) {
-    rutaFiltrada = ruta.filter(r => !r.visitado);
+  if (ocultarVisitados) rutaFiltrada = ruta.filter(r => !r.visitado);
+
+  // Traer cargas emitidas con esa fecha (una sola vez, se usa en varios casos)
+  await cargarHojaRutaRepartidor(fecha);
+  const cargasDelDia = _cargasHoyCandidatas;
+  const headerCerrada = cerrada?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">🔒 Ruta cerrada — ya se generó su rendición</div>':'';
+
+  // Caso A: NO hay ruta NI cargas
+  if(!ruta.length && !cargasDelDia.length){
+    el.innerHTML=`<div class="empty">${_hrMensajeVacio(fecha)}</div>`;
+    return;
   }
 
-  // Caso 1: No hay clientes en la ruta (ni visitados ni pendientes)
-  if(!ruta.length){
-    // No hay hoja de ruta armada a mano — ofrecer la carga del día como alternativa
-    await cargarHojaRutaRepartidor();
-    if(!_hrCargaExpandida){
-      if(!_cargasHoyCandidatas.length){
-        el.innerHTML='<div class="empty">Sin clientes asignados para hoy</div>';
-        return;
-      }
-      el.innerHTML=`<div class="empty" style="margin-bottom:10px">Sin hoja de ruta armada para hoy</div>
-        <div style="font-weight:700;margin-bottom:6px">🚚 ¿Qué carga estás repartiendo?</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          ${_cargasHoyCandidatas.map(c=>`<button onclick="elegirCargaActiva(${c.id});_hrCargaExpandida=true;hrVerMiRuta()" style="text-align:left;padding:14px 16px;border-radius:14px;border:2px solid var(--P);background:#fff;color:var(--P);font-weight:700;font-size:16px;font-family:inherit;cursor:pointer">🚚 Carga #${c.id}${esc(c.nombre?' · '+c.nombre:'')}</button>`).join('')}
-        </div>`;
-      return;
-    }
+  // Caso B: NO hay ruta pero SÍ hay cargas (comportamiento actual, sin cambios)
+  if(!ruta.length && cargasDelDia.length){
+    if(cargasDelDia.length===1 && !_cargaActivaHoy) _cargaActivaHoy = cargasDelDia[0];
     if(_cargaActivaHoy){
-      const peds=_pedidosDeCarga(_cargaActivaHoy.id);
-      el.innerHTML=`<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">🚚 Carga #${_cargaActivaHoy.id}${esc(_cargaActivaHoy.nombre?' · '+_cargaActivaHoy.nombre:'')} — sin hoja de ruta armada, mostrando sus clientes`
-        +` · <a href="#" onclick="event.preventDefault();_hrCargaExpandida=false;hrVerMiRuta()" style="color:var(--P)">‹ cambiar carga</a></div>`
-        +peds.map((p,i)=>{
-          const rem=p.remito_id?_remitos.find(r=>r.id===p.remito_id):null;
-          const cobrado=rem?.cobrado;
-          const c=_clientes.find(x=>x.id===p.cliente_id);
-          return `<div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:${cobrado?'var(--PL)':'var(--bg)'};border-radius:14px;margin-bottom:8px;border:2px solid ${cobrado?'var(--P)':'var(--brd)'}">
-            <div style="font-size:24px;font-weight:700;min-width:44px;text-align:center;color:${cobrado?'var(--P)':'var(--txt2)'}">${cobrado?'✓':i+1}</div>
-            <div onclick="hrIrACobrar(${p.cliente_id})" style="flex:1;min-width:0;cursor:pointer">
-              <div style="font-weight:700;font-size:16px;${cobrado?'text-decoration:line-through;color:var(--txt2)':''}">${esc(p.cliente)}</div>
-              ${c?.direccion||p.localidad?`<div style="font-size:12px;color:var(--txt2);margin-top:2px">${esc([c?.direccion,p.localidad].filter(Boolean).join(' · '))}</div>`:''}
-              ${c?.telefono?`<a href="tel:${esc(c.telefono.replace(/\D/g,''))}" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;font-size:13px;color:var(--P);font-weight:600;text-decoration:none;padding:4px 10px;background:var(--PL);border-radius:8px">📞 ${esc(c.telefono)}</a>`:''}
-            </div>
-            <div onclick="hrIrACobrar(${p.cliente_id})" style="font-size:12px;color:var(--P);text-align:right;flex-shrink:0;font-weight:700;cursor:pointer;min-width:58px;padding:8px 4px">${cobrado?'Cobrar<br>de nuevo':'💵 Cobrar'}</div>
-          </div>`;
-        }).join('');
+      el.innerHTML = _hrRenderPedidosDeCargaActiva();
       return;
     }
-    el.innerHTML='<div class="empty">Sin clientes asignados para hoy</div>';
+    el.innerHTML = `
+      <div style="margin-bottom:10px">
+        <input type="text" id="hr-mia-carga-busq" placeholder="🔍 Buscar carga por nombre o número..."
+          style="width:100%;padding:12px 14px;border:2px solid var(--P);border-radius:10px;font-size:15px;font-family:inherit;box-sizing:border-box"
+          oninput="hrFiltrarCargas()">
+      </div>
+      <div id="hr-mia-cargas-lista">${cargasDelDia.map(c=>_hrAcordeonCargaHTML(c,false)).join('')}</div>`;
     return;
   }
 
-  // Caso 2: Hay clientes en la ruta pero todos están visitados y el filtro está activado
+  // Caso C: hay ruta pero TODOS visitados (filtro activado)
   if(ocultarVisitados && rutaFiltrada.length === 0 && ruta.length > 0){
-    el.innerHTML = `<div class="empty">✅ Todos los clientes de hoy ya fueron visitados.</div>`;
+    const msgFecha = fecha === hoyLocal() ? 'de hoy' : 'de esa fecha';
+    el.innerHTML = `<div class="empty">✅ Todos los clientes ${msgFecha} ya fueron visitados.</div>`;
     return;
   }
 
-  // Caso 3: Mostrar los clientes pendientes (filtrados)
-  el.innerHTML = (cerrada?'<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">🔒 Ruta cerrada — ya se generó su rendición</div>':'') + rutaFiltrada.map((r,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:${r.visitado?'var(--PL)':'var(--bg)'};border-radius:14px;margin-bottom:8px;border:2px solid ${r.visitado?'var(--P)':'var(--brd)'};transition:background .15s">
-      <div onclick="hrMarcarVisitado(${r.id},${!r.visitado})" title="Tocar para marcar visitado sin cobrar"
-        style="font-size:24px;font-weight:700;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;text-align:center;color:${r.visitado?'var(--P)':'var(--txt2)'};cursor:pointer;-webkit-tap-highlight-color:transparent">
-        ${r.visitado?'✓':i+1}
+  // Caso D: hay ruta con clientes pendientes.
+
+  // Sub-caso D1: NO hay cargas emitidas con esa fecha → lista plana como antes.
+  if(!cargasDelDia.length){
+    el.innerHTML = headerCerrada + rutaFiltrada.map(_hrRenderClienteRuta).join('');
+    return;
+  }
+
+  // Sub-caso D2: SÍ hay cargas → agrupar clientes de la hoja por carga.
+  // Cada cliente se asigna a la carga que tiene un pedido suyo. Los que no
+  // pertenecen a ninguna van al bloque "Sin carga asignada".
+  const clienteACarga = {};
+  cargasDelDia.forEach(c=>{
+    (_pedidosDeCarga(c.id)||[]).forEach(p=>{ clienteACarga[p.cliente_id] = c.id; });
+  });
+  const porCarga = {};
+  const sueltos = [];
+  cargasDelDia.forEach(c=>{ porCarga[c.id] = []; });
+  rutaFiltrada.forEach(r=>{
+    const cid = clienteACarga[r.cliente_id];
+    if(cid && porCarga[cid]) porCarga[cid].push(r);
+    else sueltos.push(r);
+  });
+
+  // 1 sola carga: acordeón abierto por defecto. El header es clickeable, así
+  // el usuario puede colapsarlo y ver el bloque "Sin carga asignada" sin
+  // tener que scrollear. Seteamos _cargaActivaHoy para vincular cobros.
+  if(cargasDelDia.length===1){
+    const c = cargasDelDia[0];
+    _cargaActivaHoy = c;
+    // Si hay clientes sueltos, arranca cerrada para que el bloque "Sin carga"
+    // quede visible sin scrollear. Si no hay sueltos, abierta como antes.
+    const abrirPorDefecto = sueltos.length === 0;
+    el.innerHTML = headerCerrada
+      + _hrAcordeonConClientes(c, porCarga[c.id]||[], abrirPorDefecto)
+      + (sueltos.length ? _hrRenderBloqueSueltos(sueltos) : '');
+    return;
+  }
+
+  // 2+ cargas: si el usuario ya eligió una, mostrar sus clientes + el botón
+  // "‹ cambiar carga" para volver al listado de acordeones.
+  if(_cargaActivaHoy){
+    const cAct = _cargaActivaHoy;
+    const clientesAct = porCarga[cAct.id] || [];
+    el.innerHTML = headerCerrada
+      + `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px">
+          <div style="font-size:13px;color:var(--txt2);font-weight:600">🚚 Carga #${cAct.id}${cAct.nombre?' · '+esc(cAct.nombre):''}</div>
+          <button onclick="_cargaActivaHoy=null;hrVerMiRuta()" style="background:none;border:none;color:var(--P);font-size:13px;cursor:pointer;font-weight:600;padding:4px 8px;font-family:inherit;-webkit-tap-highlight-color:transparent">‹ cambiar carga</button>
+        </div>`
+      + (clientesAct.length ? clientesAct.map(_hrRenderClienteRuta).join('') : '<div style="padding:20px;text-align:center;color:var(--txt2);font-size:13px">Sin clientes pendientes en esta carga</div>')
+      + (sueltos.length ? _hrRenderBloqueSueltos(sueltos) : '');
+    return;
+  }
+
+  // 2+ cargas sin elegir: acordeones cerrados + buscador + bloque de sueltos al final.
+  el.innerHTML = headerCerrada + `
+    <div style="margin-bottom:10px">
+      <input type="text" id="hr-mia-carga-busq" placeholder="🔍 Buscar carga por nombre o número..."
+        style="width:100%;padding:12px 14px;border:2px solid var(--P);border-radius:10px;font-size:15px;font-family:inherit;box-sizing:border-box"
+        oninput="hrFiltrarCargas()">
+    </div>
+    <div id="hr-mia-cargas-lista">
+      ${cargasDelDia.map(c=>_hrAcordeonConClientes(c, porCarga[c.id]||[], false)).join('')}
+      ${sueltos.length ? _hrRenderBloqueSueltos(sueltos) : ''}
+    </div>`;
+}
+
+// ─── Helpers del render de Mi Ruta ────────────────────────────────────────
+
+// Render de UN cliente de la hoja de ruta. Estilo de lista compacta: sin
+// esquinas redondeadas ni margen entre filas, separadas por una línea fina.
+// Pensado para que los clientes queden "todos juntos" dentro del acordeón.
+function _hrRenderClienteRuta(r, i){
+  const idx = (typeof i === 'number') ? i : '';
+  return `<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:${r.visitado?'var(--PL)':'#fff'};border-bottom:1px solid var(--brd)">
+    <div onclick="hrMarcarVisitado(${r.id},${!r.visitado})" title="Tocar para marcar visitado sin cobrar"
+      style="font-size:20px;font-weight:700;min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center;text-align:center;color:${r.visitado?'var(--P)':'var(--txt2)'};cursor:pointer;-webkit-tap-highlight-color:transparent">
+      ${r.visitado?'✓':idx}
+    </div>
+    <div onclick="hrIrACobrar(${r.cliente_id})" style="flex:1;min-width:0;cursor:pointer">
+      <div style="font-weight:700;font-size:15px;${r.visitado?'text-decoration:line-through;color:var(--txt2)':''}">${esc(r.nombre)}</div>
+      ${r.direccion||r.localidad?`<div style="font-size:12px;color:var(--txt2);margin-top:2px">${esc([r.direccion,r.localidad].filter(Boolean).join(' · '))}</div>`:''}
+      ${r.telefono?`<a href="tel:${esc(r.telefono.replace(/\D/g,''))}" onclick="event.stopPropagation()"
+        style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:12px;color:var(--P);font-weight:600;text-decoration:none">
+        📞 ${esc(r.telefono)}</a>`:''}
+    </div>
+    <div onclick="hrIrACobrar(${r.cliente_id})" style="font-size:12px;color:var(--P);text-align:right;flex-shrink:0;font-weight:700;cursor:pointer;padding:6px 4px">
+      ${r.visitado?'Cobrar<br>de nuevo':'💵 Cobrar'}
+    </div>
+  </div>`;
+}
+
+// Bloque "Sin carga asignada": clientes de la hoja que no pertenecen a ninguna
+// carga emitida. Mismo estilo de lista plana que el resto.
+function _hrRenderBloqueSueltos(sueltos){
+  return `<div style="margin-top:14px;border:1.5px solid var(--brd);border-radius:12px;overflow:hidden;background:#fff">
+    <div style="background:var(--bg2);padding:10px 14px;border-bottom:1px solid var(--brd)">
+      <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px">📦 Sin carga asignada</div>
+    </div>
+    ${sueltos.map(_hrRenderClienteRuta).join('')}
+  </div>`;
+}
+
+// Acordeón de carga con clientes explícitos (los de la hoja de ruta ya
+// filtrados). Se usa solo en el caso D2 (hoja + cargas). Es primo del
+// _hrAcordeonCargaHTML que ya existe (ese busca los pedidos directo).
+function _hrAcordeonConClientes(c, clientes, abierto){
+  const total = clientes.length;
+  const titulo = `🚚 Carga #${c.id}${c.nombre ? ' · '+esc(c.nombre) : ''}`;
+  const subtitulo = `${total} parada${total!==1?'s':''}`;
+  return `<div class="carga-acordeon" data-carga-id="${c.id}" style="border:1.5px solid var(--brd);border-radius:12px;margin-bottom:8px;overflow:hidden;background:#fff">
+    <div onclick="hrToggleCargaAcordeonConClientes(${c.id})" style="display:flex;justify-content:space-between;align-items:center;padding:14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;background:var(--bg2)">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:15px">${titulo}</div>
+        <div style="font-size:12px;color:var(--txt2);margin-top:2px">${subtitulo}</div>
       </div>
-      <div onclick="hrIrACobrar(${r.cliente_id})" style="flex:1;min-width:0;cursor:pointer">
-        <div style="font-weight:700;font-size:16px;${r.visitado?'text-decoration:line-through;color:var(--txt2)':''}">${esc(r.nombre)}</div>
-        ${r.direccion||r.localidad?`<div style="font-size:12px;color:var(--txt2);margin-top:2px">${esc([r.direccion,r.localidad].filter(Boolean).join(' · '))}</div>`:''}
-        ${r.telefono?`<a href="tel:${esc(r.telefono.replace(/\D/g,''))}" onclick="event.stopPropagation()"
-          style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;font-size:13px;color:var(--P);font-weight:600;text-decoration:none;padding:4px 10px;background:var(--PL);border-radius:8px">
-          📞 ${esc(r.telefono)}</a>`:''}
-      </div>
-      <div onclick="hrIrACobrar(${r.cliente_id})" style="font-size:12px;color:var(--P);text-align:right;flex-shrink:0;font-weight:700;cursor:pointer;min-width:58px;padding:8px 4px">
-        ${r.visitado?'Cobrar<br>de nuevo':'💵 Cobrar'}
-      </div>
-    </div>`).join('');
+      <span class="carga-chevron" style="font-size:16px;color:var(--txt2);transition:transform 0.2s;transform:${abierto?'rotate(90deg)':'rotate(0deg)'}">▶</span>
+    </div>
+    <div class="carga-pedidos" style="display:${abierto?'block':'none'}">
+      ${clientes.length ? clientes.map(_hrRenderClienteRuta).join('') : '<div style="padding:16px;text-align:center;color:var(--txt2);font-size:13px">Sin clientes pendientes</div>'}
+    </div>
+  </div>`;
+}
+
+// Toggle para el acordeón con clientes explícitos. Mismo comportamiento que
+// hrToggleCargaAcordeon (single-open, setea _cargaActivaHoy).
+function hrToggleCargaAcordeonConClientes(cargaId){
+  const cont = document.querySelector(`.carga-acordeon[data-carga-id="${cargaId}"]`);
+  if(!cont) return;
+  const pedidos = cont.querySelector('.carga-pedidos');
+  const chev = cont.querySelector('.carga-chevron');
+  if(!pedidos) return;
+  const abierto = pedidos.style.display !== 'none';
+  if(abierto){
+    pedidos.style.display = 'none';
+    if(chev) chev.style.transform = 'rotate(0deg)';
+    return;
+  }
+  document.querySelectorAll('.carga-acordeon .carga-pedidos').forEach(p=>{p.style.display='none';});
+  document.querySelectorAll('.carga-acordeon .carga-chevron').forEach(ch=>{ch.style.transform='rotate(0deg)';});
+  pedidos.style.display = 'block';
+  if(chev) chev.style.transform = 'rotate(90deg)';
+  _cargaActivaHoy = _cargasHoyCandidatas.find(c=>c.id===cargaId) || null;
 }
 
 async function hrMarcarVisitado(id, visitado){
