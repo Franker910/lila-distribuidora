@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260911-02';
+const APP_VERSION = '20260914-01';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -813,7 +813,7 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('#hr-cli-q')&&!e.target.closest('#hr-cli-drop'))hide('hr-cli-drop');
 });
 
-function go(p) {
+function go(p,opts = {}) {
   // Hoja de ruta en móvil: solo para repartidores. Los vendedores no la ven
   // (ni por botón ni por URL vieja / go('hoja-ruta') colado desde algún lado).
   const esRepartidorMovil = usuarioActual?.rol === 'repartidor';
@@ -958,6 +958,22 @@ function go(p) {
   };
   const g=grupoMap[p];
   if(g){const sg=document.getElementById('sg-'+g);if(sg)sg.classList.add('active');}
+
+  // Navegación con History API: registrar el paso para que el botón "atrás"
+  // del navegador/celular vuelva al panel anterior. La primera navegación de
+  // la sesión usa replaceState (no agrega entrada) para que el panel inicial
+  // no quede duplicado en el history.
+  if(!opts.fromPop){
+    _navPanelActual = p;
+    if(!_navInicializado){
+      history.replaceState({type:'panel', panel:p}, '', location.pathname);
+      _navInicializado = true;
+    } else {
+      history.pushState({type:'panel', panel:p}, '', location.pathname);
+    }
+  } else {
+    _navPanelActual = p;
+  }
 }
 
 // ─── MENÚ HAMBURGUESA (mostrar/ocultar sidebar) ───
@@ -1620,6 +1636,113 @@ async function q(promesa, contexto) {
     return null;
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// NAVEGACIÓN CON HISTORY API
+// Hace que el botón "atrás" del navegador/celular funcione como en una
+// app nativa: cierra modales, sidebar y F3 si están abiertos; navega entre
+// paneles; y desde el panel base sale del sitio.
+// ═══════════════════════════════════════════════════════════════
+
+let _navPanelActual = '';       // panel actualmente visible (espejo de _panelActual)
+let _navDesdePopstate = false;  // evita que un popstate dispare un pushState
+let _navInicializado = false;   // primera navegación: replaceState en vez de push
+
+// Empuja un estado al history (solo si no viene de un popstate).
+function _navPush(state) {
+  if (_navDesdePopstate) return;
+  history.pushState(state, '', location.pathname);
+}
+
+// Consume un estado: equivale a "el usuario tocó atrás". Se usa cuando una
+// capa se cierra por métodos normales (botón, Escape) para no dejar un estado
+// fantasma en el history.
+function _navConsumir() {
+  _navDesdePopstate = true;
+  history.back();
+  setTimeout(() => { _navDesdePopstate = false; }, 0);
+}
+
+// Cierra la capa más alta que esté abierta, en orden de prioridad:
+// F3 → modal → sidebar. Devuelve true si cerró algo.
+function _navCerrarCapaSuperior() {
+  // 1. F3 (buscador global)
+  const f3 = document.getElementById('f3-modal');
+  if (f3 && f3.style.display !== 'none' && f3.style.display !== '') {
+    f3Cerrar();
+    return true;
+  }
+  // 2. Modal (.mbg con class 'on')
+  const modal = document.querySelector('.mbg.on');
+  if (modal) {
+    cerrar(modal.id);
+    return true;
+  }
+  // 3. Sidebar (class 'open')
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar && sidebar.classList.contains('open')) {
+    cerrarMenu();
+    return true;
+  }
+  return false;
+}
+
+/// Listener global de popstate (botón atrás del navegador/celular).
+window.addEventListener('popstate', (e) => {
+  _navDesdePopstate = true;
+  try {
+    // 1) Si hay capa abierta, cerrarla (consume el atrás del usuario).
+    if (_navCerrarCapaSuperior()) return;
+
+    // 2) Sin capa: navegar al panel del state si es distinto al actual.
+    const panelDest = e.state?.panel;
+    if (panelDest && panelDest !== _navPanelActual) {
+      go(panelDest, {fromPop: true});
+    }
+  } finally {
+    setTimeout(() => { _navDesdePopstate = false; }, 0);
+  }
+});
+
+// Observadores de apertura/cierre de capas (modales, sidebar, F3).
+// Cada apertura empuja un estado; cada cierre "normal" lo consume.
+function _navInitObservers() {
+  // Modales (.mbg)
+  document.querySelectorAll('.mbg').forEach(m => {
+    new MutationObserver((mutations) => {
+      mutations.forEach(mut => {
+        if (mut.type !== 'attributes' || mut.attributeName !== 'class') return;
+        const el = mut.target;
+        const eraOn = (mut.oldValue || '').split(/\s+/).includes('on');
+        const esOn = el.classList.contains('on');
+        if (!eraOn && esOn) {
+          _navPush({ type: 'modal', modalId: el.id });
+        } else if (eraOn && !esOn) {
+          if (!_navDesdePopstate) _navConsumir();
+        }
+      });
+    }).observe(m, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+  });
+
+  // F3 (cambio de display)
+  const f3 = document.getElementById('f3-modal');
+  if (f3) {
+    new MutationObserver((mutations) => {
+      mutations.forEach(mut => {
+        if (mut.type !== 'attributes' || mut.attributeName !== 'style') return;
+        const eraVisible = /display\s*:\s*flex/.test(mut.oldValue || '');
+        const esVisible = f3.style.display === 'flex';
+        if (!eraVisible && esVisible) {
+          _navPush({ type: 'f3' });
+        } else if (eraVisible && !esVisible) {
+          if (!_navDesdePopstate) _navConsumir();
+        }
+      });
+    }).observe(f3, { attributes: true, attributeFilter: ['style'], attributeOldValue: true });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', _navInitObservers);
 
 // function volverAdmin() {
 //   // Cambiar rol temporalmente a admin
