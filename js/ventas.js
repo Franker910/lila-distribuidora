@@ -1725,7 +1725,7 @@ function abrirPedidoMovil(){
   const nomEl = document.getElementById('pm-cli-nombre');
   const saldoEl = document.getElementById('pm-cli-saldo');
   const saldoWrap = document.getElementById('pm-cli-saldo-wrap');
-  const pasoCliEl = document.getElementById('cobm-paso-cliente');
+  const pasoCliEl = document.getElementById('pm-paso-cliente');
   const pasoProdEl = document.getElementById('pm-paso-productos');
   const pasoResEl = document.getElementById('pm-paso-resumen');
 
@@ -1867,7 +1867,7 @@ function selClienteMovil(id){
   }
   
   // Ocultar paso de cliente
-  const pasoCliente = document.getElementById('cobm-paso-cliente');
+  const pasoCliente = document.getElementById('pm-paso-cliente');
   if (pasoCliente) {
     pasoCliente.style.display = 'none';
   }
@@ -3421,7 +3421,7 @@ function filtrarClientesZona() {
 
 function volverHeaderPedidoMovil() {
   const pasoProductos = document.getElementById('pm-paso-productos');
-  const pasoCliente = document.getElementById('cobm-paso-cliente');
+  const pasoCliente = document.getElementById('pm-paso-cliente');
   
   // ─── Determinar si estamos en el paso de productos ──────────────────
   const enProductos = pasoProductos && 
