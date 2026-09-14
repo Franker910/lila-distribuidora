@@ -2027,10 +2027,9 @@ function clearComprobanteMov(){
 
 // ── Navegación entre sub-paneles de cobranza ─────────────────────────────
 function cobmAbrirCC(){
-  // Ocultar acciones, formulario Y el header verde de "registrar cobro". El
-  // sub-panel queda solo en pantalla, sin nada del flujo de cobro alrededor.
+  // Ocultar solo las acciones y el formulario de cobro. El header verde se
+  // mantiene (permite volver al home). El sub-panel queda solo en pantalla.
   document.getElementById('cobm-acciones').style.display='none';
-  document.getElementById('cobm-header-cobro').style.display='none';
   document.getElementById('cobm-paso-cliente').style.display='none';
   document.getElementById('cobm-paso-cobro').style.display='none';
   document.getElementById('cobm-panel-cc').style.display='block';
@@ -2041,13 +2040,11 @@ function cobmAbrirCC(){
 }
 
 function cobmVolverAcciones(){
-  // Restaurar todo: header verde + acciones + formulario de cobro.
-  document.getElementById('cobm-header-cobro').style.display='block';
   document.getElementById('cobm-acciones').style.display='block';
-  document.getElementById('cobm-panel-cc').style.display='none';
-  document.getElementById('cobm-panel-miscobranzas').style.display='none';
   document.getElementById('cobm-paso-cliente').style.display='block';
   document.getElementById('cobm-paso-cobro').style.display='none';
+  document.getElementById('cobm-panel-cc').style.display='none';
+  document.getElementById('cobm-panel-miscobranzas').style.display='none';
 }
 
 // ── Cuenta corriente desde cobranza ─────────────────────────────────────
@@ -2090,7 +2087,6 @@ let _cobmcZona='';
 
 function cobmAbrirMisCobranzas(){
   document.getElementById('cobm-acciones').style.display='none';
-  document.getElementById('cobm-header-cobro').style.display='none';
   document.getElementById('cobm-paso-cliente').style.display='none';
   document.getElementById('cobm-paso-cobro').style.display='none';
   document.getElementById('cobm-panel-cc').style.display='none';
@@ -2324,10 +2320,7 @@ function limpiarCobMovil(){
   
   const pmc=document.getElementById('cobm-panel-miscobranzas');
   if(pmc) pmc.style.display='none';
-
-  const hdr=document.getElementById('cobm-header-cobro');
-  if(hdr) hdr.style.display='block';
-  
+ 
   // Ocultar el footer flotante
   const footer = document.getElementById('cobm-fixed-footer');
   if (footer) footer.style.display = 'none';
