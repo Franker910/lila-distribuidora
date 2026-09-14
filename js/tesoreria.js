@@ -2027,7 +2027,12 @@ function clearComprobanteMov(){
 
 // ── Navegación entre sub-paneles de cobranza ─────────────────────────────
 function cobmAbrirCC(){
+  // Ocultar acciones, formulario Y el header verde de "registrar cobro". El
+  // sub-panel queda solo en pantalla, sin nada del flujo de cobro alrededor.
   document.getElementById('cobm-acciones').style.display='none';
+  document.getElementById('cobm-header-cobro').style.display='none';
+  document.getElementById('cobm-paso-cliente').style.display='none';
+  document.getElementById('cobm-paso-cobro').style.display='none';
   document.getElementById('cobm-panel-cc').style.display='block';
   const q=document.getElementById('cobm-cc-q');if(q)q.value='';
   const l=document.getElementById('cobm-cc-lista');if(l)l.innerHTML='';
@@ -2036,9 +2041,13 @@ function cobmAbrirCC(){
 }
 
 function cobmVolverAcciones(){
+  // Restaurar todo: header verde + acciones + formulario de cobro.
+  document.getElementById('cobm-header-cobro').style.display='block';
   document.getElementById('cobm-acciones').style.display='block';
   document.getElementById('cobm-panel-cc').style.display='none';
   document.getElementById('cobm-panel-miscobranzas').style.display='none';
+  document.getElementById('cobm-paso-cliente').style.display='block';
+  document.getElementById('cobm-paso-cobro').style.display='none';
 }
 
 // ── Cuenta corriente desde cobranza ─────────────────────────────────────
@@ -2081,6 +2090,9 @@ let _cobmcZona='';
 
 function cobmAbrirMisCobranzas(){
   document.getElementById('cobm-acciones').style.display='none';
+  document.getElementById('cobm-header-cobro').style.display='none';
+  document.getElementById('cobm-paso-cliente').style.display='none';
+  document.getElementById('cobm-paso-cobro').style.display='none';
   document.getElementById('cobm-panel-cc').style.display='none';
   document.getElementById('cobm-panel-miscobranzas').style.display='block';
   _cobmcZona='';
@@ -2312,15 +2324,10 @@ function limpiarCobMovil(){
   
   const pmc=document.getElementById('cobm-panel-miscobranzas');
   if(pmc) pmc.style.display='none';
+
+  const hdr=document.getElementById('cobm-header-cobro');
+  if(hdr) hdr.style.display='block';
   
-  // setTimeout(()=>document.getElementById('cobm-cli-q')?.focus(),100);
-
-  const clientesRuta = document.getElementById('cobm-clientes-ruta-hoy');
-  if (clientesRuta) {
-    clientesRuta.innerHTML = '';
-    clientesRuta.style.display = 'none';
-  }
-
   // Ocultar el footer flotante
   const footer = document.getElementById('cobm-fixed-footer');
   if (footer) footer.style.display = 'none';
