@@ -425,7 +425,7 @@ function verCobroDetalle(id){
     ${r.observaciones?`<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">Obs: ${esc(r.observaciones)}</div>`:''}
     ${r.comprobante_url?`<div style="margin-bottom:8px"><a href="${r.comprobante_url}" target="_blank">📎 Ver comprobante adjunto</a></div>`:''}
     <div style="text-align:right;font-size:16px;font-weight:700;color:var(--PD);border-top:2px solid var(--brd);padding-top:10px">Total: ${fmt(r.importe)}</div>
-    <button class="btn P" style="width:100%;margin-top:12px" onclick="imprimirRecibo(${r.id})">🧾 Ver / imprimir recibo</button>
+    ${usuarioActual?.vista==='movil' ? '' : `<button class="btn P" style="width:100%;margin-top:12px" onclick="imprimirRecibo(${r.id})">🧾 Ver / imprimir recibo</button>`}
   `;
   popupDetalle('RC-'+String(r.id).padStart(4,'0'),`${esc(r.cliente||'')} · ${r.fecha}`,body);
 }
@@ -2653,35 +2653,40 @@ function buscarClienteCobMovil(){
   const q=(document.getElementById('cobm-cli-q').value||'').toLowerCase().trim();
   const zonaFil=document.getElementById('cobm-cli-zon')?.value||'';
   const lista=document.getElementById('cobm-cli-lista');
+  const inline=document.getElementById('cobm-cli-lista-inline');
   if(!lista) return;
-  
-  // Si no hay búsqueda ni zona, ocultar
-  if(q.length<1 && !zonaFil){
+
+  // Sin búsqueda: ocultar dropdown y volver a la lista inline
+  if(q.length<1){
     lista.style.display='none';
     lista.innerHTML='';
+    if(inline) inline.style.display='block';
+    cobmRenderListaInline();
     return;
   }
-  
+  // Con búsqueda: ocultar lista inline, mostrar dropdown flotante
+  if(inline) inline.style.display='none';
+
   const pool=_cobmCliPool();
   const m=pool.filter(c=>{
     const matchNombre=(c.nombre||'').toLowerCase().includes(q);
     const matchCodigo=String(c.codigo||c.id).includes(q);
     const matchZona=!zonaFil || c.zona===zonaFil;
     return (matchNombre || matchCodigo) && matchZona;
-  }).slice(0,12); // Limitar a 12 resultados para no saturar
-  
+  }).slice(0,12);
+
   if(!m.length){
     lista.style.display='block';
     lista.innerHTML='<div style="padding:14px;font-size:14px;color:var(--txt2);text-align:center">❌ Sin resultados</div>';
     posicionarDropdownCobMovil();
     return;
   }
-  
+
   lista.style.display='block';
   lista.innerHTML=m.map(c=>`
     <div onclick="selClienteCobMovil(${c.id})"
       style="display:flex;justify-content:space-between;align-items:center;min-height:56px;padding:10px 14px;border-bottom:1px solid var(--brd);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background 0.15s;"
-      onmouseover="this.style.background='var(--bg2)'" 
+      onmouseover="this.style.background='var(--bg2)'"
       onmouseout="this.style.background='transparent'">
       <div style="flex:1;min-width:0">
         <div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.nombre)}</div>
@@ -2692,8 +2697,72 @@ function buscarClienteCobMovil(){
       </div>
     </div>
   `).join('');
-  
+
   posicionarDropdownCobMovil();
+}
+
+// ── Filtro de lista en cobranza móvil: ruta del día vs con deuda ──
+let _cobmFiltroCli = null; // 'ruta' | 'deuda' | null (auto al entrar)
+
+function cobmRenderChipsCli(){
+  const el = document.getElementById('cobm-cli-chips');
+  if(!el) return;
+  const rutaIds = _hrClientesHoy || [];
+  const rutaCount = rutaIds.length;
+  const pool = _cobmCliPool();
+  const deudaCount = pool.filter(c=>(c.saldo||0) > 0).length;
+  if(!_cobmFiltroCli) _cobmFiltroCli = rutaCount > 0 ? 'ruta' : 'deuda';
+  const mkChip = (key, label, count) => {
+    const activo = _cobmFiltroCli === key;
+    const disabled = count === 0;
+    return `<button onclick="cobmSetFiltroCli('${key}')" ${disabled?'disabled':''}
+      style="flex:0 0 auto;padding:6px 12px;border-radius:20px;border:1.5px solid ${activo?'var(--PD)':'var(--brd)'};background:${activo?'var(--PD)':'var(--bg)'};color:${activo?'#fff':'var(--txt2)'};font-size:12px;font-weight:600;cursor:${disabled?'not-allowed':'pointer'};font-family:inherit;opacity:${disabled?'0.4':'1'};-webkit-tap-highlight-color:transparent">
+      ${label} (${count})
+    </button>`;
+  };
+  el.innerHTML = mkChip('ruta', '📍 Ruta de hoy', rutaCount) + mkChip('deuda', '💰 Con deuda', deudaCount);
+}
+
+function cobmSetFiltroCli(filtro){
+  _cobmFiltroCli = filtro;
+  cobmRenderChipsCli();
+  cobmRenderListaInline();
+}
+
+function cobmRenderListaInline(){
+  const el = document.getElementById('cobm-cli-lista-inline');
+  if(!el) return;
+  // Si hay texto en el buscador, la lista inline se oculta (el dropdown ya muestra)
+  const q = (document.getElementById('cobm-cli-q')?.value||'').trim();
+  if(q){ el.innerHTML=''; return; }
+  let lista = [];
+  if(_cobmFiltroCli === 'ruta'){
+    const rutaIds = new Set(_hrClientesHoy || []);
+    lista = _cobmCliPool().filter(c=>rutaIds.has(c.id));
+    const ordenMap = {};
+    (_hrClientesHoy || []).forEach((id, i) => ordenMap[id] = i);
+    lista.sort((a,b) => (ordenMap[a.id]||999) - (ordenMap[b.id]||999));
+  } else if(_cobmFiltroCli === 'deuda'){
+    lista = _cobmCliPool().filter(c=>(c.saldo||0) > 0);
+    lista.sort((a,b)=>(b.saldo||0)-(a.saldo||0));
+  }
+  if(!lista.length){
+    el.innerHTML = `<div style="padding:20px;text-align:center;color:var(--txt2);font-size:13px">Sin clientes para mostrar</div>`;
+    return;
+  }
+  el.innerHTML = lista.map(c=>`
+    <div onclick="selClienteCobMovil(${c.id})"
+      style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#fff;border-radius:10px;margin-bottom:6px;border:1.5px solid var(--brd);cursor:pointer;-webkit-tap-highlight-color:transparent"
+      onmouseover="this.style.borderColor='var(--P)';this.style.background='var(--bg2)'"
+      onmouseout="this.style.borderColor='var(--brd)';this.style.background='#fff'">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.nombre)}</div>
+        <div style="font-size:12px;color:var(--txt2);margin-top:2px">${esc(c.localidad||'')}${c.codigo?' · #'+c.codigo:''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;margin-left:10px">
+        <div style="font-size:16px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
+      </div>
+    </div>`).join('');
 }
 
 //Posicionamiento inteligente del dropdown

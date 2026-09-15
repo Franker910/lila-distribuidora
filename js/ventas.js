@@ -2388,9 +2388,9 @@ function mostrarConfirmacionMovil(tipo, cliente, detalle, cobId){
       </div>
       <div style="display:flex;flex-direction:column;gap:10px;">
         ${esCobranza && cobId ? `
-          <button onclick="imprimirRecibo(${cobId}); document.getElementById('pm-confirmacion-overlay').remove();" 
+          <button onclick="document.getElementById('pm-confirmacion-overlay').remove(); verCobroDetalle(${cobId});" 
             style="width:100%;padding:14px;background:var(--P);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;">
-            🧾 Ver / imprimir recibo
+            📋 Ver resumen
           </button>
         ` : ''}
         <button onclick="${esCobranza ? 'go(\'cobranza\')' : 'resetYNuevoPedido()'}" 
