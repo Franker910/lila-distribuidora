@@ -210,7 +210,7 @@ function limpiarModalCobro(){
   ['cob-efectivo','cob-transferencia','cob-cheque3','cob-ret-gan','cob-ret-ib','cob-ret-otras'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='0';});
   const fch=document.getElementById('cob-fecha-cheque');if(fch)fch.value='';
   const td=document.getElementById('cob-total-display');if(td)td.textContent='$0';
-  const ti=document.getElementById('cob-total-imputar');if(ti)ti.value='0';
+  const ti=document.getElementById('cob-total-imputar');if(ti)ti.value='';
   const fecEl=document.getElementById('cob-fecha');if(fecEl)fecEl.value=hoyLocal();
   const rp=document.getElementById('cob-remitos-pendientes');if(rp)rp.innerHTML='';
   const rEmpty=document.getElementById('cob-remitos-empty');
@@ -310,7 +310,7 @@ function selCliCob(id){
          <td style="border:1px solid #000;padding:5px 7px;text-align:right;font-weight:700;color:var(--D)">${fmt(r.saldo_pendiente||r.total)}</td>
          <td style="border:1px solid #000;padding:3px 5px">
            <div style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
-             <input type="number" id="imp-rem-${r.id}" value="0" min="0" max="${r.saldo_pendiente||r.total}" step="0.01"
+             <input type="number" id="imp-rem-${r.id}" value="0" min="0" max="${r.saldo_pendiente||r.total}" step="1"
                style="width:90px;padding:5px 6px;border:1.5px solid var(--brd);border-radius:5px;text-align:right;font-size:13px;font-weight:700"
                placeholder="0" onfocus="this.select()" oninput="limitarImputacion(this,${r.saldo_pendiente||r.total});calcTotalDesdeImputacion()"
                ondblclick="imputarTotal(${r.id},${r.saldo_pendiente||r.total});this.select();"
