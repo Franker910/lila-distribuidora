@@ -1458,7 +1458,14 @@ function histCliente(id){
 
   document.getElementById('m-ver-title').textContent='Cuenta corriente — '+c.nombre;
   const _mvpCC=document.getElementById('m-ver-print');
-  if(_mvpCC){_mvpCC.textContent='🖨 Imprimir';_mvpCC.onclick=imprimirCuentaCorriente;_mvpCC.style.display='inline-flex';}
+  if(_mvpCC){
+    _mvpCC.textContent='🖨 Imprimir';
+    _mvpCC.onclick=imprimirCuentaCorriente;
+    // En vista móvil no mostramos el botón de imprimir: no tiene sentido
+    // desde el celu, y menos dentro del flujo de cobranza. En escritorio sigue
+    // funcionando igual que siempre.
+    _mvpCC.style.display=(usuarioActual?.vista==='movil')?'none':'inline-flex';
+  }
   const _mvp2CC=document.getElementById('m-ver-print2');if(_mvp2CC)_mvp2CC.style.display='none';
   const _anuCC=document.getElementById('m-ver-anular');if(_anuCC)_anuCC.style.display='none';
   document.getElementById('m-ver-body').innerHTML=`
