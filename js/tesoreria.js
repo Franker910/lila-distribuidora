@@ -303,10 +303,16 @@ function selCliCob(id){
   if(remsPend.length){
     if(rEmpty)rEmpty.style.display='none';
     if(rWrap)rWrap.style.display='block';
-    if(lista)lista.innerHTML=remsPend.map(r=>`
+    if(lista)lista.innerHTML=`
+       <tr><td colspan="4" style="padding:6px 4px 10px 4px;border:none">
+         <button onclick="cobAutoImputar()"
+           style="width:100%;padding:8px;background:var(--A);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">
+           ⚡ Repartir automáticamente (más viejas primero)
+         </button>
+       </td></tr>
+       ` + remsPend.map(r=>`
        <tr>
          <td style="border:1px solid #000;padding:5px 7px"><button onclick="verRemitoEnCobro(${r.id})" title="Ver detalle" style="background:none;border:none;font-size:12px;font-weight:700;color:var(--P);cursor:pointer;padding:0;white-space:nowrap;text-decoration:underline">R-${String(r.id).padStart(4,'0')}</button></td>
-         <td style="border:1px solid #000;padding:5px 7px;font-size:11px;color:var(--txt2)">${r.fecha}</td>
          <td style="border:1px solid #000;padding:5px 7px;text-align:right;font-weight:700;color:var(--D)">${fmt(r.saldo_pendiente||r.total)}</td>
          <td style="border:1px solid #000;padding:3px 5px">
            <div style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
@@ -464,6 +470,33 @@ function imputarTotal(remId, total){
   const disponible = Math.max(0, totalCobra - yaImputado);
   input.value = Math.min(total, disponible) || 0;
   calcTotalDesdeImputacion();
+}
+
+// Reparte el total a cobrar entre las facturas pendientes, de la más vieja
+// a la más nueva (FIFO). Setea los inputs imp-rem-* y recalcula el resumen.
+function cobAutoImputar(){
+  const importe = parseFloat(document.getElementById('cob-total-imputar')?.value)||0;
+  if(importe<=0){
+    alert('Ingresá primero el total que cobra');
+    document.getElementById('cob-total-imputar')?.focus();
+    return;
+  }
+  const inputs = [...document.querySelectorAll('[id^="imp-rem-"]')];
+  if(!inputs.length){alert('No hay facturas pendientes');return;}
+  let resto = importe;
+  inputs.forEach(inp=>{
+    if(resto<=0){inp.value='';return;}
+    const max = parseFloat(inp.max)||0;
+    const aplicar = Math.min(max, resto);
+    inp.value = aplicar>0?aplicar:'';
+    resto -= aplicar;
+  });
+  calcTotalDesdeImputacion();
+  if(resto>0){
+    toast(`Se imputó todo. Quedan ${fmt(resto)} sin imputar (irán a saldo a favor)`,'warn',4000);
+  } else {
+    toast(`✅ Repartido ${fmt(importe)} en las facturas más viejas`);
+  }
 }
 
 function calcTotalDesdeImputacion(){
@@ -2883,19 +2916,28 @@ function selClienteCobMovil(id){
   const lista=document.getElementById('cobm-facturas');
   if(remsPend.length && wrap && lista){
     wrap.style.display='block';
-    lista.innerHTML=remsPend.map(r=>`
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--brd)">
-        <div style="flex:1;cursor:pointer" onclick="verRemitoEnCobro(${r.id})">
+    const btnAuto = `<button onclick="cobmAutoImputar()"
+      style="width:100%;padding:10px;margin-bottom:10px;background:var(--A);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent">
+      ⚡ Repartir automáticamente (más viejas primero)
+    </button>`;
+    lista.innerHTML = btnAuto + remsPend.map(r=>{
+      const saldo = r.saldo_pendiente||r.total;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--brd)">
+        <div style="flex:1;cursor:pointer;min-width:0" onclick="verRemitoEnCobro(${r.id})">
           <div style="font-size:14px;font-weight:600;text-decoration:underline;color:var(--P)">R-${String(r.id).padStart(4,'0')}</div>
-          <div style="font-size:11px;color:var(--txt2)">${r.fecha} · Saldo: ${fmt(r.saldo_pendiente||r.total)}</div>
+          <div style="font-size:11px;color:var(--txt2)">${r.fecha} · Saldo: ${fmt(saldo)}</div>
         </div>
-        <input type="number" id="cobm-imp-${r.id}" value="0" min="0" step="0.01"
-          style="width:120px;padding:8px;border:2px solid var(--brd);border-radius:8px;font-size:16px;font-weight:700;text-align:right"
-          oninput="calcCobMovil()" onfocus="this.select()" ondblclick="cobmImputarTodo(${r.id},${r.saldo_pendiente||r.total})"
+        <input type="number" id="cobm-imp-${r.id}" value="" min="0" max="${saldo}" step="1"
+          style="width:100px;padding:8px;border:2px solid var(--brd);border-radius:8px;font-size:16px;font-weight:700;text-align:right"
+          oninput="calcCobMovil()" onfocus="this.select()"
           onkeydown="if(event.key==='Home'){event.preventDefault();verRemitoEnCobro(${r.id})}"
-          title="Doble toque = todo · Inicio = ver factura">
-      </div>
-    `).join('');
+          title="Inicio = ver factura">
+        <button onclick="cobmImputarTodo(${r.id},${saldo})"
+          style="padding:8px 10px;background:var(--P);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">
+          ✓ Todo
+        </button>
+      </div>`;
+    }).join('');
   } else if(wrap) {
     wrap.style.display='none';
   }
@@ -3702,4 +3744,31 @@ function limpiarBuscadorZonasUniversal() {
   if (pasoCliente) pasoCliente.style.display = 'block';
   
   _cobZonaInput = '';
+}
+
+// Reparte el monto cobrado entre las facturas pendientes, de la más vieja a
+// la más nueva (FIFO). Setea los inputs de imputación y avisa si sobra plata.
+function cobmAutoImputar(){
+  const importe = parseFloat(document.getElementById('cobm-importe')?.value)||0;
+  if(importe<=0){
+    toast('Ingresá primero cuánto cobró','warn');
+    document.getElementById('cobm-importe')?.focus();
+    return;
+  }
+  const inputs = [...document.querySelectorAll('[id^="cobm-imp-"]')];
+  if(!inputs.length){toast('No hay facturas pendientes','warn');return;}
+  let resto = importe;
+  inputs.forEach(inp=>{
+    if(resto<=0){inp.value='';return;}
+    const max = parseFloat(inp.max)||0;
+    const aplicar = Math.min(max, resto);
+    inp.value = aplicar>0?aplicar:'';
+    resto -= aplicar;
+  });
+  calcCobMovil();
+  if(resto>0){
+    toast(`Se imputó todo. Quedan ${fmt(resto)} sin imputar (irán a saldo a favor)`,'warn',4000);
+  } else {
+    toast(`✅ Repartido ${fmt(importe)} en las facturas más viejas`);
+  }
 }
