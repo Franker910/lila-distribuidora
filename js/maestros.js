@@ -176,7 +176,7 @@ function renderClientes(){
     return `
     <tr style="${!activo ? 'opacity:0.7;' : ''}">
       <td style="font-weight:600">
-        <span style="font-size:10px;color:var(--txt2);margin-right:4px">
+        <span style="font-size:13px;color:var(--txt2);margin-right:4px">
           ${c.codigo || c.id}
         </span>
         ${c.nombre}

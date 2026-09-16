@@ -1347,7 +1347,11 @@ function renderCC(){
     const venc=c.saldo>0&&dias!==null&&dias>(c.condicion_pago||0)+5;
     const dColor=dias===null?'':venc?'color:var(--D);font-weight:600':dias<=(c.condicion_pago||0)?'color:var(--P)':'color:var(--W)';
     return `<tr style="${venc?'background:var(--DL)':''};cursor:pointer" onclick="histCliente(${c.id})">
-      <td style="font-weight:600">${esc(c.nombre)}<div style="font-size:10px;color:var(--txt2)">${esc(c.telefono||'')}</div></td>
+      <td style="font-weight:600">
+        <span style="font-size:13px;color:var(--txt2);margin-right:4px">${esc(c.codigo||c.id)}</span>
+        ${esc(c.nombre)}
+        <div style="font-size:10px;color:var(--txt2)">${esc(c.telefono||'')}</div>
+      </td>
       <td>${esc(c.localidad||'')}</td>
       <td><span class="b bA">${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||'-'}</span></td>
       <td>${esc(c.vendedor||'—')}</td>
@@ -1365,9 +1369,12 @@ function renderCC(){
 }
 
 function cobroRapido(id){
-  abrirCobro();
-  setTimeout(()=>selCliCob(id),50);
+  // Antes llamaba a abrirCobro() (que ya hacía go('cobranza')) Y TAMBIÉN
+  // llamaba a go('cobranza') de nuevo → dos pushState iguales, por eso el
+  // botón atrás necesitaba 2 toques.
+  limpiarModalCobro();
   go('cobranza');
+  setTimeout(()=>selCliCob(id),50);
 }
 
 function colorDias(dias,condPago){

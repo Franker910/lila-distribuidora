@@ -201,11 +201,11 @@ function renderCargas(){
     return `<div class="ccard">
       <div class="ccard-h">
         <div>
-          <div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
-            <span class="ccard-num">Carga #${cg.id}</span>
-            <span class="ccard-fecha">📅 ${fechaFmt}</span>
-            ${cg.nombre?`<span class="ccard-nm">${esc(cg.nombre)}</span>`:''}
-            ${cg.vendedor?`<span class="ccard-nm">— ${esc(cg.vendedor)}</span>`:''}
+          <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+            <span class="ccard-num" style="font-size:16px">Carga #${cg.id}</span>
+            <span class="ccard-fecha" style="font-size:16px">📅 ${fechaFmt}</span>
+            ${cg.nombre?`<span class="ccard-nm" style="font-size:16px">${esc(cg.nombre)}</span>`:''}
+            ${cg.vendedor?`<span class="ccard-nm" style="font-size:16px">— ${esc(cg.vendedor)}</span>`:''}
           </div>
           <div class="ccard-sub">${(cg.pedidos||[]).length} pedidos · ${esc(peds.slice(0,6).map(p=>p.cliente).join(' · '))}${peds.length>6?` · +${peds.length-6} más`:''}</div>
         </div>
