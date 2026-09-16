@@ -40,9 +40,15 @@ async function cargarCargas(){const {data}=await sb.from('cargas').select('*').o
 // ─── CARGAS ───
 function mostrarNuevaCarga(){
   document.getElementById('carga-vista-lista').style.display='none';
-  document.getElementById('carga-vista-nueva').style.display='block';
+  document.getElementById('carga-vista-nueva').style.display='flex';
   const fecha=document.getElementById('car-fecha');
   if(fecha)fecha.value=hoyLocal();
+  // Por defecto, mostrar solo los pedidos cargados HOY. Si quieren ver los de
+  // días anteriores, cambian las fechas o tocan "Ver todos".
+  const fFd=document.getElementById('car-fil-fd');
+  const fFh=document.getElementById('car-fil-fh');
+  if(fFd&&!fFd.value)fFd.value=hoyLocal();
+  if(fFh&&!fFh.value)fFh.value=hoyLocal();
   const nomEl=document.getElementById('car-nombre');
   if(nomEl)nomEl.value='';
   _carNombreSugerido='';
@@ -60,7 +66,7 @@ function mostrarNuevaCarga(){
 }
 
 function ocultarNuevaCarga(){
-  document.getElementById('carga-vista-lista').style.display='block';
+  document.getElementById('carga-vista-lista').style.display='flex';
   document.getElementById('carga-vista-nueva').style.display='none';
 }
 
@@ -90,11 +96,15 @@ async function loadPedsCarga(){
   const zona=document.getElementById('car-fil-zona')?.value||'';
   const loc=document.getElementById('car-fil-loc')?.value||'';
   const ven=document.getElementById('car-fil-ven')?.value||'';
+  const fd=document.getElementById('car-fil-fd')?.value||'';
+  const fh=document.getElementById('car-fil-fh')?.value||'';
   const pends=_pedidos.filter(p=>
     p.estado==='pendiente'&&
     (!zona||p.zona===zona)&&
     (!loc||(p.localidad||'')=== loc)&&
-    (!ven||(p.vendedor||'').toLowerCase()===(ven).toLowerCase())
+    (!ven||(p.vendedor||'').toLowerCase()===(ven).toLowerCase())&&
+    (!fd||(p.fecha||'')>=fd)&&
+    (!fh||(p.fecha||'')<=fh)
   ).sort((a,b)=>(a.zona||'').localeCompare(b.zona||'')||(a.localidad||'').localeCompare(b.localidad||''));
   const el=document.getElementById('car-items-lista');
   if(!el)return;
@@ -778,7 +788,7 @@ function imprimirHojaCarga(){
           <td style="padding:10px 8px;text-align:center;width:40px;">${j + 1}</td>
           <td style="padding:10px 8px;text-align:center;width:60px;">${fmtN(it.cant, 2)}</td>
           <td style="padding:10px 8px;text-align:left;">${esc(it.nom)}</td>
-          <td style="padding:10px 8px;text-align:center;width:90px;">${esPeso ? fmtN(peso, 2) + ' kg' : '—'}</td>
+          <td style="padding:10px 8px;text-align:center;width:90px;">${esPeso ? fmtN(peso, 2) + ' kg' : ''}</td>
         </tr>
       `;
     }).join('');
