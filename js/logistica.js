@@ -1225,7 +1225,7 @@ async function hrGuardarGasto(concepto){
   const prov=document.getElementById('hrg-prov')?.value.trim()||'';
   const fecha=document.getElementById('hr-fecha-mia')?.value||hoyLocal();
   const vendedor=usuarioActual?.nombre||'';
-  const {error}=await sb.from('gastos_reparto').insert({fecha,vendedor,concepto,proveedor:prov,importe:imp});
+  const {error}=await sb.from('gastos_reparto').insert({fecha,vendedor,concepto,proveedor:prov,importe:imp,carga_id:_cargaActivaHoy?.id||null});
   document.getElementById('detalle-popup')?.remove();
   if(error){alert('Error al guardar: '+error.message);return;}
   await cargarGastosReparto();
