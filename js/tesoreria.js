@@ -81,7 +81,7 @@ async function cobrarRemito(id){
     const reactivar=()=>{this.textContent='✓ Confirmar cobro';this.disabled=false;};
 
     const hoy = hoyLocal();
-    const {error:cobErr}=await sb.from('cobros').insert({
+    const {data:nuevoCobroRap,error:cobErr}=await sb.from('cobros').insert({
       cliente_id: r.cliente_id, cliente: r.cliente||'',
       fecha: hoy, importe: imp, forma: medio,
       efectivo: medio==='efectivo'?imp:0,
@@ -90,8 +90,12 @@ async function cobrarRemito(id){
       vendedor: r.vendedor||usuarioActual?.nombre||'',
       estado_rendicion:'pendiente',
       imputaciones:[{remito_id:id,monto:imp}]
-    });
+    }).select().single();
     if(cobErr){alert('Error al guardar cobro: '+cobErr.message);reactivar();return;}
+    if(medio==='cheque'){
+      await crearChequeDesdeCobro(nuevoCobroRap, imp, 'S/N', '');
+      await cargarCheques();
+    }
 
     // ⚠️ Remito y saldo del cliente NO se modifican aquí.
     // Se aplican cuando un admin valida el cobro (validarCobro).
@@ -624,6 +628,12 @@ async function guardarCobro(){
     imputaciones,saldo_favor:_cobRestoSaldoFavor||0,comprobante_url
   }).select().single();
   if(cobErr){toast('Error al guardar cobro: '+cobErr.message,'err',6000);reactivar();return;}
+  if(ch3>0){
+    await crearChequeDesdeCobro(nuevoCobro, ch3,
+      document.getElementById('cob-nrocheque')?.value||'',
+      document.getElementById('cob-banco')?.value||'');
+    await cargarCheques();
+  }
 
   if(imputarYa){
     // El admin ya tiene la plata en mano: no hay rendición física que esperar,
@@ -2035,13 +2045,117 @@ function imprimirSaldosZona() {
   w.document.close();
 }
 
-function renderChequesCartera(){
-  const el=document.getElementById('chq-lista');
-  if(!el)return;
-  el.innerHTML='<div style="color:var(--txt2);font-style:italic;padding:20px">Módulo de cheques en cartera — próximamente.</div>';
+// =====================================================
+// CARTERA DE CHEQUES — agregar al final de tesoreria.js
+// =====================================================
+
+let _cheques = [];
+let _chequesSeleccionadosPago = []; // ids de cheques elegidos para el pago actual
+
+async function cargarCheques() {
+  const { data, error } = await sb.from('cheques').select('*').order('created_at', { ascending: false });
+  if (error && error.code === '42P01') {
+    toast('Tabla cheques no existe. Crear en Supabase con el SQL del panel.', 'err', 6000);
+    _cheques = []; return;
+  }
+  _cheques = data || [];
 }
 
-function abrirCheque(){alert('Próximamente');}
+// Se llama justo después de insertar un cobro con cheque_terceros > 0.
+// cobro = fila devuelta por el insert (con .id); monto/numero/banco = datos del cheque.
+async function crearChequeDesdeCobro(cobro, monto, numero, banco) {
+  if (!monto || monto <= 0) return;
+  const { error } = await sb.from('cheques').insert({
+    numero: numero || 'S/N',
+    banco: banco || null,
+    monto,
+    cobro_id: cobro.id,
+    cliente_id: cobro.cliente_id,
+    cliente: cobro.cliente || '',
+    estado: 'en_cartera'
+  });
+  if (error) toast('Cobro guardado, pero falló el alta en cartera de cheques: ' + error.message, 'err', 6000);
+}
+
+// ── Selector de cheques para aplicar a un pago a proveedor ──
+function abrirSelectorChequesPago() {
+  const disponibles = _cheques.filter(c => c.estado === 'en_cartera');
+  _chequesSeleccionadosPago = [];
+
+  const modal = document.createElement('div');
+  modal.id = 'modal-sel-cheques';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:3000;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `<div style="background:var(--bg);border-radius:12px;padding:20px;width:460px;max-width:95vw;max-height:80vh;display:flex;flex-direction:column">
+    <div style="font-weight:600;font-size:15px;margin-bottom:10px">📋 Cheques disponibles en cartera</div>
+    <div style="overflow-y:auto;flex:1;border:1px solid var(--brd);border-radius:8px">
+      ${disponibles.length ? disponibles.map(c => `
+        <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--brd);cursor:pointer">
+          <input type="checkbox" class="sel-cheque-cb" value="${c.id}" data-monto="${c.monto}" onchange="_recalcularSelChequePago()">
+          <div style="flex:1">
+            <div style="font-weight:600">${esc(c.numero)} ${c.banco ? '· ' + esc(c.banco) : ''}</div>
+            <div style="font-size:11px;color:var(--txt2)">De: ${esc(c.cliente || '—')}</div>
+          </div>
+          <div style="font-weight:700">${fmt(c.monto)}</div>
+        </label>
+      `).join('') : '<div style="padding:20px;text-align:center;color:var(--txt2)">No hay cheques en cartera</div>'}
+    </div>
+    <div style="margin-top:10px;font-weight:700;text-align:right">Total seleccionado: <span id="sel-cheque-total">$ 0</span></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+      <button onclick="document.getElementById('pag-forma').value='efectivo';this.closest('#modal-sel-cheques').remove()" style="padding:8px 16px;background:var(--bg2);border:0.5px solid var(--brd);border-radius:6px;cursor:pointer">Cancelar</button>
+      <button onclick="_confirmarSelChequePago()" style="padding:8px 16px;background:var(--G);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">✓ Aplicar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+function _recalcularSelChequePago() {
+  const cbs = [...document.querySelectorAll('.sel-cheque-cb:checked')];
+  const total = cbs.reduce((a, cb) => a + parseFloat(cb.dataset.monto || 0), 0);
+  document.getElementById('sel-cheque-total').textContent = fmt(total);
+}
+
+function _confirmarSelChequePago() {
+  const cbs = [...document.querySelectorAll('.sel-cheque-cb:checked')];
+  if (!cbs.length) { alert('Seleccioná al menos un cheque'); return; }
+  _chequesSeleccionadosPago = cbs.map(cb => parseInt(cb.value));
+  const total = cbs.reduce((a, cb) => a + parseFloat(cb.dataset.monto || 0), 0);
+  document.getElementById('pag-importe').value = total;
+  document.getElementById('modal-sel-cheques')?.remove();
+}
+
+// Enganchar el selector al cambiar "Forma de pago" a "cheque".
+// Llamar initPagProvChequeListener() una vez desde initTesoreria().
+function initPagProvChequeListener() {
+  const sel = document.getElementById('pag-forma');
+  if (!sel || sel.dataset.chequeListenerOn) return;
+  sel.dataset.chequeListenerOn = '1';
+  sel.addEventListener('change', () => {
+    if (sel.value === 'cheque') abrirSelectorChequesPago();
+    else _chequesSeleccionadosPago = [];
+  });
+}
+
+// Vista simple de la cartera (opcional): listado con filtro por estado.
+function renderCarteraCheques(estadoFiltro) {
+  const cont = document.getElementById('cheques-tbody');
+  if (!cont) return;
+  const data = estadoFiltro ? _cheques.filter(c => c.estado === estadoFiltro) : _cheques;
+  cont.innerHTML = data.length ? data.map(c => `
+    <tr>
+      <td>${esc(c.numero)}</td>
+      <td>${esc(c.banco || '—')}</td>
+      <td style="font-weight:700">${fmt(c.monto)}</td>
+      <td>${esc(c.cliente || '—')}</td>
+      <td>${c.estado}</td>
+      <td>${esc(c.proveedor || '—')}</td>
+    </tr>`).join('') : '<tr><td colspan="6"><div class="empty">Sin cheques</div></td></tr>';
+}
+
+async function renderChequesCartera(){
+  if(!_cheques.length) await cargarCheques();
+  const estado = document.getElementById('chq-filtro-estado')?.value||'';
+  renderCarteraCheques(estado);
+}
 
 // ─── FIN GASTOS ───
 let _cobMovilCliId=null, _cobMovilForma=null;
@@ -3112,6 +3226,10 @@ async function guardarCobMovil(){
     nombre_transferencia:nombreTransf||null
   }).select().single();
   if(cobErr){alert('Error al guardar cobro: '+cobErr.message);reactivar();return;}
+  if(_cobMovilForma==='cheque'){
+    await crearChequeDesdeCobro(cobNuevo, importe, nroCheque, '');
+    await cargarCheques();
+  }
 
   // ⚠️ El saldo del cliente y remitos NO se toca aquí.
   // Se aplica recién cuando un admin valida el cobro (validarCobro).
@@ -3289,6 +3407,8 @@ async function cargarMovBanc(){
 async function initTesoreria(){
   if(!_pagosProv.length)await cargarPagosProv();
   if(!_movBanc.length)await cargarMovBanc();
+  if(!_cheques.length)await cargarCheques();
+  initPagProvChequeListener();
   // Poblar select de proveedores
   const sel=document.getElementById('pag-prov');
   if(sel&&_proveedores.length){
@@ -3381,11 +3501,19 @@ async function guardarPago(){
   const provNom=_proveedores.find(x=>x.id==prov)?.nombre||'?';
   const btn=document.querySelector('#tp-pagos .btn.P');
   if(btn){btn.textContent='Guardando...';btn.disabled=true;}
-  const {error}=await sb.from('pagos_proveedores').insert({
+  const {data:nuevoPago,error}=await sb.from('pagos_proveedores').insert({
     fecha,proveedor_id:parseInt(prov),proveedor:provNom,importe:imp,forma,concepto
-  });
+  }).select().single();
   if(btn){btn.textContent='✓ Registrar';btn.disabled=false;}
   if(error){alert('Error: '+error.message);return;}
+  if(forma==='cheque'&&_chequesSeleccionadosPago.length){
+    await sb.from('cheques')
+      .update({estado:'entregado_a_proveedor',proveedor_id:parseInt(prov),proveedor:provNom,
+               fecha_entrega:fecha,pago_proveedor_id:nuevoPago?.id||null})
+      .in('id',_chequesSeleccionadosPago);
+    _chequesSeleccionadosPago=[];
+    await cargarCheques();
+  }
   await cargarPagosProv();
   document.getElementById('pag-importe').value='';
   document.getElementById('pag-concepto').value='';
