@@ -176,7 +176,14 @@ function renderCargas(){
     }
     return true;
   }).sort((a,b)=>b.id-a.id);
-  if(!cargas.length){el.innerHTML='<div class="empty">Sin cargas'+(q||fd||fh||ven||est?' para los filtros seleccionados':'')+'</div>';return;}
+  if(!cargas.length){
+    const esSoloHoy = fd===hoyLocal() && fh===hoyLocal() && !q && !ven && !est;
+    el.innerHTML='<div class="empty">'+(esSoloHoy
+      ? 'Sin cargas para hoy.<br><span style="font-size:11px;color:var(--txt2)">Cambiá las fechas para ver otros días, o creá una con "+ Nueva carga".</span>'
+      : 'Sin cargas'+(q||fd||fh||ven||est?' para los filtros seleccionados':'')
+    )+'</div>';
+    return;
+  }
   el.innerHTML=cargas.map(cg=>{
     const peds=_pedidos.filter(p=>(cg.pedidos||[]).includes(p.id));
     const fechaFmt=cg.fecha?cg.fecha.split('-').reverse().join('/'):'—';

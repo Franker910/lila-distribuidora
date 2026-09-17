@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260917-02';
+const APP_VERSION = '20260917-03';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -925,6 +925,19 @@ function go(p,opts = {}) {
   if(p==='cuentas'){const _ccf=document.getElementById('cc-f');if(_ccf)_ccf.value='';const _ccq=document.getElementById('cc-q');if(_ccq)_ccq.value='';_ccPg=1;Promise.all([cargarRemitos(),cargarCobros(),cargarClientes()]).then(()=>{renderCC();});setTimeout(()=>{const q=document.getElementById('cc-q');if(q)q.focus();},100);}
   if(p==='clientes'){setTimeout(()=>{const q=document.getElementById('cli-q');if(q)q.focus();},100);}
   if(p==='productos'){setTimeout(()=>{const q=document.getElementById('pro-q');if(q)q.focus();},100);}
+  if(p==='carga'){
+    // Default: mostrar solo las cargas de HOY. Si el usuario ya tenía fechas
+    // puestas, se respetan (por si viene de ver una carga de otro día).
+    // Vacío en ambas = "todas las fechas", así que solo aplicamos default
+    // cuando las dos están vacías.
+    const fdEl=document.getElementById('car-fd');
+    const fhEl=document.getElementById('car-fh');
+    if(fdEl&&fhEl&&!fdEl.value&&!fhEl.value){
+      fdEl.value=hoyLocal();
+      fhEl.value=hoyLocal();
+    }
+    renderCargas();
+  }
   if(p==='remitos'){setTimeout(()=>{const q=document.getElementById('rem-q');if(q)q.focus();},100);}
   if(p==='maestro-proveedores'){setTimeout(()=>{const q=document.getElementById('prov-q');if(q)q.focus();},100);}
   if(p==='pedidos'){
