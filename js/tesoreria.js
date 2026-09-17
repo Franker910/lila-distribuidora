@@ -3414,7 +3414,11 @@ async function initTesoreria(){
   if(sel&&_proveedores.length){
     const cur=sel.value;
     sel.innerHTML='<option value="">Seleccionar...</option>'+
-      _proveedores.map(p=>`<option value="${p.id}">${p.cuit?p.cuit+' — ':''}${esc(p.nombre)}</option>`).join('');
+      _proveedores.map(p=>{
+        const cod=p.codigo||p.id||'';
+        const codTxt=cod?'<span style="font-weight:700;color:var(--PD)">'+esc(cod)+'</span> — ':'';
+        return `<option value="${p.id}">${esc(cod)}${cod?' — ':''}${esc(p.nombre)}</option>`;
+      }).join('');
     if(cur)sel.value=cur;
   }
   // Defaults de fecha
@@ -3445,7 +3449,7 @@ function tesoTab(tab){
     if(btn){btn.classList.toggle('P',t===tab);}
   });
   if(tab==='cobros')renderTesCobros();
-  else if(tab==='pagos')renderTesPagos();
+  else if(tab==='pagos'){ ocultarFormPago(); renderTesPagos(); }
   else if(tab==='caja'){cajaPeriodo(_cajaPer);}
   else if(tab==='concil')renderTesConcil();
 }
@@ -3515,10 +3519,32 @@ async function guardarPago(){
     await cargarCheques();
   }
   await cargarPagosProv();
-  document.getElementById('pag-importe').value='';
-  document.getElementById('pag-concepto').value='';
+  ocultarFormPago();
   renderTesPagos();
   toast('Pago registrado');
+}
+
+function mostrarFormPago(){
+  const form=document.getElementById('pag-form-wrap');
+  const btn=document.getElementById('pag-btn-nuevo');
+  if(form)form.style.display='block';
+  if(btn)btn.style.display='none';
+  // Defaults al abrir
+  const f=document.getElementById('pag-fecha');
+  if(f&&!f.value)f.value=hoyLocal();
+  document.getElementById('pag-prov')?.focus();
+}
+
+function ocultarFormPago(){
+  const form=document.getElementById('pag-form-wrap');
+  const btn=document.getElementById('pag-btn-nuevo');
+  if(form)form.style.display='none';
+  if(btn)btn.style.display='inline-flex';
+  // Limpiar campos y estado
+  ['pag-importe','pag-concepto'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const prov=document.getElementById('pag-prov');if(prov)prov.value='';
+  const forma=document.getElementById('pag-forma');if(forma)forma.value='efectivo';
+  _chequesSeleccionadosPago=[];
 }
 
 function renderTesPagos(){
