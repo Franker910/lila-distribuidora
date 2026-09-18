@@ -792,6 +792,16 @@ async function _proximoNumeroRendicion(){
 
 function _idsChk(sel){return [...document.querySelectorAll(sel+':checked')].map(c=>parseInt(c.dataset.cobid));}
 
+// Devuelve la hora (HH:MM) a partir del created_at del cobro, o '—' si no
+// hay dato. created_at es un timestamptz en UTC; toLocaleTimeString lo
+// convierte automáticamente a la zona local del dispositivo (Argentina).
+function _horaCobro(c){
+  if(!c || !c.created_at) return '—';
+  try {
+    return new Date(c.created_at).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  } catch { return '—'; }
+}
+
 function renderRendicion(){
   renderListaHojasRuta();
   if(_rendHojaSel)renderGrillaRendicion();
@@ -915,7 +925,8 @@ function renderGrillaRendicion(){
     const formas=[...new Set(cobs.map(c=>c.forma).filter(Boolean))].join('+');
     const estado=cobPrincipal?(cobPrincipal.estado_rendicion||'pendiente'):null;
     const numRend=cobPrincipal?.numero_rendicion||hr.numero_rendicion||null;
-    return {hr,cli,zona,importeRemito,cobs,cobPrincipal,importeCobrado,formas,estado,numRend};
+    const hora=_horaCobro(cobPrincipal);
+    return {hr,cli,zona,importeRemito,cobs,cobPrincipal,importeCobrado,formas,estado,numRend,hora};
   });
 
   // Filtros dinámicos de columna (zona/forma) según lo que hay en esta hoja
@@ -949,20 +960,27 @@ function renderGrillaRendicion(){
     const puedeAccion=esAdmin&&f.cobPrincipal&&f.estado==='pendiente';
     const acciones=puedeAccion?`<button class="btn sm" style="background:var(--G);color:#fff;font-size:10px" onclick="validarCobro(${f.cobPrincipal.id})">✅</button><button class="btn sm D" style="font-size:10px" onclick="rechazarCobro(${f.cobPrincipal.id})">❌</button>`:'';
     const chk=puedeAccion?`<input type="checkbox" class="rend-chk" data-cobid="${f.cobPrincipal.id}">`:'';
+    const tilde = f.cobs.length ? '<span style="color:var(--P);font-weight:700">✅ Sí</span>' : '<span style="color:var(--txt2)">—</span>';
     return `<tr>
       <td>${chk}</td>
       <td style="font-weight:500">${esc(nombre)}</td>
-      <td>${f.zona?`<span class="b bA">${esc(_zonas.find(z=>z.codigo===f.zona)?.descripcion||f.zona)}</span>`:'—'}</td>
-      <td>${esc(vendedor)}</td>
-      <td style="text-align:right">${f.importeRemito?fmt(f.importeRemito):'—'}</td>
-      <td style="text-align:center">${f.cobs.length?'✅ Sí':'—'}</td>
-      <td style="text-align:right;${f.importeCobrado?'font-weight:700;color:var(--P)':''}">${f.importeCobrado?fmt(f.importeCobrado):'—'}</td>
-      <td style="font-size:11px;color:var(--txt2)">${f.formas||'—'}</td>
-      <td style="text-align:center">${f.numRend||'—'}</td>
-      <td>${badge}</td>
+      <td style="text-align:center">${f.zona?`<span class="b bA">${esc(_zonas.find(z=>z.codigo===f.zona)?.descripcion||f.zona)}</span>`:'—'}</td>
+      <td style="text-align:right">
+        <div>${f.importeRemito?fmt(f.importeRemito):'—'}</div>
+        <div style="font-size:11px;margin-top:2px">${tilde}</div>
+      </td>
+      <td style="text-align:right;${f.importeCobrado?'font-weight:700;color:var(--P)':''}">
+        <div>${f.importeCobrado?fmt(f.importeCobrado):'—'}</div>
+        <div style="font-size:11px;color:var(--txt2);font-weight:400;margin-top:2px">${f.formas||'—'}</div>
+      </td>
+      <td style="text-align:center;font-variant-numeric:tabular-nums;color:var(--txt2)">${f.hora||'—'}</td>
+      <td style="text-align:center">
+        <div style="font-size:11px;color:var(--txt2)">${f.numRend?'#'+f.numRend:'—'}</div>
+        <div style="margin-top:2px">${badge}</div>
+      </td>
       <td style="white-space:nowrap">${acciones}</td>
     </tr>`;
-  }).join(''):'<tr><td colspan="11"><div class="empty">Sin resultados</div></td></tr>';
+  }).join(''):'<tr><td colspan="8"><div class="empty">Sin resultados</div></td></tr>';
 
   const totalClientes=filas.length;
   const cobrados=filas.filter(f=>f.cobs.length>0).length;
@@ -1068,7 +1086,7 @@ function renderSinHojaRuta(){
     const puede=esAdmin&&est==='pendiente';
     const chk=puede?`<input type="checkbox" class="rend-sh-chk" data-cobid="${c.id}">`:'';
     const acciones=puede?`<button class="btn sm" style="background:var(--G);color:#fff;font-size:10px" onclick="validarCobro(${c.id})">✅</button><button class="btn sm D" style="font-size:10px" onclick="rechazarCobro(${c.id})">❌</button>`:'';
-    return `<tr><td>${chk}</td><td style="font-weight:500">${esc(c.cliente||'?')}</td><td>${c.fecha}</td><td>${esc(c.vendedor||'—')}</td><td style="text-align:right;font-weight:700;color:var(--P)">${fmt(c.importe)}</td><td style="font-size:11px;color:var(--txt2)">${c.forma||'—'}</td><td>${c.numero_rendicion||'—'}</td><td>${badge}</td><td style="white-space:nowrap">${acciones}</td></tr>`;
+    return `<tr><td>${chk}</td><td style="font-weight:500">${esc(c.cliente||'?')}</td><td>${c.fecha}</td><td>${esc(c.vendedor||'—')}</td><td style="text-align:right;font-weight:700;color:var(--P)">${fmt(c.importe)}</td><td style="font-size:11px;color:var(--txt2)">${c.forma||'—'}</td><td style="text-align:center;font-variant-numeric:tabular-nums;color:var(--txt2)">${_horaCobro(c)}</td><td>${c.numero_rendicion||'—'}</td><td>${badge}</td><td style="white-space:nowrap">${acciones}</td></tr>`;
   }).join('');
   el.innerHTML=`
     <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
@@ -1079,7 +1097,7 @@ function renderSinHojaRuta(){
       <button class="btn sm A" onclick="rendGenerarHojaRutaFaltante()" title="Crea la hoja de ruta que falta para estos cobros (vinieron de una carga sin hoja armada a mano)">🔗 Generar hoja de ruta</button>
     </div>
     <div class="tbl-wrap"><table class="tbl" style="font-size:12px">
-      <thead><tr><th></th><th>Cliente</th><th>Fecha</th><th>Vendedor</th><th style="text-align:right">Importe</th><th>Forma</th><th>Nº Rend.</th><th>Estado</th><th></th></tr></thead>
+      <thead><tr><th></th><th>Cliente</th><th>Fecha</th><th>Vendedor</th><th style="text-align:right">Importe</th><th>Forma</th><th style="text-align:center">Hora</th><th>Nº Rend.</th><th>Estado</th><th></th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
 }
