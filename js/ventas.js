@@ -1123,7 +1123,6 @@ async function emitirRemitoRapido(){
     fecha:document.getElementById('rr-fecha').value||hoyLocal(),
     items:_rrItems,total:tot,cobrado:false,saldo_pendiente:tot,
     observaciones:document.getElementById('rr-obs').value,
-    lugar_entrega:document.getElementById('rr-lugar')?.value||'',
     direccion:c?.direccion||c?.domicilio||'',
     telefono:c?.telefono||'',
     carga_id:_facturandoCargaId||(cargaNumVal?(parseInt(cargaNumVal)||null):null),

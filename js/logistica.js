@@ -938,9 +938,9 @@ function imprimirRemito(){
     sub+=base; dtoT+=dtoA; tot+=neto;
     const esKg=(it.un||'').toLowerCase()==='kg';
     return '<tr>'
-      + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:11px;white-space:nowrap">'+fmtN(it.cant,2)+'</td>'  // Cambio aquí
-      + '<td style="padding:5px 6px;border:1px solid #ccc;font-size:11px">'+esc(it.nom)+'</td>' 
       + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:10px;color:#666">'+(prod.codigo||'—')+'</td>'
+      + '<td style="padding:5px 6px;border:1px solid #ccc;font-size:11px">'+esc(it.nom)+'</td>' 
+      + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:11px;white-space:nowrap">'+fmtN(it.cant,2)+'</td>'
       + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:11px">'+(esKg?fmtN(it.cant,2)+' kg':'—')+'</td>'  // Cambio aquí
       + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:right;font-size:11px">'+fmt(it.precio)+'</td>'
       + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:11px">'+((it.dto||0)||'—')+(it.dto?'%':'')+'</td>'
@@ -972,12 +972,12 @@ function imprimirRemito(){
       </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:8px;table-layout:fixed">
         <colgroup>
-          <col style="width:58px"><col><col style="width:46px"><col style="width:44px"><col style="width:70px"><col style="width:42px"><col style="width:74px">
+          <col style="width:46px"><col><col style="width:58px"><col style="width:44px"><col style="width:70px"><col style="width:42px"><col style="width:74px">
         </colgroup>
         <thead><tr style="background:#e8f5ef">
-          <th style="padding:5px 6px;border:1px solid #b2d8c4;font-size:10px;text-align:center">Cant.</th>
-          <th style="padding:5px 6px;border:1px solid #b2d8c4;font-size:10px;text-align:left">Producto</th>
           <th style="padding:5px 6px;border:1px solid #b2d8c4;font-size:10px;text-align:center">Código</th>
+          <th style="padding:5px 6px;border:1px solid #b2d8c4;font-size:10px;text-align:left">Producto</th>
+          <th style="padding:5px 6px;border:1px solid #b2d8c4;font-size:10px;text-align:center">Cant.</th>
           <th style="padding:5px 6px;border:1px solid #b2d8c4;font-size:10px;text-align:center">Kilos</th>
           <th style="padding:5px 6px;border:1px solid #b2d8c4;font-size:10px;text-align:right">P.Unit</th>
           <th style="padding:5px 6px;border:1px solid #b2d8c4;font-size:10px;text-align:center">Dto %</th>

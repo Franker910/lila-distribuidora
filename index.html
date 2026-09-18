@@ -2684,17 +2684,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <div id="rr-cli-info" style="display:none;background:var(--bg2);border-radius:8px;padding:8px 11px;font-size:12px;color:var(--txt2);margin-top:8px"></div>
             <div id="rr-pedido-chip" style="display:none;margin-top:8px"></div>
             <div id="rr-carga-num-wrap" style="margin-top:8px">
-              <textarea id="rr-carga-num" placeholder="🚚 Carga Nº (opcional, vincula este remito a una carga)" style="flex:1;font-size:13px;width:100%;height:38px;padding:6px 10px;border:1px solid var(--brd);border-radius:8px;font-family:inherit;resize:vertical;"></textarea>
+              <label style="font-size:10px;color:var(--txt2);font-weight:600;display:block;margin-bottom:2px">🚚 Carga Nº (opcional, vincula este remito a una carga)</label>
+              <input id="rr-carga-num" type="number" inputmode="numeric" min="0" step="1" placeholder="Ej: 30" style="width:120px;padding:6px 10px;border:1px solid var(--brd);border-radius:8px;font-size:13px;font-family:inherit;">
             </div>
-            <div style="display:flex;gap:8px;margin-top:8px">
-              <div style="flex:1">
-                <label style="font-size:10px;color:var(--txt2);font-weight:600;display:block;margin-bottom:2px">📍 Lugar de entrega (si difiere)</label>
-                <textarea id="rr-lugar" placeholder="Ej: Puerta trasera, llamar antes de llegar..." style="width:100%;height:50px;padding:6px 10px;border:1px solid var(--brd);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
-              </div>
-              <div style="flex:1">
-                <label style="font-size:10px;color:var(--txt2);font-weight:600;display:block;margin-bottom:2px">📝 Observaciones</label>
-                <textarea id="rr-obs" placeholder="Ej: Facturar a nombre de X, dejar factura..." style="width:100%;height:50px;padding:6px 10px;border:1px solid var(--brd);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
-              </div>
+            <div style="margin-top:8px">
+              <label style="font-size:10px;color:var(--txt2);font-weight:600;display:block;margin-bottom:2px">📝 Observaciones</label>
+              <textarea id="rr-obs" placeholder="Ej: Facturar a nombre de X, dejar factura, dejar en puerta trasera..." style="width:100%;height:56px;padding:6px 10px;border:1px solid var(--brd);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
             </div>
           </div>
 
@@ -5002,13 +4997,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260918-03"></script>
-<script src="js/maestros.js?v=20260918-03"></script>
-<script src="js/ventas.js?v=20260918-03"></script>
-<script src="js/tesoreria.js?v=20260918-03"></script>
-<script src="js/contabilidad.js?v=20260918-03"></script>
-<script src="js/informes.js?v=20260918-03"></script>
-<script src="js/logistica.js?v=20260918-03"></script>
+<script src="js/app.js?v=20260918-04"></script>
+<script src="js/maestros.js?v=20260918-04"></script>
+<script src="js/ventas.js?v=20260918-04"></script>
+<script src="js/tesoreria.js?v=20260918-04"></script>
+<script src="js/contabilidad.js?v=20260918-04"></script>
+<script src="js/informes.js?v=20260918-04"></script>
+<script src="js/logistica.js?v=20260918-04"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
