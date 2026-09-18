@@ -2479,6 +2479,11 @@ function verCobranzaHoy(){
   }
 }
 
+// Actualización en vivo: al volver a llamar esto, vuelve a pedir los cobros
+// a Supabase (por si Alexis/Franco cargó uno nuevo desde el celu) y repinta
+// sin recargar la página ni pedir login de nuevo.
+registrarRefresco('cobranza-hoy', async()=>{ await cargarCobros(); verCobranzaHoy(); });
+
 function resetYNuevoPedido(){
   // Eliminar overlay de confirmación si existe
   const overlay = document.getElementById('pm-confirmacion-overlay');

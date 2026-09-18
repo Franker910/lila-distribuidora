@@ -1593,6 +1593,13 @@ async function initRendicion(){
   renderRendicion();
 }
 
+// Actualización en vivo: vuelve a pedir cobros + hojas de ruta + gastos y
+// repinta la grilla que esté abierta, sin recargar la página ni re-loguear.
+registrarRefresco('rendicion', async()=>{
+  await Promise.all([cargarCobros(),cargarHojaRutaTodas(),cargarGastosReparto()]);
+  renderRendicion();
+});
+
 function calcEfectivo(){
   const billetes=[20000,10000,2000,1000,500,200,100,50,20,10];
   let total=0;

@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260917-04';
+const APP_VERSION = '20260918-01';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -813,6 +813,78 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('#hr-cli-q')&&!e.target.closest('#hr-cli-drop'))hide('hr-cli-drop');
 });
 
+// ─── ACTUALIZACIÓN EN VIVO ───────────────────────────────────────────────
+// Mecanismo genérico y reutilizable: cualquier pantalla puede "suscribirse"
+// con registrarRefresco('nombre-panel', asyncFn) para que aparezca el botón
+// 🔄 arriba y se auto-actualice sola cada _REFRESCO_SEGUNDOS mientras el
+// usuario esté parado en esa pantalla — sin recargar la página (location.reload)
+// y por lo tanto sin perder la sesión ni tener que volver a loguearse.
+// asyncFn debe: 1) volver a pedir los datos a Supabase, 2) llamar al render
+// correspondiente. No toca inputs de formularios en edición.
+const _REFRESCO_HANDLERS = {};
+const _REFRESCO_SEGUNDOS = 25;
+let _refrescoAutoTimer = null;
+let _refrescoEnCurso = false;
+
+function registrarRefresco(panel, fn){ _REFRESCO_HANDLERS[panel] = fn; }
+
+async function ejecutarRefresco(manual){
+  const panelActivo = document.querySelector('.panel.on');
+  if(!panelActivo) return;
+  const p = panelActivo.id.replace('p-','');
+  const fn = _REFRESCO_HANDLERS[p];
+  if(!fn || _refrescoEnCurso) return;
+  _refrescoEnCurso = true;
+  const btn = document.getElementById('btn-refresco');
+  if(btn) btn.classList.add('girando');
+  try{
+    await fn();
+    const marca = document.getElementById('refresco-marca');
+    if(marca) marca.textContent = 'Act. ' + new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }catch(e){
+    console.error('[refresco]', e.message);
+    if(manual) toast('No se pudo actualizar','err');
+  } finally {
+    _refrescoEnCurso = false;
+    if(btn) btn.classList.remove('girando');
+  }
+}
+
+function iniciarAutoRefresco(){
+  detenerAutoRefresco();
+  _refrescoAutoTimer = setInterval(()=>ejecutarRefresco(false), _REFRESCO_SEGUNDOS*1000);
+}
+function detenerAutoRefresco(){
+  if(_refrescoAutoTimer){clearInterval(_refrescoAutoTimer);_refrescoAutoTimer=null;}
+}
+
+// Pausar el auto-refresco si el usuario cambia de pestaña/app (ahorra datos
+// en el celu) y disparar un refresco al toque cuando vuelve.
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){detenerAutoRefresco();}
+  else{
+    const panelActivo=document.querySelector('.panel.on');
+    if(panelActivo && _REFRESCO_HANDLERS[panelActivo.id.replace('p-','')]){
+      ejecutarRefresco(false);
+      iniciarAutoRefresco();
+    }
+  }
+});
+
+function actualizarVisibilidadBotonRefresco(p){
+  const wrap = document.getElementById('refresco-wrap');
+  const marca = document.getElementById('refresco-marca');
+  if(!wrap) return;
+  if(_REFRESCO_HANDLERS[p]){
+    wrap.style.display='flex';
+    if(marca)marca.textContent='';
+    iniciarAutoRefresco();
+  } else {
+    wrap.style.display='none';
+    detenerAutoRefresco();
+  }
+}
+
 function go(p,opts = {}) {
   // Hoja de ruta en móvil: solo para repartidores. Los vendedores no la ven
   // (ni por botón ni por URL vieja / go('hoja-ruta') colado desde algún lado).
@@ -973,6 +1045,7 @@ function go(p,opts = {}) {
     'cobranza':'tesoreria','rendicion':'tesoreria','tesoreria':'tesoreria','cheques':'tesoreria','contabilidad':'tesoreria',
     'informes':'informes','comisiones':'informes','contrib-zona':'informes','gastos-fijos':'informes','importar-historico':'informes'
   };
+  actualizarVisibilidadBotonRefresco(p);
   const g=grupoMap[p];
   if(g){const sg=document.getElementById('sg-'+g);if(sg)sg.classList.add('active');}
 
