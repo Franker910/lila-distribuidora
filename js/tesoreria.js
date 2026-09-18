@@ -800,6 +800,7 @@ function renderRendicion(){
 
 function renderListaHojasRuta(){
   const el=document.getElementById('rend-hr-lista');if(!el)return;
+  const wrap=document.getElementById('rend-grilla-wrap'); // referencia viva (aunque la saque el innerHTML)
   const q=(document.getElementById('rend-hr-q')?.value||'').toLowerCase();
   const num=(document.getElementById('rend-hr-num')?.value||'').trim();
   const desde=document.getElementById('rend-hr-desde')?.value||'';
@@ -816,7 +817,11 @@ function renderListaHojasRuta(){
   if(desde)lista=lista.filter(g=>g.fecha>=desde);
   if(hasta)lista=lista.filter(g=>g.fecha<=hasta);
   if(num)lista=lista.filter(g=>g.filas.some(f=>String(f.numero_rendicion||'').includes(num)));
-  if(!lista.length){el.innerHTML='<div class="empty">No hay hojas de ruta cargadas.</div>';return;}
+  if(!lista.length){
+    el.innerHTML='<div class="empty">No hay hojas de ruta cargadas.</div>';
+    if(wrap){ el.appendChild(wrap); wrap.style.display='none'; }
+    return;
+  }
   el.innerHTML = lista.map(g => {
     const cerrada = g.filas.length > 0 && g.filas.every(f => f.cerrada);
     const numRend = g.filas.find(f => f.numero_rendicion)?.numero_rendicion;
@@ -824,14 +829,12 @@ function renderListaHojasRuta(){
     const fechaFmt = g.fecha.split('-').reverse().join('/');
     const sel = _rendHojaSel && _rendHojaSel.fecha === g.fecha && _rendHojaSel.vendedor === g.vendedor;
     const vendJsSafe = g.vendedor.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    
-    //Si está seleccionada, mostrar un indicador
+    const rk = encodeURIComponent(g.fecha+'|'+g.vendedor);
     const toggleIcon = sel ? '▲' : '▼';
-    
-    return `<div onclick="toggleHojaRendicion('${g.fecha}','${vendJsSafe}')"
+    return `<div onclick="toggleHojaRendicion('${g.fecha}','${vendJsSafe}')" data-rk="${rk}"
       style="cursor:pointer;padding:10px 14px;border-radius:8px;margin-bottom:6px;border:1.5px solid ${sel?'var(--P)':'var(--brd)'};background:${sel?'var(--PL)':'var(--bg)'};display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <div>
-        <b>${esc(g.vendedor)}</b> 
+        <b>${esc(g.vendedor)}</b>
         <span style="color:var(--txt2);font-size:12px">— ${fechaFmt} · ${g.filas.length} cliente${g.filas.length>1?'s':''}</span>
         ${cerradoPor&&cerradoPor.toLowerCase()!==g.vendedor.toLowerCase()?`<span style="color:var(--txt2);font-size:11px"> · cerrada por ${cerradoPor}</span>`:''}
       </div>
@@ -842,13 +845,29 @@ function renderListaHojasRuta(){
       </div>
     </div>`;
   }).join('');
+
+  // Reinsertar la grilla debajo de la tarjeta seleccionada (o al final, oculta).
+  if(wrap){
+    if(_rendHojaSel){
+      const rk = encodeURIComponent(_rendHojaSel.fecha+'|'+_rendHojaSel.vendedor);
+      const tarjeta = el.querySelector(`[data-rk="${rk}"]`);
+      if(tarjeta){
+        tarjeta.insertAdjacentElement('afterend', wrap);
+        wrap.style.display='block';
+      } else {
+        el.appendChild(wrap);
+        wrap.style.display='none';
+      }
+    } else {
+      el.appendChild(wrap);
+      wrap.style.display='none';
+    }
+  }
 }
 
 function seleccionarHojaRendicion(fecha,vendedor){
   _rendHojaSel={fecha,vendedor};
-  renderListaHojasRuta();
-  const wrap=document.getElementById('rend-grilla-wrap');
-  if(wrap)wrap.style.display='block';
+  renderListaHojasRuta();  // ya se encarga de mover la grilla al lugar correcto
   renderGrillaRendicion();
 }
 
@@ -1032,10 +1051,15 @@ async function rendAsignarNumeroAutoSinHoja(){
 
 function renderSinHojaRuta(){
   const el=document.getElementById('rend-sin-hoja');if(!el)return;
+  const countEl=document.getElementById('rend-sin-hoja-count');
   const mostrarTodos=document.getElementById('rend-mostrar-todos')?.checked;
   const hojaKeys=new Set(_hojaRutaTodas.map(r=>String(r.cliente_id)+'|'+r.fecha));
   let cobrosSinHoja=_cobros.filter(c=>!hojaKeys.has(String(c.cliente_id)+'|'+c.fecha));
   if(!mostrarTodos)cobrosSinHoja=cobrosSinHoja.filter(c=>(c.estado_rendicion||'pendiente')==='pendiente');
+  if(countEl){
+    if(cobrosSinHoja.length){ countEl.textContent=cobrosSinHoja.length; countEl.style.display=''; }
+    else { countEl.style.display='none'; }
+  }
   if(!cobrosSinHoja.length){el.innerHTML='<div class="empty">No hay cobros sin hoja de ruta.</div>';return;}
   const esAdmin=usuarioActual?.esAdmin||usuarioActual?.rol_original==='admin';
   const rows=cobrosSinHoja.map(c=>{
@@ -1058,6 +1082,15 @@ function renderSinHojaRuta(){
       <thead><tr><th></th><th>Cliente</th><th>Fecha</th><th>Vendedor</th><th style="text-align:right">Importe</th><th>Forma</th><th>Nº Rend.</th><th>Estado</th><th></th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
+}
+
+function toggleSinHojaRuta(){
+  const body=document.getElementById('rend-sin-hoja');
+  const chev=document.getElementById('rend-sin-hoja-chevron');
+  if(!body)return;
+  const abrir = body.style.display === 'none';
+  body.style.display = abrir ? 'block' : 'none';
+  if(chev) chev.style.transform = abrir ? 'rotate(90deg)' : 'rotate(0deg)';
 }
 
 // Backfill: crea la hoja_ruta que falta para los cobros ya guardados que
@@ -1585,10 +1618,14 @@ function histCliente(id){
 }
 
 async function initRendicion(){
-  // Por defecto, últimos 7 días — si no, se acumula todo el historial de
-  // hojas de ruta (muchas de una sola parada, abiertas y ya sin uso).
+  // Por defecto, solo las rendiciones de HOY. Si el usuario tenía un rango
+  // de fechas puesto, se respeta (por si viene de estar mirando otro día).
   const desdeEl=document.getElementById('rend-hr-desde');
-  if(desdeEl&&!desdeEl.value)desdeEl.value=hoyLocalOffset(-7);
+  const hastaEl=document.getElementById('rend-hr-hasta');
+  if(desdeEl&&hastaEl&&!desdeEl.value&&!hastaEl.value){
+    desdeEl.value=hoyLocal();
+    hastaEl.value=hoyLocal();
+  }
   await Promise.all([cargarHojaRutaTodas(),cargarGastosReparto()]);
   renderRendicion();
 }
@@ -3778,8 +3815,10 @@ function limpiarFiltrosCC() {
 function limpiarFiltrosRendicion() {
   document.getElementById('rend-hr-q').value = '';
   document.getElementById('rend-hr-num').value = '';
-  document.getElementById('rend-hr-desde').value = '';
-  document.getElementById('rend-hr-hasta').value = '';
+  // Reset al estado por defecto: solo hoy. Para ver más días, se cambia
+  // la fecha a mano.
+  document.getElementById('rend-hr-desde').value = hoyLocal();
+  document.getElementById('rend-hr-hasta').value = hoyLocal();
   renderListaHojasRuta();
 }
 
