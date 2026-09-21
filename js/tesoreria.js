@@ -1097,7 +1097,16 @@ function renderSinHojaRuta(){
   const mostrarTodos=document.getElementById('rend-mostrar-todos')?.checked;
   const hojaKeys=new Set(_hojaRutaTodas.map(r=>String(r.cliente_id)+'|'+r.fecha));
   let cobrosSinHoja=_cobros.filter(c=>!hojaKeys.has(String(c.cliente_id)+'|'+c.fecha));
-  if(!mostrarTodos)cobrosSinHoja=cobrosSinHoja.filter(c=>(c.estado_rendicion||'pendiente')==='pendiente');
+  if(!mostrarTodos){
+    // Por defecto solo mostramos los "realmente huérfanos": pendientes y
+    // sin número de rendición. Cuando se les asigna número desde el botón
+    // "Asignar número automático", dejan de ser huérfanos y salen de esta
+    // lista (aunque sigan pendientes de aprobación).
+    cobrosSinHoja=cobrosSinHoja.filter(c=>
+      (c.estado_rendicion||'pendiente')==='pendiente'
+      && !c.numero_rendicion
+    );
+  }
   if(countEl){
     if(cobrosSinHoja.length){ countEl.textContent=cobrosSinHoja.length; countEl.style.display=''; }
     else { countEl.style.display='none'; }
@@ -2589,7 +2598,13 @@ function limpiarCobMovil(){
 //     cualquier cosa que le aparezca, incluso fuera de su vendedor).
 //   · Vendedor / admin en rol vendedor → solo los clientes asignados a él.
 function _cobmCliPool(){
-  if(usuarioActual?.rol === 'repartidor'){
+  // Admins ven todos los clientes aunque no estén asignados a su
+  // "vendedor". Es el caso de Alexis y Mauricio: entran en rol vendedor
+  // desde el celu, pero necesitan poder cobrarle a cualquier cliente.
+  const esAdmin = usuarioActual?.esAdmin
+    || usuarioActual?.rol === 'admin'
+    || usuarioActual?.rol_original === 'admin';
+  if(esAdmin || usuarioActual?.rol === 'repartidor'){
     return _clientes.filter(c => c.activo !== false);
   }
   const v = usuarioActual?.vendedor || usuarioActual?.nombre || '';

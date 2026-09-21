@@ -1,7 +1,7 @@
 # ERP Distribuidora Lila — Documentación técnica
 
 **Propósito de este documento:** que cualquier programador (o asistente de IA) pueda entender, mantener y continuar este sistema sin ayuda de quien lo hizo.  
-**Última actualización:** 25/07/2026 — versión app 20260725-01.
+**Última actualización:** 21/09/2026 — versión app 20260921-06.
 
 ---
 
