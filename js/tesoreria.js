@@ -3622,6 +3622,7 @@ async function initTesoreria(){
 
 function tesoTab(tab){
   _tesoTabActual=tab;
+  setBreadcrumbSub('teso', tab);
   ['cobros','pagos','caja','concil'].forEach(t=>{
     const tp=document.getElementById('tp-'+t);
     const btn=document.getElementById('tt-'+t);

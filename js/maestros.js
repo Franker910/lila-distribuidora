@@ -140,12 +140,30 @@ function renderClientes(){
   const fActivo = document.getElementById('cli-f-activo')?.value || 'activos';
   
   let data=_clientes.filter(c=> {
-    // Filtro de búsqueda general
-    const okQ = (!q||(c.nombre||'').toLowerCase().includes(q)||
-      (c.telefono||'').includes(q)||
-      (c.localidad||'').toLowerCase().includes(q)||
-      String(c.codigo||'').includes(q)||
-      (c.cuit||'').includes(q));
+    // Filtro de búsqueda general con 2 modos:
+    //  · Número puro corto (≤6 dígitos) → código/id exactos. Sin matchear
+    //    teléfono/CUIT para evitar que "10" traiga el 102 o el 1100.
+    //  · Número puro largo (>6 dígitos) → también CUIT y teléfono (contiene,
+    //    sin guiones).
+    //  · Con letras o mixto → nombre, localidad, teléfono, CUIT.
+    const esNumeroPuro = /^\d+$/.test(q);
+    let okQ;
+    if(!q) okQ = true;
+    else if(esNumeroPuro && q.length <= 6){
+      okQ = String(c.codigo||'').trim()===q || String(c.id||'')===q;
+    } else if(esNumeroPuro){
+      const cuitNorm = String(c.cuit||'').replace(/\D/g,'');
+      const telNorm  = String(c.telefono||'').replace(/\D/g,'');
+      okQ = String(c.codigo||'').trim()===q
+         || String(c.id||'')===q
+         || cuitNorm.includes(q)
+         || telNorm.includes(q);
+    } else {
+      okQ = (c.nombre||'').toLowerCase().includes(q)
+         || (c.localidad||'').toLowerCase().includes(q)
+         || (c.telefono||'').toLowerCase().includes(q)
+         || (c.cuit||'').toLowerCase().includes(q);
+    }
     
     // Filtros de columna
     const okCols = matchFiltroCol(c.nombre,fNombre) &&
@@ -837,6 +855,7 @@ function _lpPoblarSelects(){
 }
 
 function lpTab(tab){
+  setBreadcrumbSub('lp', tab);
   ['listas','precios','clientes','sim'].forEach(t=>{
     const sec=document.getElementById('lp-sec-'+t);
     const btn=document.getElementById('lp-tab-'+t);
@@ -1137,8 +1156,29 @@ function renderProveedores(){
   const fCont=document.getElementById('prov-f-cont')?.value||'';
   const fPlazo=document.getElementById('prov-f-plazo')?.value||'';
   const fSaldo=document.getElementById('prov-f-saldo')?.value||'';
+  // Misma lógica que en Clientes (ver comentario arriba):
+  //  · número puro ≤6 dígitos → código/id exactos.
+  //  · número puro >6 dígitos  → también CUIT y teléfono (contiene).
+  //  · con letras               → nombre, contacto, CUIT.
+  const esNumeroPuro = /^\d+$/.test(q);
   let data = _proveedores
-    .filter(p => !q || (p.nombre||'').toLowerCase().includes(q)||(p.cuit||'').includes(q)||(p.codigo||'').toString().includes(q)||(p.contacto||'').toLowerCase().includes(q))
+    .filter(p => {
+      if(!q) return true;
+      if(esNumeroPuro && q.length <= 6){
+        return String(p.codigo||'').trim()===q || String(p.id||'')===q;
+      }
+      if(esNumeroPuro){
+        const cuitNorm = String(p.cuit||'').replace(/\D/g,'');
+        const telNorm  = String(p.telefono||'').replace(/\D/g,'');
+        return String(p.codigo||'').trim()===q
+            || String(p.id||'')===q
+            || cuitNorm.includes(q)
+            || telNorm.includes(q);
+      }
+      return (p.nombre||'').toLowerCase().includes(q)
+          || (p.contacto||'').toLowerCase().includes(q)
+          || (p.cuit||'').toLowerCase().includes(q);
+    })
     .filter(p => matchFiltroCol(p.nombre,fNom)&&matchFiltroCol(p.cuit,fCuit)&&matchFiltroCol(p.contacto,fCont)&&matchFiltroCol(p.plazo_pago_dias,fPlazo))
     .map(p=>({...p,_saldo:_saldoProveedor(p.id)}))
     .filter(p=>matchFiltroCol(p._saldo,fSaldo));
@@ -1162,7 +1202,10 @@ function renderProveedores(){
   const tbody = document.getElementById('prov-tbody');
   if(!tbody) return;
   tbody.innerHTML = data.length ? data.map(p => `<tr>
-    <td style="font-weight:600">${esc(p.nombre)}</td>
+    <td style="font-weight:600">
+      <span style="font-size:13px;color:var(--txt2);margin-right:4px">${esc(p.codigo||p.id||'')}</span>
+      ${esc(p.nombre)}
+    </td>
     <td style="color:var(--txt2)">${p.cuit||'—'}</td>
     <td>${esc(p.contacto||'—')}</td>
     <td>${esc(p.telefono||'—')}</td>

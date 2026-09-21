@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260921-04';
+const APP_VERSION = '20260921-05';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -885,6 +885,157 @@ function actualizarVisibilidadBotonRefresco(p){
   }
 }
 
+// ─── BREADCRUMB (migas de pan) ───────────────────────────────────────────
+// Muestra la ruta de navegación arriba en el topbar (solo vista PC), tipo
+// "Maestros › Clientes" o "Informes › Centro de informes › Mayores".
+// Los emojis van envueltos en <span class="bc-emoji"> para que el CSS
+// los vuelva blancos (filter:brightness(0) invert(1)) y no hagan ruido.
+const _BC_GRUPOS = {
+  maestros:     {icon:'🗂', label:'Maestros'},
+  ventas:       {icon:'🛒', label:'Ventas'},
+  logistica:    {icon:'🗺', label:'Logística'},
+  compras:      {icon:'🛍', label:'Compras'},
+  tesoreria:    {icon:'💰', label:'Tesorería'},
+  contabilidad: {icon:'📒', label:'Contabilidad'},
+  informes:     {icon:'📈', label:'Informes'},
+  config:       {icon:'⚙️', label:'Configuración'}
+};
+const _BC_PANELES = {
+  'dash':                {icon:'📊', label:'Dashboard'},
+  'vendedor-home':       {icon:'🏠', label:'Inicio'},
+  'clientes':            {icon:'👥', label:'Clientes'},
+  'maestro-proveedores': {icon:'🏭', label:'Proveedores'},
+  'listas-precios':      {icon:'💲', label:'Listas de precios'},
+  'zonas':               {icon:'🗺', label:'Zonas'},
+  'productos':           {icon:'📦', label:'Productos'},
+  'stock':               {icon:'📊', label:'Stock'},
+  'pedidos':             {icon:'🛒', label:'Pedidos'},
+  'pedido-movil':        {icon:'📱', label:'Pedido móvil'},
+  'carga':               {icon:'🚚', label:'Cargas'},
+  'remitos':             {icon:'📄', label:'Remitos'},
+  'remito-rapido':       {icon:'⚡', label:'Remito rápido'},
+  'nc':                  {icon:'📋', label:'Notas de crédito'},
+  'cuentas':             {icon:'⚖️', label:'Cuentas corrientes'},
+  'hoja-ruta':           {icon:'🗺', label:'Hoja de ruta'},
+  'compras':             {icon:'🧾', label:'Comprobantes'},
+  'cobranza':            {icon:'💰', label:'Cobranza'},
+  'rendicion':           {icon:'💼', label:'Rendición'},
+  'tesoreria':           {icon:'🏦', label:'Caja y bancos'},
+  'cheques':             {icon:'📋', label:'Cheques en cartera'},
+  'contabilidad':        {icon:'📒', label:'Contabilidad'},
+  'informes':            {icon:'📈', label:'Centro de informes'},
+  'comisiones':          {icon:'👤', label:'Comisiones por persona'},
+  'contrib-zona':        {icon:'📊', label:'Contrib. Marginal'},
+  'saldos-zona':         {icon:'🗺️', label:'Saldos por Zona'},
+  'gastos-fijos':        {icon:'📋', label:'Gastos Fijos'},
+  'importar-historico':  {icon:'📥', label:'Importar histórico FoxPro'}
+};
+const _BC_PANEL_A_GRUPO = {
+  'clientes':'maestros','cuentas':'maestros','productos':'maestros','stock':'maestros',
+  'maestro-proveedores':'maestros','listas-precios':'maestros','zonas':'maestros',
+  'pedidos':'ventas','pedido-movil':'ventas','carga':'ventas','remitos':'ventas',
+  'remito-rapido':'ventas','nc':'ventas','nc-movil':'ventas',
+  'hoja-ruta':'logistica',
+  'compras':'compras',
+  'cobranza':'tesoreria','rendicion':'tesoreria','tesoreria':'tesoreria',
+  'cheques':'tesoreria','contabilidad':'contabilidad',
+  'informes':'informes','comisiones':'informes','contrib-zona':'informes',
+  'saldos-zona':'informes','gastos-fijos':'informes','importar-historico':'informes'
+};
+// Sub-niveles: cuando se cambia de tab DENTRO de un panel.
+// Clave = "prefix:clave-tab", valor = {icon,label}
+const _BC_SUB = {
+  // Informes
+  'inf:ventas':             {icon:'📅', label:'Ventas'},
+  'inf:descuentos':         {icon:'🏷️', label:'Descuentos en remitos'},
+  'inf:descuentos-cliente': {icon:'📉', label:'Descuentos contables por cliente'},
+  'inf:clientes':           {icon:'👥', label:'Clientes'},
+  'inf:productos':          {icon:'📦', label:'Productos'},
+  'inf:comisiones':         {icon:'💰', label:'Comisiones'},
+  'inf:comisiones2':        {icon:'⚙️', label:'Configuración de comisiones'},
+  'inf:gerencial':          {icon:'📊', label:'Gerencial'},
+  'inf:cmg-prod':           {icon:'📦', label:'CMG Productos'},
+  'inf:cmg-cli':            {icon:'👥', label:'CMG Clientes'},
+  'inf:financiamiento':     {icon:'🏭', label:'Financiamiento'},
+  'inf:precios':            {icon:'💰', label:'Análisis de precios'},
+  'inf:financiero':         {icon:'📊', label:'Mayores'},
+  'inf:plazos':             {icon:'📋', label:'Plazos'},
+  'inf:calce':              {icon:'📊', label:'Calce de plazos'},
+  'inf:historico':          {icon:'📈', label:'Evolución histórica'},
+  // Contabilidad
+  'cont:gastos':     {icon:'📝', label:'Gastos'},
+  'cont:asientos':   {icon:'📖', label:'Asientos'},
+  'cont:mayor':      {icon:'📊', label:'Mayor'},
+  'cont:resultado':  {icon:'💹', label:'Resultado'},
+  'cont:mensual':    {icon:'📅', label:'Mensual'},
+  // Tesorería
+  'teso:cobros': {icon:'📋', label:'Cobros'},
+  'teso:pagos':  {icon:'💸', label:'Pagos a proveedores'},
+  'teso:caja':   {icon:'🏧', label:'Saldo de caja'},
+  'teso:concil': {icon:'🔍', label:'Conciliación'},
+  // Listas de precios
+  'lp:listas':   {icon:'📋', label:'Listas'},
+  'lp:precios':  {icon:'💲', label:'Precios por lista'},
+  'lp:clientes': {icon:'👥', label:'Clientes'},
+  'lp:sim':      {icon:'🧮', label:'Simulador'}
+};
+// Estado del sub-nivel actual: {prefix:'inf', key:'ventas'} o null.
+let _bcSubNivel = null;
+
+// Llamar desde cada tab (infTab, contTab, tesoTab, lpTab) para que el
+// breadcrumb se actualice al sub-nivel elegido.
+function setBreadcrumbSub(prefix, key){
+  if(_bcSubNivel && _bcSubNivel.prefix === prefix && _bcSubNivel.key === key) return;
+  _bcSubNivel = {prefix, key};
+  actualizarBreadcrumb(_bcPanelActual);
+}
+function limpiarBreadcrumbSub(){
+  if(_bcSubNivel) { _bcSubNivel = null; }
+}
+
+// Cache del panel actual para que setBreadcrumbSub sepa qué pintar.
+let _bcPanelActual = '';
+
+function _bcEmoji(icon){
+  return icon ? `<span class="bc-emoji">${icon}</span> ` : '';
+}
+
+function actualizarBreadcrumb(p){
+  const bc = document.getElementById('breadcrumb-bar');
+  if(!bc) return;
+  _bcPanelActual = p;
+  // Solo mostrar en vista escritorio. En móvil el topbar no aplica.
+  if(usuarioActual?.vista === 'movil'){ bc.style.display='none'; return; }
+  bc.style.display = '';
+  // Paneles "raíz" no muestran breadcrumb (son el inicio de todo).
+  if(p === 'dash' || p === 'vendedor-home'){
+    bc.innerHTML = '';
+    return;
+  }
+  const grupoKey = _BC_PANEL_A_GRUPO[p];
+  const grupo = grupoKey ? _BC_GRUPOS[grupoKey] : null;
+  const panel = _BC_PANELES[p] || {icon:'', label:p};
+  const sep = '<span class="bc-sep">›</span>';
+  let html = '';
+  if(grupo){
+    html += `${_bcEmoji(grupo.icon)}<span class="bc-crumb">${grupo.label}</span>${sep}`;
+  }
+  html += `${_bcEmoji(panel.icon)}<span class="bc-crumb">${panel.label}</span>`;
+  // Sub-nivel (3° nivel) si hay uno activo para este panel.
+  if(_bcSubNivel && _bcSubNivel.prefix){
+    const prefixDelPanel = {
+      'informes':'inf', 'contabilidad':'cont', 'tesoreria':'teso', 'listas-precios':'lp'
+    }[p];
+    if(prefixDelPanel && prefixDelPanel === _bcSubNivel.prefix){
+      const sub = _BC_SUB[_bcSubNivel.prefix + ':' + _bcSubNivel.key];
+      if(sub){
+        html += sep + `${_bcEmoji(sub.icon)}<span class="bc-crumb">${sub.label}</span>`;
+      }
+    }
+  }
+  bc.innerHTML = html;
+}
+
 function go(p,opts = {}) {
   // Limpiar overlays de confirmación huérfanos: si quedó alguno vivo de un
   // flujo previo (cobro o pedido confirmado), se elimina al navegar a
@@ -1051,6 +1202,8 @@ function go(p,opts = {}) {
     'informes':'informes','comisiones':'informes','contrib-zona':'informes','gastos-fijos':'informes','importar-historico':'informes'
   };
   actualizarVisibilidadBotonRefresco(p);
+  limpiarBreadcrumbSub();
+  actualizarBreadcrumb(p);
   const g=grupoMap[p];
   if(g){const sg=document.getElementById('sg-'+g);if(sg)sg.classList.add('active');}
 

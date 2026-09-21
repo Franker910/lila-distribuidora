@@ -251,7 +251,9 @@ function actualizarNavActivo(p){
 }
 
 // ─── FIN MENÚ DESPLEGABLE ───
+
 function contTab(tab){
+  setBreadcrumbSub('cont', tab);
   ['gastos','asientos','mayor','resultado','mensual'].forEach(t=>{
     const el=document.getElementById('cont-'+t);
     if(el) el.style.display = t===tab ? 'block' : 'none';

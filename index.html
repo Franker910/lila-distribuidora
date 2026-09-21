@@ -249,6 +249,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 }
 @keyframes slideUpBanner{from{transform:translateY(100%)}to{transform:translateY(0)}}
 
+/* Breadcrumb: emojis blancos para reducir ruido visual */
+#breadcrumb-bar .bc-emoji{filter:brightness(0) invert(1);opacity:.85;font-style:normal;display:inline-block}
+#breadcrumb-bar .bc-sep{opacity:.45;margin:0 6px;font-weight:400}
+#breadcrumb-bar .bc-crumb{opacity:.95}
 
 /* Actualización en vivo (botón + auto-refresco) */
 .refresco-wrap{display:none;align-items:center;gap:6px;margin-right:2px}
@@ -841,6 +845,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <button class="menu-toggle" id="btn-menu" onclick="toggleMenu()" aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar">☰</button>
   <span>🌸</span>
   <span class="logo">Distribuidora Lila</span>
+  <div id="breadcrumb-bar" style="flex:1;text-align:center;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 12px;opacity:.95;"></div>
   <div class="right">
     <span id="top-fecha"></span>
     <span id="top-usuario"></span>
@@ -944,7 +949,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="body" id="main-body">
 
 <!-- DASHBOARD -->
-<div class="panel on" id="p-dash" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">  
+<div class="panel on" id="p-dash" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">   
   <!-- CONTENEDOR SCROLLABLE -->
   <div class="scroll-content" style="flex:1; overflow-y:auto; min-height:0; padding-right:4px;">
     
@@ -4996,13 +5001,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260921-04"></script>
-<script src="js/maestros.js?v=20260921-04"></script>
-<script src="js/ventas.js?v=20260921-04"></script>
-<script src="js/tesoreria.js?v=20260921-04"></script>
-<script src="js/contabilidad.js?v=20260921-04"></script>
-<script src="js/informes.js?v=20260921-04"></script>
-<script src="js/logistica.js?v=20260921-04"></script>
+<script src="js/app.js?v=20260921-05"></script>
+<script src="js/maestros.js?v=20260921-05"></script>
+<script src="js/ventas.js?v=20260921-05"></script>
+<script src="js/tesoreria.js?v=20260921-05"></script>
+<script src="js/contabilidad.js?v=20260921-05"></script>
+<script src="js/informes.js?v=20260921-05"></script>
+<script src="js/logistica.js?v=20260921-05"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

@@ -928,7 +928,9 @@ function navInfTabs(e){
 
 function infTab(tab){
   const tabs = ['ventas','descuentos','descuentos-cliente','clientes','productos','comisiones','gerencial','comisiones2','cmg-prod','cmg-cli','financiamiento','precios','financiero','plazos','calce','historico'];
-  
+
+  setBreadcrumbSub('inf', tab);
+
   tabs.forEach(t => {
     const el = document.getElementById('inf-sec-'+t);
     if (el) el.style.display = t === tab ? 'block' : 'none';
