@@ -2355,6 +2355,12 @@ function mostrarConfirmacionMovil(tipo, cliente, detalle, cobId){
   
   const esCobranza = tipo === 'cobro';
   
+  // Navegar al panel ANTES de crear el overlay. Esto es importante porque
+  // go() limpia overlays huérfanos al principio: si llamáramos go() después
+  // de crear el overlay, lo borraría. Moviéndolo al principio, go() limpia
+  // lo viejo y después creamos el nuevo.
+  go('pedido-movil');
+  
   // ─── Crear contenedor de confirmación (si no existe) ──────────────
   let confirmDiv = document.getElementById('pm-confirmacion-overlay');
   if (!confirmDiv) {
@@ -2387,20 +2393,20 @@ function mostrarConfirmacionMovil(tipo, cliente, detalle, cobId){
       </div>
       <div style="display:flex;flex-direction:column;gap:10px;">
         ${esCobranza && cobId ? `
-          <button onclick="document.getElementById('pm-confirmacion-overlay').remove(); verCobroDetalle(${cobId});" 
+          <button onclick="_cerrarConfirmacionMovil(); verCobroDetalle(${cobId});" 
             style="width:100%;padding:14px;background:var(--P);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;">
             📋 Ver resumen
           </button>
         ` : ''}
-        <button onclick="${esCobranza ? 'go(\'cobranza\')' : 'resetYNuevoPedido()'}" 
+        <button onclick="_cerrarConfirmacionMovil(); ${esCobranza ? 'go(\'cobranza\')' : 'resetYNuevoPedido()'}" 
           style="width:100%;padding:14px;background:${esCobranza ? 'var(--bg2)' : 'var(--P)'};color:${esCobranza ? 'var(--PD)' : '#fff'};border:${esCobranza ? '2px solid var(--P)' : 'none'};border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;">
           ${esCobranza ? '💰 Cargar otro cobro' : '🆕 Nuevo pedido'}
         </button>
-        <button onclick="${esCobranza ? 'go(\'cobranza\');setTimeout(()=>cobmAbrirMisCobranzas(),50);setTimeout(()=>cobmSetPeriodo(\'dia\'),80)' : 'verMisPedidosHoy()'}" 
+        <button onclick="_cerrarConfirmacionMovil(); ${esCobranza ? 'go(\'cobranza\');setTimeout(()=>cobmAbrirMisCobranzas(),50);setTimeout(()=>cobmSetPeriodo(\'dia\'),80)' : 'verMisPedidosHoy()'}" 
           style="width:100%;padding:14px;background:var(--bg2);color:var(--PD);border:2px solid var(--P);border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;">
           ${esCobranza ? '📊 Ver mis cobros de hoy' : '📋 Ver mis pedidos de hoy'}
         </button>
-        <button onclick="go('vendedor-home')" 
+        <button onclick="_cerrarConfirmacionMovil(); go('vendedor-home')" 
           style="width:100%;padding:12px;background:transparent;color:var(--txt2);border:1px solid var(--brd);border-radius:10px;font-size:14px;cursor:pointer;">
           🏠 Volver al inicio
         </button>
@@ -2409,9 +2415,13 @@ function mostrarConfirmacionMovil(tipo, cliente, detalle, cobId){
   `;
   
   confirmDiv.style.display = 'flex';
-  
-  // Asegurar que el panel esté en la vista correcta
-  go('pedido-movil');
+}
+
+// Elimina el overlay de confirmación (si existe). Se llama desde los botones
+// de la confirmación ANTES de navegar, para que el overlay no quede huérfano
+// dentro de #p-pedido-movil y termine tapando otras pantallas.
+function _cerrarConfirmacionMovil(){
+  document.getElementById('pm-confirmacion-overlay')?.remove();
 }
 
 function verCobranzaHoy(){

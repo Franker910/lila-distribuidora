@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260918-04';
+const APP_VERSION = '20260921-01';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -886,6 +886,11 @@ function actualizarVisibilidadBotonRefresco(p){
 }
 
 function go(p,opts = {}) {
+  // Limpiar overlays de confirmación huérfanos: si quedó alguno vivo de un
+  // flujo previo (cobro o pedido confirmado), se elimina al navegar a
+  // cualquier otro panel. Evita que "tape" la pantalla destino.
+  document.getElementById('pm-confirmacion-overlay')?.remove();
+
   // Hoja de ruta en móvil: solo para repartidores. Los vendedores no la ven
   // (ni por botón ni por URL vieja / go('hoja-ruta') colado desde algún lado).
   const esRepartidorMovil = usuarioActual?.rol === 'repartidor';
@@ -971,7 +976,7 @@ function go(p,opts = {}) {
       _cobmFiltroCli = null; // reset: el chip por defecto se decide al cargar _hrClientesHoy
       cargarHojaRutaRepartidor().then(()=>{
         cobmRenderChipsCli();
-        cobmRenderListaInline();
+        cobmRenderZonasAcordeon();
       });
     } else {
       document.getElementById('cob-movil').style.display='none';

@@ -2501,8 +2501,6 @@ function limpiarCobMovil(){
   const pp=document.getElementById('cobm-paso-cobro');
   if(pp) pp.style.display='none';
   
-  poblarSelectZona('cobm-cli-zon');
-  
   const imp=document.getElementById('cobm-importe');
   if(imp) imp.value='';
   
@@ -2834,28 +2832,25 @@ function limpiarBuscadorZonas() {
 
 function buscarClienteCobMovil(){
   const q=(document.getElementById('cobm-cli-q').value||'').toLowerCase().trim();
-  const zonaFil=document.getElementById('cobm-cli-zon')?.value||'';
   const lista=document.getElementById('cobm-cli-lista');
-  const inline=document.getElementById('cobm-cli-lista-inline');
   if(!lista) return;
 
-  // Sin búsqueda: ocultar dropdown y volver a la lista inline
+  // Sin búsqueda: ocultar dropdown. Los acordeones quedan visibles (no se
+  // tocan acá).
   if(q.length<1){
     lista.style.display='none';
     lista.innerHTML='';
-    if(inline) inline.style.display='block';
-    cobmRenderListaInline();
     return;
   }
-  // Con búsqueda: ocultar lista inline, mostrar dropdown flotante
-  if(inline) inline.style.display='none';
+  // Con búsqueda: mostrar dropdown flotante. Los acordeones quedan visibles
+  // por debajo — el dropdown es position:fixed así que aparece por encima
+  // sin taparlos ni ocultarlos.
 
   const pool=_cobmCliPool();
   const m=pool.filter(c=>{
     const matchNombre=(c.nombre||'').toLowerCase().includes(q);
     const matchCodigo=String(c.codigo||c.id).includes(q);
-    const matchZona=!zonaFil || c.zona===zonaFil;
-    return (matchNombre || matchCodigo) && matchZona;
+    return matchNombre || matchCodigo;
   }).slice(0,12);
 
   if(!m.length){
@@ -2906,46 +2901,84 @@ function cobmRenderChipsCli(){
   el.innerHTML = mkChip('ruta', '📍 Ruta de hoy', rutaCount) + mkChip('deuda', '💰 Con deuda', deudaCount);
 }
 
+// Renderiza un acordeón por cada zona del catálogo (_zonas). Dentro de cada
+// uno, los clientes del pool activo que pertenezcan a esa zona. Si una zona
+// no tiene clientes para el día, igual se muestra (badge "0", expandida
+// vacía) para que no genere confusión al usuario: ve TODAS las zonas y
+// entiende que simplemente no hay nada para cobrar en esa.
+function cobmRenderZonasAcordeon(){
+  const cont = document.getElementById('cobm-zonas-lista');
+  if(!cont) return;
+  const pool = _cobmCliPool();
+  // Agrupar pool por zona
+  const porZona = {};
+  pool.forEach(c => {
+    const z = (c.zona || '').trim() || '_sin';
+    if(!porZona[z]) porZona[z] = [];
+    porZona[z].push(c);
+  });
+  // Zonas a mostrar: catálogo completo + cualquier zona del pool que no esté
+  // en el catálogo (por si hay clientes con zonas viejas o sin cargar).
+  const setZonas = new Set();
+  (_zonas || []).forEach(z => { if(z.codigo) setZonas.add(z.codigo); });
+  Object.keys(porZona).forEach(z => setZonas.add(z));
+  // Ordenar por descripción alfabética
+  const zonasArr = [...setZonas].filter(Boolean).sort((a, b) => {
+    const na = a === '_sin' ? 'zzz-sin-zona' : (nombreZona(a) || a).toLowerCase();
+    const nb = b === '_sin' ? 'zzz-sin-zona' : (nombreZona(b) || b).toLowerCase();
+    return na.localeCompare(nb);
+  });
+
+  if(!zonasArr.length){
+    cont.innerHTML = '<div class="empty" style="padding:20px">Sin zonas cargadas</div>';
+    return;
+  }
+
+  cont.innerHTML = zonasArr.map(z => {
+    const clis = (porZona[z] || []).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    const zNom = z === '_sin' ? 'Sin zona' : (nombreZona(z) || z);
+    const count = clis.length;
+    const badge = count
+      ? `<span class="b bP" style="font-size:10px">${count}</span>`
+      : `<span class="b" style="background:var(--bg2);color:var(--txt2);font-size:10px">0</span>`;
+    return `<div class="cobm-zona-acordeon" style="border:1.5px solid var(--brd);border-radius:12px;margin-bottom:8px;overflow:hidden;background:#fff">
+      <div onclick="cobmToggleZonaAcordeon(this)" style="display:flex;justify-content:space-between;align-items:center;padding:14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;background:var(--bg2)">
+        <div style="flex:1;min-width:0;font-weight:700;font-size:15px">🗺 ${esc(zNom)}</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          ${badge}
+          <span class="cobm-zona-chevron" style="font-size:16px;color:var(--txt2);transition:transform 0.2s">▶</span>
+        </div>
+      </div>
+      <div class="cobm-zona-clientes" style="display:none">
+        ${count ? clis.map(c => `
+          <div onclick="selClienteCobMovil(${c.id})" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--brd);cursor:pointer;-webkit-tap-highlight-color:transparent">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.nombre)}</div>
+              <div style="font-size:11px;color:var(--txt2);margin-top:2px">${esc(c.localidad || '')}${c.codigo ? ' · #' + c.codigo : ''}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;margin-left:10px">
+              <div style="font-size:14px;font-weight:700;color:${(c.saldo || 0) > 0 ? 'var(--D)' : 'var(--P)'}">${fmt(c.saldo || 0)}</div>
+            </div>
+          </div>
+        `).join('') : '<div style="padding:16px;text-align:center;color:var(--txt2);font-size:13px">Sin clientes para cobrar en esta zona</div>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function cobmToggleZonaAcordeon(header){
+  const cont = header.nextElementSibling;
+  const chev = header.querySelector('.cobm-zona-chevron');
+  if(!cont) return;
+  const abierto = cont.style.display === 'block';
+  cont.style.display = abierto ? 'none' : 'block';
+  if(chev) chev.style.transform = abierto ? 'rotate(0deg)' : 'rotate(90deg)';
+}
+
 function cobmSetFiltroCli(filtro){
   _cobmFiltroCli = filtro;
   cobmRenderChipsCli();
-  cobmRenderListaInline();
-}
-
-function cobmRenderListaInline(){
-  const el = document.getElementById('cobm-cli-lista-inline');
-  if(!el) return;
-  // Si hay texto en el buscador, la lista inline se oculta (el dropdown ya muestra)
-  const q = (document.getElementById('cobm-cli-q')?.value||'').trim();
-  if(q){ el.innerHTML=''; return; }
-  let lista = [];
-  if(_cobmFiltroCli === 'ruta'){
-    const rutaIds = new Set(_hrClientesHoy || []);
-    lista = _cobmCliPool().filter(c=>rutaIds.has(c.id));
-    const ordenMap = {};
-    (_hrClientesHoy || []).forEach((id, i) => ordenMap[id] = i);
-    lista.sort((a,b) => (ordenMap[a.id]||999) - (ordenMap[b.id]||999));
-  } else if(_cobmFiltroCli === 'deuda'){
-    lista = _cobmCliPool().filter(c=>(c.saldo||0) > 0);
-    lista.sort((a,b)=>(b.saldo||0)-(a.saldo||0));
-  }
-  if(!lista.length){
-    el.innerHTML = `<div style="padding:20px;text-align:center;color:var(--txt2);font-size:13px">Sin clientes para mostrar</div>`;
-    return;
-  }
-  el.innerHTML = lista.map(c=>`
-    <div onclick="selClienteCobMovil(${c.id})"
-      style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#fff;border-radius:10px;margin-bottom:6px;border:1.5px solid var(--brd);cursor:pointer;-webkit-tap-highlight-color:transparent"
-      onmouseover="this.style.borderColor='var(--P)';this.style.background='var(--bg2)'"
-      onmouseout="this.style.borderColor='var(--brd)';this.style.background='#fff'">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.nombre)}</div>
-        <div style="font-size:12px;color:var(--txt2);margin-top:2px">${esc(c.localidad||'')}${c.codigo?' · #'+c.codigo:''}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;margin-left:10px">
-        <div style="font-size:16px;font-weight:700;color:${(c.saldo||0)>0?'var(--D)':'var(--P)'}">${fmt(c.saldo||0)}</div>
-      </div>
-    </div>`).join('');
+  cobmRenderZonasAcordeon();
 }
 
 //Posicionamiento inteligente del dropdown
