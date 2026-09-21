@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260921-06';
+const APP_VERSION = '20260921-07';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -875,7 +875,15 @@ function actualizarVisibilidadBotonRefresco(p){
   const wrap = document.getElementById('refresco-wrap');
   const marca = document.getElementById('refresco-marca');
   if(!wrap) return;
-  if(_REFRESCO_HANDLERS[p]){
+  let hayHandler = !!_REFRESCO_HANDLERS[p];
+  // Caso especial: el panel "carga" tiene 2 vistas (lista / nueva). El botón
+  // de refresco solo tiene sentido en la vista nueva (donde se arman cargas
+  // y aparecen pedidos nuevos). En la lista no aplica.
+  if(p === 'carga'){
+    const vistaNueva = document.getElementById('carga-vista-nueva');
+    hayHandler = hayHandler && vistaNueva && vistaNueva.style.display !== 'none';
+  }
+  if(hayHandler){
     wrap.style.display='flex';
     if(marca)marca.textContent='';
     iniciarAutoRefresco();

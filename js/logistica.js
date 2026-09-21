@@ -41,6 +41,8 @@ async function cargarCargas(){const {data}=await sb.from('cargas').select('*').o
 function mostrarNuevaCarga(){
   document.getElementById('carga-vista-lista').style.display='none';
   document.getElementById('carga-vista-nueva').style.display='flex';
+  // Mostrar el botón de refresco (solo aplica a la vista nueva)
+  actualizarVisibilidadBotonRefresco('carga');
   const fecha=document.getElementById('car-fecha');
   if(fecha)fecha.value=hoyLocal();
   // Por defecto, mostrar solo los pedidos cargados HOY. Si quieren ver los de
@@ -68,6 +70,8 @@ function mostrarNuevaCarga(){
 function ocultarNuevaCarga(){
   document.getElementById('carga-vista-lista').style.display='flex';
   document.getElementById('carga-vista-nueva').style.display='none';
+  // Ocultar el botón de refresco (la lista de cargas no auto-refresca)
+  actualizarVisibilidadBotonRefresco('carga');
 }
 
 async function abrirCarga(){ mostrarNuevaCarga(); }
@@ -122,6 +126,29 @@ async function loadPedsCarga(){
   }).join('');
   actualizarResumenCarga();
 }
+
+// Actualización en vivo: cuando se arma una carga nueva, cada 25s (o al
+// tocar 🔄) se vuelven a pedir los pedidos pendientes a Supabase para ver
+// en tiempo real los que van llegando desde los vendedores.
+// Preserva los checkboxes que el usuario ya marcó/desmarcó manualmente.
+registrarRefresco('carga', async()=>{
+  const vistaNueva = document.getElementById('carga-vista-nueva');
+  if(!vistaNueva || vistaNueva.style.display === 'none') return;
+  // Guardar estado actual de los checkboxes (marcados y desmarcados).
+  const estadoPrevio = {};
+  document.querySelectorAll('#car-items-lista input[type=checkbox]').forEach(c=>{
+    estadoPrevio[c.value] = c.checked;
+  });
+  // Recargar pedidos desde Supabase y re-renderizar la lista.
+  await cargarPedidos();
+  await loadPedsCarga();
+  // Restaurar el estado previo a los pedidos que ya existían (los nuevos
+  // que aparezcan después del refresh vienen marcados por defecto).
+  document.querySelectorAll('#car-items-lista input[type=checkbox]').forEach(c=>{
+    if(c.value in estadoPrevio) c.checked = estadoPrevio[c.value];
+  });
+  actualizarResumenCarga();
+});
 
 async function guardarCarga(){
   const chks=[...document.querySelectorAll('#car-items-lista input[type=checkbox]:checked')];
