@@ -2565,6 +2565,20 @@ function _cobmCliPool(){
   return _clientes.filter(c=>rutaSet.has(c.id));
 }
 
+// ¿Este cliente tiene al menos una factura (remito) pendiente de cobro real?
+// Distinto de "saldo > 0": un cliente puede tener saldo histórico cargado
+// (migración, ajustes) sin remitos reales pendientes, y esos no queremos
+// mostrarlos en cobranza — aparecerían en la lista pero al abrirlos no hay
+// nada para imputar.
+function _cobmClienteTieneDeuda(clienteId){
+  return (_remitos||[]).some(r =>
+    String(r.cliente_id)===String(clienteId)
+    && !r.anulado
+    && !r.cobrado
+    && ((r.saldo_pendiente ?? r.total) > 0)
+  );
+}
+
 // ─── COBRANZA MÓVIL ──────
 
 // Variables globales para el buscador de zonas
@@ -2888,7 +2902,7 @@ function cobmRenderChipsCli(){
   const rutaIds = _hrClientesHoy || [];
   const rutaCount = rutaIds.length;
   const pool = _cobmCliPool();
-  const deudaCount = pool.filter(c=>(c.saldo||0) > 0).length;
+  const deudaCount = pool.filter(c=>_cobmClienteTieneDeuda(c.id)).length;
   if(!_cobmFiltroCli) _cobmFiltroCli = rutaCount > 0 ? 'ruta' : 'deuda';
   const mkChip = (key, label, count) => {
     const activo = _cobmFiltroCli === key;
@@ -2909,7 +2923,18 @@ function cobmRenderChipsCli(){
 function cobmRenderZonasAcordeon(){
   const cont = document.getElementById('cobm-zonas-lista');
   if(!cont) return;
-  const pool = _cobmCliPool();
+  let pool = _cobmCliPool();
+  // Aplicar el filtro del chip activo:
+  //  · 'ruta'  → solo clientes que estén en la hoja de ruta de hoy.
+  //  · 'deuda' → solo clientes con al menos una factura pendiente real
+  //              (remito no cobrado con saldo). Excluye los que solo
+  //              tienen saldo histórico sin remitos.
+  if(_cobmFiltroCli === 'ruta'){
+    const rutaIds = new Set(_hrClientesHoy || []);
+    pool = pool.filter(c => rutaIds.has(c.id));
+  } else if(_cobmFiltroCli === 'deuda'){
+    pool = pool.filter(c => _cobmClienteTieneDeuda(c.id));
+  }
   // Agrupar pool por zona
   const porZona = {};
   pool.forEach(c => {
@@ -3328,10 +3353,13 @@ async function guardarCobMovil(){
 
   // ⚠️ El saldo del cliente y remitos NO se toca aquí.
   // Se aplica recién cuando un admin valida el cobro (validarCobro).
-  // Si el cobro vino de una carga (no de una hoja de ruta armada a mano),
-  // generar esa hoja de ruta ahora para que en Rendición no quede huérfano
-  // en "Cobros sin hoja de ruta".
-  if(_cargaActivaHoy){await _asegurarHojaRutaParaCobro(_cobMovilCliId,hoyLocal(),usuarioActual?.nombre||'');}
+  // NOTA: ya no auto-generamos hoja_ruta acá. Antes lo hacíamos para que
+  // el cobro apareciera vinculado a la ruta del día, pero tenía un efecto
+  // colateral: creaba una "hoja de ruta fantasma" con 1 solo cliente, que
+  // después el pool de cobranza tomaba como ruta del día y reducía toda la
+  // lista de cobro a ese cliente. Los cobros van igual a "Cobros sin hoja
+  // de ruta" en Rendición, donde el admin los aprueba normalmente (ese
+  // panel ya existe y funciona).
   await Promise.all([cargarCobros(),cargarRemitos(),hrMarcarVisitadoPorCliente(_cobMovilCliId)]);
   renderDash();
   mostrarConfirmacionMovil('cobro', c?.nombre, fmt(importe)+(resto>0?' · Resto a favor: '+fmt(resto):'') + ' — pendiente de validación', cobNuevo?.id);
