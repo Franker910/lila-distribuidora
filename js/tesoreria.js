@@ -1388,7 +1388,17 @@ function renderCC(){
   const fSaldo=document.getElementById('cc-f-saldo')?.value||'';
   const fTotal=document.getElementById('cc-f-total')?.value||'';
   let data=_clientes.filter(c=>{
-    const okQ=!q||(c.nombre||'').toLowerCase().includes(q)||(c.localidad||'').toLowerCase().includes(q)||String(c.codigo||'').includes(q)||String(c.id||'').includes(q);
+  // Búsqueda en dos modos bien distintos:
+  //   · Si es un número puro (10, 102, 5000) → busca SOLO por código/id
+  //     exactos. No matchea nombre ni localidad (antes "2" traía todos los
+  //     clientes con un "2" en el nombre, en el teléfono, o en la dirección).
+  //   · Si tiene letras (GUTI, CASILDA) → busca por nombre y localidad.
+  const esNumeroPuro = /^\d+$/.test(q);
+  let okQ;
+  if(!q) okQ = true;
+  else if(esNumeroPuro) okQ = (String(c.codigo||'').trim()===q || String(c.id||'')===q);
+  else okQ = (c.nombre||'').toLowerCase().includes(q)
+          || (c.localidad||'').toLowerCase().includes(q);
     const dias=diasDesde(c.ultimo_remito);
     const venc=c.saldo>0&&dias!==null&&dias>(c.condicion_pago||0)+5;
     const okF=f===''||(f==='deuda'&&c.saldo>0)||(f==='ok'&&c.saldo<=0)||(f==='vencido'&&venc);
