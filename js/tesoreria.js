@@ -2557,22 +2557,21 @@ function limpiarCobMovil(){
   if (footer) footer.style.display = 'none';
 }
 
+// Pool base de clientes para cobranza móvil (sin filtro de chip).
+// El filtrado por chip (ruta / deuda / todos) se aplica después, en
+// cobmRenderZonasAcordeon y en buscarClienteCobMovil.
+// Criterio por rol:
+//   · Repartidor → todos los clientes activos del sistema (puede cobrar
+//     cualquier cosa que le aparezca, incluso fuera de su vendedor).
+//   · Vendedor / admin en rol vendedor → solo los clientes asignados a él.
 function _cobmCliPool(){
-  if(!_hrClientesHoy||!_hrClientesHoy.length){
-    // Sin ruta: usar todos los clientes (vendedores) o todos (repartidores sin ruta)
-    if(usuarioActual?.rol==='repartidor'&&usuarioActual?.vendedor){
-      const v=(usuarioActual.vendedor||'').toLowerCase();
-      const porVendedor=_clientes.filter(c=>(c.vendedor||'').toLowerCase()===v);
-      return porVendedor.length?porVendedor:_clientes;
-    }
-    const v=usuarioActual?.vendedor||usuarioActual?.nombre||'';
-    if(!v)return _clientes;
-    const filtrado=_clientes.filter(c=>(c.vendedor||'').toLowerCase()===v.toLowerCase());
-    return filtrado.length?filtrado:_clientes;
+  if(usuarioActual?.rol === 'repartidor'){
+    return _clientes.filter(c => c.activo !== false);
   }
-  // Con ruta: solo los clientes de la hoja del día
-  const rutaSet=new Set(_hrClientesHoy);
-  return _clientes.filter(c=>rutaSet.has(c.id));
+  const v = usuarioActual?.vendedor || usuarioActual?.nombre || '';
+  if(!v) return _clientes.filter(c => c.activo !== false);
+  const filtrado = _clientes.filter(c => (c.vendedor||'').toLowerCase() === v.toLowerCase() && c.activo !== false);
+  return filtrado.length ? filtrado : _clientes.filter(c => c.activo !== false);
 }
 
 // ¿Este cliente tiene al menos una factura (remito) pendiente de cobro real?
@@ -2912,8 +2911,20 @@ function cobmRenderChipsCli(){
   const rutaIds = _hrClientesHoy || [];
   const rutaCount = rutaIds.length;
   const pool = _cobmCliPool();
-  const deudaCount = pool.filter(c=>_cobmClienteTieneDeuda(c.id)).length;
-  if(!_cobmFiltroCli) _cobmFiltroCli = rutaCount > 0 ? 'ruta' : 'deuda';
+  const todosCount = pool.length;
+  const deudaCount = pool.filter(c => _cobmClienteTieneDeuda(c.id)).length;
+  const esRepartidor = usuarioActual?.rol === 'repartidor';
+  const hayRuta = rutaCount > 0;
+
+  // Chip por defecto según rol y disponibilidad:
+  //   · Repartidor con ruta hoy → 'ruta'
+  //   · Cualquier otro caso       → 'todos'
+  if(!_cobmFiltroCli){
+    _cobmFiltroCli = (esRepartidor && hayRuta) ? 'ruta' : 'todos';
+  }
+  // Si el filtro activo era 'ruta' pero ya no hay ruta disponible, resetea.
+  if(_cobmFiltroCli === 'ruta' && !hayRuta) _cobmFiltroCli = 'todos';
+
   const mkChip = (key, label, count) => {
     const activo = _cobmFiltroCli === key;
     const disabled = count === 0;
@@ -2922,7 +2933,19 @@ function cobmRenderChipsCli(){
       ${label} (${count})
     </button>`;
   };
-  el.innerHTML = mkChip('ruta', '📍 Ruta de hoy', rutaCount) + mkChip('deuda', '💰 Con deuda', deudaCount);
+
+  const chipRuta  = hayRuta ? mkChip('ruta',  '📍 Ruta de hoy', rutaCount) : '';
+  const chipTodos = mkChip('todos', '👥 Todos', todosCount);
+  const chipDeuda = mkChip('deuda', '💰 Con deuda', deudaCount);
+
+  // Orden de los chips por rol:
+  //   · Repartidor → Ruta, Todos, Deuda
+  //   · Vendedor   → Todos, Deuda, Ruta (si hay)
+  if(esRepartidor){
+    el.innerHTML = chipRuta + chipTodos + chipDeuda;
+  } else {
+    el.innerHTML = chipTodos + chipDeuda + chipRuta;
+  }
 }
 
 // Renderiza un acordeón por cada zona del catálogo (_zonas). Dentro de cada
@@ -2935,16 +2958,16 @@ function cobmRenderZonasAcordeon(){
   if(!cont) return;
   let pool = _cobmCliPool();
   // Aplicar el filtro del chip activo:
-  //  · 'ruta'  → solo clientes que estén en la hoja de ruta de hoy.
-  //  · 'deuda' → solo clientes con al menos una factura pendiente real
-  //              (remito no cobrado con saldo). Excluye los que solo
-  //              tienen saldo histórico sin remitos.
+  //  · 'ruta'  → solo clientes de la hoja de ruta de hoy.
+  //  · 'deuda' → solo clientes con al menos una factura pendiente real.
+  //  · 'todos' → sin filtro (todos los del pool base).
   if(_cobmFiltroCli === 'ruta'){
     const rutaIds = new Set(_hrClientesHoy || []);
     pool = pool.filter(c => rutaIds.has(c.id));
   } else if(_cobmFiltroCli === 'deuda'){
     pool = pool.filter(c => _cobmClienteTieneDeuda(c.id));
   }
+  // 'todos' → sin filtro adicional
   // Agrupar pool por zona
   const porZona = {};
   pool.forEach(c => {
