@@ -961,9 +961,33 @@ function renderGrillaRendicion(){
     const acciones=puedeAccion?`<button class="btn sm" style="background:var(--G);color:#fff;font-size:10px" onclick="validarCobro(${f.cobPrincipal.id})">✅</button><button class="btn sm D" style="font-size:10px" onclick="rechazarCobro(${f.cobPrincipal.id})">❌</button>`:'';
     const chk=puedeAccion?`<input type="checkbox" class="rend-chk" data-cobid="${f.cobPrincipal.id}">`:'';
     const tilde = f.cobs.length ? '<span style="color:var(--P);font-weight:700">✅ Sí</span>' : '<span style="color:var(--txt2)">—</span>';
+    // Saldo inicial y final: simula el efecto de este cobro sobre el saldo
+    // actual del cliente.
+    //   · Sin cobro o cobro rechazado → no cambia (ini = fin = saldo actual).
+    //   · Cobro ya validado (aplicado) → el saldo actual YA tiene el descuento,
+    //     así que el "inicial" se reconstruye sumándolo.
+    //   · Cobro pendiente → el "final" se proyecta restándolo.
+    const saldoActual = f.cli ? (f.cli.saldo || 0) : null;
+    let saldoIni, saldoFin;
+    if(saldoActual === null){
+      saldoIni = null; saldoFin = null;
+    } else if(!f.cobPrincipal || f.estado === 'rechazado'){
+      saldoIni = saldoActual; saldoFin = saldoActual;
+    } else if(f.estado === 'validado'){
+      saldoIni = saldoActual + f.importeCobrado;
+      saldoFin = saldoActual;
+    } else {
+      saldoIni = saldoActual;
+      saldoFin = saldoActual - f.importeCobrado;
+    }
+    const colorFin = saldoFin === null ? 'var(--txt2)' : (saldoFin > 0.01 ? 'var(--D)' : 'var(--P)');
     return `<tr>
       <td>${chk}</td>
       <td style="font-weight:500">${esc(nombre)}</td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums;line-height:1.35;font-size:12px">
+        <div style="color:var(--txt2)">${saldoIni===null?'—':fmt(saldoIni)}</div>
+        <div style="font-weight:600;color:${colorFin}">→ ${saldoFin===null?'—':fmt(saldoFin)}</div>
+      </td>
       <td style="text-align:center">${f.zona?`<span class="b bA">${esc(_zonas.find(z=>z.codigo===f.zona)?.descripcion||f.zona)}</span>`:'—'}</td>
       <td style="text-align:right">
         <div>${f.importeRemito?fmt(f.importeRemito):'—'}</div>
@@ -980,7 +1004,7 @@ function renderGrillaRendicion(){
       </td>
       <td style="white-space:nowrap">${acciones}</td>
     </tr>`;
-  }).join(''):'<tr><td colspan="8"><div class="empty">Sin resultados</div></td></tr>';
+  }).join(''):'<tr><td colspan="9"><div class="empty">Sin resultados</div></td></tr>';
 
   const totalClientes=filas.length;
   const cobrados=filas.filter(f=>f.cobs.length>0).length;
