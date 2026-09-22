@@ -1717,6 +1717,11 @@ function abrirPedidoMovil(){
   _pmClientesZonaActual = [];
   _cobZonaInput = '';
   _pmMarcaAbierta = null;
+
+  // Resetear vista de zona
+  const _pmPasoZona = document.getElementById('pm-paso-zona');
+  if (_pmPasoZona) _pmPasoZona.style.display = 'none';
+  _pmZonaActual = null;
   
   go('pedido-movil');
   
@@ -1907,6 +1912,11 @@ function selClienteMovil(id){
 }
 
 function _mostrarPasoProductosMovil() {
+
+  // Ocultar paso de zona si quedó abierto
+  const pasoZona = document.getElementById('pm-paso-zona');
+  if (pasoZona) pasoZona.style.display = 'none';
+  
   // Forzar altura del contenedor scrollable
   const scrollable = document.querySelector('#p-pedido-movil > div:first-child + div');
   if (scrollable) {
@@ -3498,6 +3508,11 @@ function volverHeaderPedidoMovil() {
     // 8. Volver a renderizar los acordeones de zonas (estado inicial)
     renderClientesPorZona();
 
+    // Ocultar vista de zona si quedó abierta y resetear zona activa
+    const pasoZona = document.getElementById('pm-paso-zona');
+    if (pasoZona) pasoZona.style.display = 'none';
+    _pmZonaActual = null;
+
     // 9. Poner foco en el buscador de clientes (header)
     setTimeout(() => {
       const busq = document.getElementById('pm-cli-busq');
@@ -3616,13 +3631,11 @@ function calcNCItem() {
 function renderClientesPorZona() {
   const contenedor = document.getElementById('pm-zonas-lista');
   const busqueda = document.getElementById('pm-cli-busq');
-  const resultadosBusq = document.getElementById('pm-cli-resultados-busqueda');
   if (!contenedor) return;
 
-  // Si hay búsqueda activa, no mostrar acordeones (se maneja en filtrarClientesPorZonaGlobal)
+  // Si hay búsqueda global activa, no pisar los acordeones
   if (busqueda && busqueda.value.trim().length > 0) return;
 
-  // Agrupar clientes activos por zona
   const clientesActivos = _clientes.filter(c => c.activo !== false);
   const zonasMap = {};
   clientesActivos.forEach(c => {
@@ -3631,46 +3644,29 @@ function renderClientesPorZona() {
     zonasMap[zona].push(c);
   });
 
-  // Ordenar zonas alfabéticamente
-  const zonasOrdenadas = Object.keys(zonasMap).sort((a,b) => a.localeCompare(b));
+  const zonasOrdenadas = Object.keys(zonasMap).sort((a, b) => a.localeCompare(b));
 
   if (!zonasOrdenadas.length) {
     contenedor.innerHTML = '<div class="empty">No hay clientes cargados</div>';
     return;
   }
 
-  let html = '';
-  zonasOrdenadas.forEach(zona => {
-    const clientes = zonasMap[zona].sort((a,b) => a.nombre.localeCompare(b.nombre));
+  contenedor.innerHTML = zonasOrdenadas.map(zona => {
+    const clientes = zonasMap[zona].sort((a, b) => a.nombre.localeCompare(b.nombre));
     const zonaDisplay = zona === 'Sin zona' ? '🌍 Sin zona' : (nombreZona(zona) || zona);
-    html += `
-      <div class="zona-acordeon" style="border:1px solid var(--brd); border-radius:10px; margin-bottom:8px; overflow:hidden;">
-        <div class="zona-header" onclick="toggleZonaAcordeon(this)" 
-          style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--bg2); cursor:pointer; user-select:none; gap:14px;">
-          <div style="font-weight:700; font-size:15px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(zonaDisplay)}</div>
-          <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
-            <span style="font-size:12px; color:var(--txt2); white-space:nowrap;">${clientes.length} cliente${clientes.length!==1?'s':''}</span>
-            <span class="zona-chevron" style="font-size:14px; color:var(--txt2); transition:transform 0.2s;">▶</span>
-          </div>
+    const zonaJsSafe = zona.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    return `
+      <div class="zona-item" onclick="pmAbrirZona('${zonaJsSafe}')"
+        style="display:flex; justify-content:space-between; align-items:center; padding:20px 18px; margin-bottom:8px; background:var(--bg); border:1.5px solid var(--brd); border-radius:12px; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; transition:background 0.15s;"
+        onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='var(--bg)'">
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:700; font-size:18px; color:var(--txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(zonaDisplay)}</div>
+          <div style="font-size:15px; color:var(--txt2); margin-top:3px;">${clientes.length} cliente${clientes.length!==1?'s':''}</div>
         </div>
-        <div class="zona-clientes" style="display:none; padding:4px 0;">
-          ${clientes.map(c => `
-            <div onclick="selClienteMovil(${c.id})" 
-              style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-bottom:1px solid var(--brd); cursor:pointer; background:#fff;"
-              onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='#fff'">
-              <div>
-                <div style="font-size:14px; font-weight:600;">${esc(c.nombre)}</div>
-                <div style="font-size:12px; color:var(--txt2);">${esc(c.localidad||'')} ${c.telefono ? '· '+c.telefono : ''}</div>
-              </div>
-              <div style="font-size:14px; font-weight:700; color:${(c.saldo||0)>0?'var(--D)':'var(--P)'};">${fmt(c.saldo||0)}</div>
-            </div>
-          `).join('')}
-        </div>
+        <span style="font-size:26px; color:var(--P); font-weight:700; line-height:1; flex-shrink:0; margin-left:12px;">›</span>
       </div>
     `;
-  });
-
-  contenedor.innerHTML = html;
+  }).join('');
 }
 
 function toggleZonaAcordeon(header) {
@@ -3922,3 +3918,121 @@ function initSwipeCobranza() {
 
 // Llamar initSwipeCobranza() una vez, al abrir la pantalla de cobranza
 // móvil (por ejemplo, junto a donde ya se llama initDropdownCobMovil()).
+
+// ═══════════════════════════════════════════════════════════
+// VISTA DE ZONA (reemplaza el acordeón inline)
+// ═══════════════════════════════════════════════════════════
+let _pmZonaActual = null;
+
+function pmAbrirZona(codigoZona) {
+  _pmZonaActual = codigoZona;
+
+  // Crear el contenedor la primera vez
+  let pasoZona = document.getElementById('pm-paso-zona');
+  if (!pasoZona) {
+    pasoZona = document.createElement('div');
+    pasoZona.id = 'pm-paso-zona';
+    pasoZona.style.cssText = 'display:none; height:100%; overflow-y:auto; padding:12px 14px 20px; -webkit-overflow-scrolling:touch;';
+    const pasoCli = document.getElementById('pm-paso-cliente');
+    if (pasoCli && pasoCli.parentNode) {
+      pasoCli.parentNode.insertBefore(pasoZona, pasoCli.nextSibling);
+    }
+  }
+
+  const zonaTitulo = codigoZona === 'Sin zona' ? 'Sin zona' : (nombreZona(codigoZona) || codigoZona);
+
+  pasoZona.innerHTML = `
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+      <button onclick="pmVolverAZonas()"
+        style="background:var(--bg2); border:1.5px solid var(--brd); border-radius:10px; padding:10px 14px; font-size:15px; font-weight:600; cursor:pointer; min-height:46px; display:flex; align-items:center; gap:6px; color:var(--PD); font-family:inherit; -webkit-tap-highlight-color:transparent;">
+        <span style="font-size:18px;">←</span> Volver
+      </button>
+      <div style="flex:1; min-width:0;">
+        <div style="font-size:11px; color:var(--txt2); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Localidad</div>
+        <div style="font-size:19px; font-weight:700; color:var(--PD); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(zonaTitulo)}</div>
+      </div>
+    </div>
+    <div style="position:relative; margin-bottom:12px;">
+      <input id="pm-zona-busq" type="text" placeholder="🔍 Buscar cliente en esta localidad..." autocomplete="off"
+        oninput="pmFiltrarZona()"
+        style="width:100%; height:48px; font-size:16px; border:2px solid var(--P); border-radius:10px; padding:0 14px; box-sizing:border-box; font-family:inherit; background:#fff; color:#000;">
+    </div>
+    <div id="pm-zona-lista"></div>
+  `;
+
+  const pasoCli = document.getElementById('pm-paso-cliente');
+  if (pasoCli) pasoCli.style.display = 'none';
+  pasoZona.style.display = 'block';
+
+  pmRenderZonaClientes('');
+  initSwipeZonaPedido();   
+
+  setTimeout(() => document.getElementById('pm-zona-busq')?.focus(), 100);
+}
+
+function pmRenderZonaClientes(filtro) {
+  const lista = document.getElementById('pm-zona-lista');
+  if (!lista) return;
+  const q = (filtro || '').trim().toLowerCase();
+
+  let clientes = _clientes.filter(c => c.activo !== false && (c.zona || 'Sin zona') === _pmZonaActual);
+
+  if (q) {
+    clientes = clientes.filter(c =>
+      (c.nombre || '').toLowerCase().includes(q) ||
+      String(c.codigo || '').includes(q) ||
+      (c.telefono || '').includes(q)
+    );
+  }
+
+  clientes.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+
+  if (!clientes.length) {
+    lista.innerHTML = '<div style="padding:24px 16px; text-align:center; color:var(--txt2); font-size:14px;">'
+      + (q ? '❌ No hay clientes que coincidan con la búsqueda' : 'No hay clientes en esta localidad')
+      + '</div>';
+    return;
+  }
+
+  lista.innerHTML = clientes.map(c => `
+    <div onclick="selClienteMovil(${c.id})"
+      style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid var(--brd); cursor:pointer; background:#fff;"
+      onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='#fff'">
+      <div style="flex:1; min-width:0;">
+        <div style="font-size:15px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">[${c.codigo || c.id}] ${esc(c.nombre.toUpperCase())}</div>
+        <div style="font-size:12px; color:var(--txt2); margin-top:2px;">${esc(c.direccion || '')}${c.direccion && c.localidad ? ' · ' : ''}${esc(c.localidad || '')}${c.telefono ? ' · Tel: ' + esc(c.telefono) : ''}</div>
+      </div>
+      <div style="text-align:right; min-width:80px; flex-shrink:0; margin-left:10px;">
+        <div style="font-size:15px; font-weight:700; color:${(c.saldo || 0) > 0 ? 'var(--D)' : 'var(--P)'};">${fmt(c.saldo || 0)}</div>
+        <div style="font-size:10px; color:var(--txt2);">saldo</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function pmFiltrarZona() {
+  const q = document.getElementById('pm-zona-busq')?.value || '';
+  pmRenderZonaClientes(q);
+}
+
+function pmVolverAZonas() {
+  _pmZonaActual = null;
+  const pasoZona = document.getElementById('pm-paso-zona');
+  const pasoCli = document.getElementById('pm-paso-cliente');
+  if (pasoZona) pasoZona.style.display = 'none';
+  if (pasoCli) pasoCli.style.display = 'block';
+  setTimeout(() => document.getElementById('pm-cli-busq')?.focus(), 100);
+}
+
+// Swipe derecho en la vista de zona = volver al listado de localidades.
+// Se engancha una sola vez por contenedor (dataset.swipeOn evita duplicarlo).
+function initSwipeZonaPedido() {
+  const pasoZona = document.getElementById('pm-paso-zona');
+  if (!pasoZona || pasoZona.dataset.swipeOn) return;
+  pasoZona.dataset.swipeOn = '1';
+  habilitarSwipe(
+    pasoZona,
+    () => {},          // swipe izq: no hace nada (no hay paso siguiente acá)
+    () => pmVolverAZonas()  // swipe der = volver a la lista de zonas
+  );
+}
