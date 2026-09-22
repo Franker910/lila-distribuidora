@@ -3657,13 +3657,13 @@ function renderClientesPorZona() {
     const zonaJsSafe = zona.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     return `
       <div class="zona-item" onclick="pmAbrirZona('${zonaJsSafe}')"
-        style="display:flex; justify-content:space-between; align-items:center; padding:20px 18px; margin-bottom:8px; background:var(--bg); border:1.5px solid var(--brd); border-radius:12px; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; transition:background 0.15s;"
+        style="display:flex; justify-content:space-between; align-items:center; padding:24px 20px; margin-bottom:10px; background:var(--bg); border:2.5px solid var(--P); border-radius:12px; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; transition:background 0.15s;"
         onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='var(--bg)'">
         <div style="flex:1; min-width:0;">
-          <div style="font-weight:700; font-size:18px; color:var(--txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(zonaDisplay)}</div>
-          <div style="font-size:15px; color:var(--txt2); margin-top:3px;">${clientes.length} cliente${clientes.length!==1?'s':''}</div>
+          <div style="font-weight:700; font-size:20px; color:var(--txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(zonaDisplay)}</div>
+          <div style="font-size:16px; color:var(--txt2); margin-top:4px;">${clientes.length} cliente${clientes.length!==1?'s':''}</div>
         </div>
-        <span style="font-size:26px; color:var(--P); font-weight:700; line-height:1; flex-shrink:0; margin-left:12px;">›</span>
+        <span style="font-size:30px; color:var(--P); font-weight:700; line-height:1; flex-shrink:0; margin-left:12px;">›</span>
       </div>
     `;
   }).join('');
