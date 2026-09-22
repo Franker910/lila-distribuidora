@@ -803,9 +803,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* =====================================================================
    MEJORAS MÓVIL — header duplicado, letra chica, listas con margen
+   Distribuidora Lila
+   =====================================================================
+   Pegar esto en index.html, justo ANTES de la línea que dice </style>
+   (al final del bloque <style> grande, después del último FIX que
+   ya está: "#inf-hist-chart{...}").
    ===================================================================== */
 
-/* 1) HEADER DUPLICADO: se oculta en pantallas móviles de vendedor */
+/* ---------------------------------------------------------------------
+   1) HEADER DUPLICADO
+   ---------------------------------------------------------------------
+   El .topbar de arriba (☰ Distribuidora Lila / usuario / Salir) se
+   oculta SOLO cuando la pantalla activa es una de vendedor por celular
+   (Pedido, Cobranza, Inicio del vendedor). Esas pantallas ya tienen su
+   propio header de color con su propio "← Volver", así que el topbar
+   de arriba sobra ahí y solo come espacio.
+   No se toca en ninguna otra pantalla (Dashboard, Clientes, Cargas,
+   etc. siguen con el topbar de siempre).
+   Se activa/desactiva sola con la clase body.modo-movil-vendedor,
+   que pone el script de más abajo (movil_header_observer.js). */
 body.modo-movil-vendedor .topbar,
 body.modo-movil-vendedor .nav {
   display: none !important;
@@ -815,7 +831,12 @@ body.modo-movil-vendedor .app-layout {
   height: 100dvh !important;
 }
 
-/* 2) LETRA MÁS GRANDE en las pantallas de vendedor por celular */
+/* ---------------------------------------------------------------------
+   2) LETRA MÁS GRANDE en las pantallas de vendedor por celular
+   ---------------------------------------------------------------------
+   Apunta por id a los textos clave de Pedido y Cobranza móvil.
+   Los valores de acá son un punto de partida — se pueden subir más
+   si Alexis/Fran lo prueban en el celular y lo siguen viendo chico. */
 @media (max-width: 600px) {
   body.modo-movil-vendedor #pm-cli-nombre,
   body.modo-movil-vendedor #cobm-cli-nombre {
@@ -837,7 +858,81 @@ body.modo-movil-vendedor .app-layout {
   }
 }
 
-/* 3) LISTAS SIN MARGEN DE CARD (localidad / cliente) */
+/* ---------------------------------------------------------------------
+   1b) ACHICAR EL HEADER DE PEDIDO MÓVIL ("NUEVO PEDIDO" / Volver / buscador)
+   ---------------------------------------------------------------------
+   Apunto directo a la estructura real que vi en index.html (línea
+   ~1114 en adelante): el header es el primer <div> hijo de
+   #p-pedido-movil, con padding:12px 14px. Adentro tiene:
+     - "NUEVO PEDIDO" (rótulo chico, no aporta nada — lo saco)
+     - el nombre del cliente / "Seleccioná un cliente"
+     - el botón "← Volver" (padding 12px 14px, min-height 48px)
+     - el buscador de cliente, con margin-top:8px
+   Esto es specificidad de ID/estructura real, no un supuesto. */
+#p-pedido-movil > div:first-child {
+  padding: 6px 12px !important;
+}
+/* "NUEVO PEDIDO" es el primer div dentro del bloque de texto — lo saco */
+#p-pedido-movil > div:first-child > div:first-child > div:first-child > div:first-child {
+  display: none !important;
+}
+#p-pedido-movil > div:first-child button {
+  padding: 8px 12px !important;
+  min-height: 38px !important;
+  font-size: 13px !important;
+}
+#pm-cli-busq-wrap {
+  margin-top: 4px !important;
+}
+#pm-cli-busq {
+  height: 36px !important;
+}
+
+/* ---------------------------------------------------------------------
+   2b) NOMBRE DEL CLIENTE más grande en la lista de localidades
+   ---------------------------------------------------------------------
+   La regla del punto 2 apuntaba a #pm-zonas-lista (el contenedor), pero
+   cada renglón (nombre, localidad, teléfono) trae su PROPIO font-size
+   puesto directo por ventas.js en el style de cada elemento — y ese
+   estilo inline le gana a una regla en el contenedor padre, aunque
+   tenga !important. Por eso no se vio más grande.
+   Acá apunto directo a TODO lo que hay adentro de cada renglón (*),
+   así se fuerza el tamaño sin importar qué estilo interno le haya
+   puesto ventas.js. Ojo: esto sube el nombre Y la línea de
+   localidad/teléfono por igual (no puedo darle un tamaño distinto a
+   cada uno sin ver el HTML real que arma ventas.js). Si querés el
+   nombre bien grande pero la línea de abajo más chica que esto,
+   avisame y en cuanto tenga ese archivo lo afino fino. */
+#pm-zonas-lista > div,
+#pm-cli-resultados-busqueda > div,
+#cobm-zonas-lista > div,
+#cobm-cli-lista > div {
+  font-size: 18px !important;
+}
+#pm-zonas-lista > div *,
+#pm-cli-resultados-busqueda > div *,
+#cobm-zonas-lista > div *,
+#cobm-cli-lista > div * {
+  font-size: 18px !important;
+}
+/* mismo problema, mismo arreglo, ahora también en Cobranza:
+   #cobm-zonas-lista (acordeón de zonas al elegir cliente para
+   cobrar) y #cobm-cli-lista (dropdown de resultados al buscar por
+   nombre) — no los había cubierto la primera vez. */
+
+/* ---------------------------------------------------------------------
+   3) LISTAS SIN MARGEN DE CARD (localidad / cliente)
+   ---------------------------------------------------------------------
+   Mismo criterio que YA usa el sistema en #pm-marcas-lista (línea
+   ~731 de index.html): ítems pegados, sin borde redondeado, solo una
+   línea fina separando uno de otro. Se lo aplico también a la lista
+   de localidades y a los resultados de búsqueda de cliente.
+   OJO: esto asume que ventas.js genera esa lista como <div> hijos
+   directos de #pm-zonas-lista (igual que ya pasa con las marcas). Si
+   en la práctica vienen envueltos en otra etiqueta (ej: cada
+   localidad dentro de un <div class="card">), avisen y lo ajusto con
+   el selector exacto — con el archivo real esto se resuelve en un
+   minuto, no hace falta que prueben a ciegas. */
 #pm-zonas-lista > div,
 #pm-cli-resultados-busqueda > div {
   margin: 0 !important;
@@ -5055,14 +5150,14 @@ body.modo-movil-vendedor .app-layout {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260922-02"></script>
-<script src="js/maestros.js?v=20260922-02"></script>
-<script src="js/ventas.js?v=20260922-02"></script>
-<script src="js/tesoreria.js?v=20260922-02"></script>
-<script src="js/contabilidad.js?v=20260922-02"></script>
-<script src="js/informes.js?v=20260922-02"></script>
-<script src="js/logistica.js?v=20260922-02"></script>
-<script src="js/movil_header_observer.js?v=20260922-02"></script>
+<script src="js/app.js?v=20260922-03"></script>
+<script src="js/maestros.js?v=20260922-03"></script>
+<script src="js/ventas.js?v=20260922-03"></script>
+<script src="js/tesoreria.js?v=20260922-03"></script>
+<script src="js/contabilidad.js?v=20260922-03"></script>
+<script src="js/informes.js?v=20260922-03"></script>
+<script src="js/logistica.js?v=20260922-03"></script>
+<script src="js/movil_header_observer.js?v=20260922-03"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
