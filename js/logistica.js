@@ -1203,34 +1203,33 @@ async function cargarHojaRutaRepartidor(fechaSel){
 let _cargasHoyCandidatas=[];
 
 function _renderRutaBadge(cantClientesRuta){
-  console.log('🔍 _renderRutaBadge() - INICIO, cantClientesRuta:', cantClientesRuta);
-  
   const badge=document.getElementById('cobm-ruta-badge');
   if(!badge)return;
-  const rutaTxt=cantClientesRuta?`📍 Ruta del día: ${cantClientesRuta} cliente${cantClientesRuta>1?'s':''}`:'⚠️ Sin hoja de ruta hoy — mostrando todos tus clientes';
-  if(_cargasHoyCandidatas.length>1&&!_cargaActivaHoy){
-    // Varias cargas emitidas hoy y ninguna elegida todavía: elegir.
-    badge.innerHTML=`<div style="margin-bottom:6px">${rutaTxt}</div>
-      <div style="font-weight:700;margin-bottom:4px">🚚 ¿Qué carga estás repartiendo?</div>
-      <div style="display:flex;flex-direction:column;gap:5px">
-        ${_cargasHoyCandidatas.map(c=>`<button onclick="elegirCargaActiva(${c.id})" style="text-align:left;padding:7px 10px;border-radius:6px;border:1.5px solid var(--P);background:#fff;color:var(--P);font-weight:600;font-family:inherit;cursor:pointer">Carga #${c.id}${esc(c.nombre?' · '+c.nombre:'')}</button>`).join('')}
-      </div>`;
-    badge.style.display='block';
+
+  // El badge solo se muestra cuando es imprescindible: 2 o más cargas
+  // emitidas hoy y el usuario todavía no eligió cuál está repartiendo.
+  // Sin este selector, los cobros quedarían vinculados a la carga
+  // equivocada o sin carga_id.
+  //
+  // En los demás casos se oculta por completo:
+  //   · 0 cargas → el cobro va con carga_id null, es normal
+  //   · 1 carga  → cargarHojaRutaRepartidor() ya la auto-asigna
+  //   · 2+ pero ya elegida → no hay nada que preguntar
+  if (_cargasHoyCandidatas.length < 2 || _cargaActivaHoy) {
+    badge.style.display = 'none';
+    badge.innerHTML = '';
+    if (typeof mostrarClientesDeRutaHoy === 'function') mostrarClientesDeRutaHoy();
     return;
   }
-  const partes=[rutaTxt];
-  if(_cargaActivaHoy)partes.push(`🚚 ${esc(_cargaActivaHoy.nombre||'Reparto #'+_cargaActivaHoy.id)}${_cargasHoyCandidatas.length>1?' <a href="#" onclick="event.preventDefault();_cargaActivaHoy=null;_renderRutaBadge('+cantClientesRuta+')" style="color:inherit;text-decoration:underline">(cambiar)</a>':''}`);
-  else partes.push('⚠️ Sin reparto emitido hoy — el cobro no quedará vinculado a una carga');
-  badge.innerHTML=partes.join(' · ');
-  badge.style.display='block';
 
-  console.log('✅ _renderRutaBadge() - llamando a mostrarClientesDeRutaHoy()');
-  // Verificar que la función existe antes de llamarla
-  if (typeof mostrarClientesDeRutaHoy === 'function') {
-    mostrarClientesDeRutaHoy();
-  } else {
-    console.warn('❌ mostrarClientesDeRutaHoy NO está definida');
-  }
+  badge.innerHTML = `
+    <div style="font-weight:700;margin-bottom:6px;font-size:13px">🚚 ¿Qué carga estás repartiendo?</div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      ${_cargasHoyCandidatas.map(c=>`<button onclick="elegirCargaActiva(${c.id})" style="text-align:left;padding:8px 12px;border-radius:8px;border:1.5px solid var(--P);background:#fff;color:var(--P);font-weight:600;font-family:inherit;cursor:pointer;font-size:13px">Carga #${c.id}${esc(c.nombre?' · '+c.nombre:'')}</button>`).join('')}
+    </div>`;
+  badge.style.display = 'block';
+
+  if (typeof mostrarClientesDeRutaHoy === 'function') mostrarClientesDeRutaHoy();
 }
 
 function elegirCargaActiva(cargaId){

@@ -2299,13 +2299,20 @@ function cobmAbrirCC(){
   document.getElementById('cobm-paso-cliente').style.display='none';
   document.getElementById('cobm-paso-cobro').style.display='none';
   document.getElementById('cobm-panel-cc').style.display='block';
+
+  // Ocultar el botón volver interno si se llegó desde el home
+  const btnVolver = document.getElementById('cobm-cc-btn-volver');
+  if(btnVolver) btnVolver.style.display = _cobmDesdeHome ? 'none' : '';
+
   const q=document.getElementById('cobm-cc-q');if(q)q.value='';
   const l=document.getElementById('cobm-cc-lista');if(l)l.innerHTML='';
   poblarSelectZona('cobm-cc-zon');
 }
 
 function cobmVolverAcciones(){
-  document.getElementById('cobm-acciones').style.display='block';
+  _cobmDesdeHome = false;
+  // cobm-acciones sigue oculta por diseño: los botones grandes viven en el
+  // home. No la volvemos a mostrar acá.
   document.getElementById('cobm-paso-cliente').style.display='block';
   document.getElementById('cobm-paso-cobro').style.display='none';
   document.getElementById('cobm-panel-cc').style.display='none';
@@ -2356,6 +2363,11 @@ function cobmAbrirMisCobranzas(){
   document.getElementById('cobm-paso-cobro').style.display='none';
   document.getElementById('cobm-panel-cc').style.display='none';
   document.getElementById('cobm-panel-miscobranzas').style.display='block';
+
+  // Ocultar el botón volver interno si se llegó desde el home
+  const btnVolver = document.getElementById('cobm-mc-btn-volver');
+  if(btnVolver) btnVolver.style.display = _cobmDesdeHome ? 'none' : '';
+
   _cobmcZona='';
   cobmSetPeriodo('mes');
 }
@@ -2574,9 +2586,10 @@ function limpiarCobMovil(){
     if(b){ b.style.background='#fff'; b.style.borderColor='var(--brd)'; b.style.color=''; }
   });
   
-  // Volver a pantalla principal de cobranza
+  // cobm-acciones está oculta por diseño (los accesos a CC y Mis cobranzas
+  // viven en el home). No la volvemos a mostrar acá.
   const acc=document.getElementById('cobm-acciones');
-  if(acc) acc.style.display='block';
+  if(acc) acc.style.display='none';
   
   const pcc=document.getElementById('cobm-panel-cc');
   if(pcc) pcc.style.display='none';
@@ -4198,4 +4211,23 @@ function cobmAutoImputar(){
   } else {
     toast(`✅ Repartido ${fmt(importe)} en las facturas más viejas`);
   }
+}
+
+// ─── Accesos directos desde el home del vendedor/repartidor ────────────────
+// Abren la cobranza móvil y saltan directo al sub-panel correspondiente.
+// El setTimeout le da tiempo a go('cobranza') a terminar su init (setear
+// el header, cargar la hoja de ruta, evaluar el badge) antes de abrir el
+// panel de CC o Mis cobranzas. Además seteamos _cobmDesdeHome=true para
+// que el sub-panel oculte su botón volver interno (el header ya lleva al
+// inicio en este caso).
+let _cobmDesdeHome = false;
+
+function irACuentaCorriente(){
+  go('cobranza');
+  setTimeout(()=>{ _cobmDesdeHome = true; cobmAbrirCC(); }, 120);
+}
+
+function irAMisCobranzas(){
+  go('cobranza');
+  setTimeout(()=>{ _cobmDesdeHome = true; cobmAbrirMisCobranzas(); }, 120);
 }

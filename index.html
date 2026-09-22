@@ -1278,6 +1278,16 @@ body.modo-movil-vendedor .app-layout {
             <span style="font-size:28px; line-height:1;">💰</span>
             <span>Cobrar</span>
           </button>
+          <button onclick="irACuentaCorriente()"
+            style="display:flex; align-items:center; gap:16px; width:100%; padding:16px 22px; background:var(--PL); color:var(--PD); border:none; border-radius:12px; font-size:16px; font-weight:600; cursor:pointer; -webkit-tap-highlight-color:transparent;">
+            <span style="font-size:22px; line-height:1;">📋</span>
+            <span>Cuenta corriente</span>
+          </button>
+          <button onclick="irAMisCobranzas()"
+            style="display:flex; align-items:center; gap:16px; width:100%; padding:16px 22px; background:#ede9fe; color:#5b21b6; border:none; border-radius:12px; font-size:16px; font-weight:600; cursor:pointer; -webkit-tap-highlight-color:transparent;">
+            <span style="font-size:22px; line-height:1;">📊</span>
+            <span>Mis cobranzas</span>
+          </button>
         </div>
       </div>
 
@@ -1927,7 +1937,7 @@ body.modo-movil-vendedor .app-layout {
     <div style="flex:1; overflow-y:auto; min-height:0; padding:12px;">
 
       <!-- Acciones principales: 2 botones horizontales del mismo ancho -->
-      <div id="cobm-acciones" style="display:flex;gap:10px;margin-bottom:16px">
+      <div id="cobm-acciones" style="display:none;gap:10px;margin-bottom:16px">
         <button onclick="cobmAbrirCC()"
           style="flex:1 1 0;min-width:0;padding:16px 8px;background:#1a6fa8;color:#fff;border:none;border-radius:16px;font-size:14px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 3px 10px rgba(26,111,168,.25)">
           📋 Cuenta corriente
@@ -1941,7 +1951,7 @@ body.modo-movil-vendedor .app-layout {
       <!-- Sub-panel: Cuenta corriente -->
       <div id="cobm-panel-cc" style="display:none;margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <button onclick="cobmVolverAcciones()"
+          <button id="cobm-cc-btn-volver" onclick="cobmVolverAcciones()"
             style="padding:12px 16px;background:var(--bg2);border:1.5px solid var(--brd);border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;min-height:48px;white-space:nowrap;-webkit-tap-highlight-color:transparent">
             ← Volver
           </button>
@@ -1959,7 +1969,7 @@ body.modo-movil-vendedor .app-layout {
       <!-- Sub-panel: Mis cobranzas -->
       <div id="cobm-panel-miscobranzas" style="display:none;margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <button onclick="cobmVolverAcciones()"
+          <button id="cobm-mc-btn-volver" onclick="cobmVolverAcciones()"
             style="padding:12px 16px;background:var(--bg2);border:1.5px solid var(--brd);border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;min-height:48px;white-space:nowrap;-webkit-tap-highlight-color:transparent">
             ← Volver
           </button>
@@ -5217,14 +5227,14 @@ body.modo-movil-vendedor .app-layout {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260922-09"></script>
-<script src="js/maestros.js?v=20260922-09"></script>
-<script src="js/ventas.js?v=20260922-09"></script>
-<script src="js/tesoreria.js?v=20260922-09"></script>
-<script src="js/contabilidad.js?v=20260922-09"></script>
-<script src="js/informes.js?v=20260922-09"></script>
-<script src="js/logistica.js?v=20260922-09"></script>
-<script src="js/movil_header_observer.js?v=20260922-09"></script>
+<script src="js/app.js?v=20260922-10"></script>
+<script src="js/maestros.js?v=20260922-10"></script>
+<script src="js/ventas.js?v=20260922-10"></script>
+<script src="js/tesoreria.js?v=20260922-10"></script>
+<script src="js/contabilidad.js?v=20260922-10"></script>
+<script src="js/informes.js?v=20260922-10"></script>
+<script src="js/logistica.js?v=20260922-10"></script>
+<script src="js/movil_header_observer.js?v=20260922-10"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
