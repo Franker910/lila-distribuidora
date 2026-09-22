@@ -613,7 +613,7 @@ function actualizarBtnRolMovil(){
   const btn=document.getElementById('btn-cambiar-rol-movil');
   if(!btn)return;
   const esRep=usuarioActual?.rol==='repartidor';
-  btn.textContent=esRep?'🔄 Cambiar a Vendedor':'🔄 Cambiar a Repartidor';
+  btn.textContent=esRep?'Repartidor':'Vendedor';
 }
 
 function toggleNavGroup(grupo){
