@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260921-07';
+const APP_VERSION = '20260922-01';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -1132,11 +1132,13 @@ function go(p,opts = {}) {
       document.getElementById('cob-movil').style.display='block';
       document.getElementById('cob-form-inline').style.display='none';
       limpiarCobMovil();
-      _cobmFiltroCli = null; // reset: el chip por defecto se decide al cargar _hrClientesHoy
+      _cobmFiltroCli = null;
       cargarHojaRutaRepartidor().then(()=>{
         cobmRenderChipsCli();
         cobmRenderZonasAcordeon();
       });
+      // Swipe: deslizar a la derecha en el paso de cobro = volver a elegir cliente
+      initSwipeCobranza();
     } else {
       document.getElementById('cob-movil').style.display='none';
       document.getElementById('cob-form-inline').style.display='block';

@@ -1790,6 +1790,9 @@ function abrirPedidoMovil(){
   if (busqCli) busqCli.value = '';
   const resCli = document.getElementById('pm-cli-busq-resultados');
   if (resCli) { resCli.style.display = 'none'; resCli.innerHTML = ''; }
+
+  // Swipe: deslizar a la derecha = volver un paso (Resumen→Productos→Cliente)
+  initSwipePedidoMovil();
 }
 
 function pmBuscarPorCod(){const cod=(document.getElementById('pm-cli-cod')?.value||'').trim();if(!cod)return;const c=_clientes.find(x=>String(x.codigo||x.id)===cod);if(c){selClienteMovil(c.id);document.getElementById('pm-cli-cod').style.borderColor='var(--P)';}else{document.getElementById('pm-cli-cod').style.borderColor='var(--D)';}}
@@ -3778,3 +3781,144 @@ function toggleResumenCarrito() {
     mostrarResumenMovil(); // abrir resumen
   }
 }
+
+// =====================================================
+// SWIPE ENTRE PANTALLAS (estilo Moviler) — código genérico
+// Distribuidora Lila
+// =====================================================
+// Qué hace: detecta cuando el vendedor desliza el dedo hacia la
+// izquierda o derecha sobre un contenedor, y dispara una función
+// para "avanzar" o "retroceder" de pantalla — igual que en Moviler,
+// donde no hay botón "Siguiente", se cambia deslizando.
+//
+// No depende de nada (sin librerías), va directo en cualquier
+// archivo js/ existente. Pegar esto al final del archivo donde
+// esté la lógica de "venta móvil" (probablemente js/ventas.js).
+// =====================================================
+
+// Umbral mínimo de arrastre horizontal para que cuente como swipe
+// (en píxeles). Si el dedo se movió menos que esto, no pasa nada
+// (para no confundir con un scroll vertical accidental).
+const SWIPE_UMBRAL_PX = 70;
+
+// Cuánto más horizontal que vertical tiene que ser el movimiento
+// para contar como swipe de cambio de pantalla, y no un scroll
+// de lista. 1.5 = el movimiento horizontal debe ser al menos
+// 1.5 veces el vertical.
+const SWIPE_RATIO_MIN = 1.5;
+
+/**
+ * Engancha detección de swipe horizontal sobre un elemento.
+ *
+ * @param {HTMLElement} elemento   El contenedor donde se escucha el gesto
+ *                                 (ej: el div que envuelve el paso actual del pedido).
+ * @param {Function} onSwipeIzq   Se llama cuando el dedo se arrastra hacia la
+ *                                 izquierda (avanzar de pantalla: Cliente → Items → Resumen).
+ * @param {Function} onSwipeDer   Se llama cuando el dedo se arrastra hacia la
+ *                                 derecha (retroceder de pantalla).
+ */
+function habilitarSwipe(elemento, onSwipeIzq, onSwipeDer) {
+  let startX = 0, startY = 0, startT = 0;
+
+  elemento.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    startX = t.clientX;
+    startY = t.clientY;
+    startT = Date.now();
+  }, { passive: true });
+
+  elemento.addEventListener('touchend', (e) => {
+    const t = e.changedTouches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    const dt = Date.now() - startT;
+
+    const distanciaHorizontal = Math.abs(dx);
+    const distanciaVertical = Math.abs(dy);
+
+    // Filtro 1: tiene que superar el umbral mínimo
+    if (distanciaHorizontal < SWIPE_UMBRAL_PX) return;
+
+    // Filtro 2: tiene que ser claramente más horizontal que vertical
+    // (si no, es un scroll de lista, no un cambio de pantalla)
+    if (distanciaHorizontal < distanciaVertical * SWIPE_RATIO_MIN) return;
+
+    // Filtro 3 (opcional): que no haya sido demasiado lento —
+    // un arrastre lento suele ser el usuario reacomodando el dedo,
+    // no una intención de swipe. 600ms es generoso.
+    if (dt > 600) return;
+
+    if (dx < 0) {
+      onSwipeIzq && onSwipeIzq();   // deslizó hacia la izquierda → avanzar
+    } else {
+      onSwipeDer && onSwipeDer();   // deslizó hacia la derecha → retroceder
+    }
+  }, { passive: true });
+}
+
+// =====================================================
+// APLICADO A PEDIDO MÓVIL (código real, con los ids y funciones
+// verdaderos de index.html — esto ya es copy-paste directo, no
+// hace falta ventas.js para esta parte)
+// =====================================================
+// Leyendo el index.html real: el pedido tiene 3 pasos
+// (pm-paso-cliente / pm-paso-productos / pm-paso-resumen) y YA
+// EXISTEN los botones para volver:
+//   - "← Volver" del header llama a volverHeaderPedidoMovil()
+//     (Productos → Cliente)
+//   - "Ver pedido →" del carrito llama a toggleResumenCarrito()
+//     (alterna entre Productos y Resumen)
+// El swipe no reimplementa nada: mira qué paso está visible ahora
+// y toca el mismo botón que tocaría el vendedor con el dedo.
+
+function initSwipePedidoMovil() {
+  const cont = document.getElementById('p-pedido-movil');
+  if (!cont || cont.dataset.swipeOn) return; // evita engancharlo 2 veces
+  cont.dataset.swipeOn = '1';
+
+  habilitarSwipe(
+    cont,
+    () => {}, // swipe izq: no hace nada por ahora (se avanza tocando cliente/producto, como en Cobranza)
+    () => {   // swipe der = volver un paso
+      const pasoProductos = document.getElementById('pm-paso-productos');
+      const pasoResumen = document.getElementById('pm-paso-resumen');
+      const enResumen = pasoResumen && getComputedStyle(pasoResumen).display !== 'none';
+      const enProductos = pasoProductos && getComputedStyle(pasoProductos).display !== 'none';
+
+      if (enResumen) {
+        toggleResumenCarrito();       // Resumen → Productos
+      } else if (enProductos) {
+        volverHeaderPedidoMovil();    // Productos → Cliente
+      }
+      // si ya está en paso-cliente, no hace nada (es la primera pantalla)
+    }
+  );
+}
+
+// Llamar initSwipePedidoMovil() una vez, al final de la función que
+// abre la pantalla de pedido móvil (abrirPedidoMovil(), en ventas.js
+// — buscar esa función ahí y agregar la llamada al final).
+
+// =====================================================
+// APLICADO A COBRANZA MÓVIL (código real, ya con los ids
+// verdaderos de tesoreria.js — esto sí es copy-paste directo)
+// =====================================================
+// A diferencia de Pedido, Cobranza NO es un wizard simétrico:
+// avanzar (de "elegir cliente" a "cargar cobro") ya pasa solo al
+// tocar un cliente de la lista. Lo que faltaba era volver para atrás
+// deslizando, en vez de depender solo del botón.
+
+function initSwipeCobranza() {
+  const pasoCobro = document.getElementById('cobm-paso-cobro');
+  if (!pasoCobro || pasoCobro.dataset.swipeOn) return; // evita engancharlo 2 veces
+  pasoCobro.dataset.swipeOn = '1';
+
+  habilitarSwipe(
+    pasoCobro,
+    () => {},                 // swipe izq acá no hace nada (no hay "paso siguiente")
+    () => cobmVolverAcciones() // swipe der = volver a elegir cliente (función ya existente)
+  );
+}
+
+// Llamar initSwipeCobranza() una vez, al abrir la pantalla de cobranza
+// móvil (por ejemplo, junto a donde ya se llama initDropdownCobMovil()).
