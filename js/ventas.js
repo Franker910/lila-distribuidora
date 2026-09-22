@@ -1824,6 +1824,18 @@ function selClienteMovil(id){
     console.error('❌ Cliente no encontrado:', id);
     return;
   }
+
+  // Si el usuario estaba armando un pedido para otro cliente, limpiar el carrito.
+  // Evita que queden productos "colgados" del cliente anterior al cambiar.
+  if (_pmCliId !== null && _pmCliId !== id && _pmCarrito.length > 0) {
+    _pmCarrito = [];
+    actualizarCarritoBar();
+    // Si el resumen estaba visible, volver al paso de productos
+    const pasoRes = document.getElementById('pm-paso-resumen');
+    if (pasoRes) pasoRes.style.display = 'none';
+    const pasoProd = document.getElementById('pm-paso-productos');
+    if (pasoProd) pasoProd.style.display = 'none';
+  }
   
   console.log('✅ Cliente seleccionado:', c.nombre);
   _pmCliId = id;
@@ -3647,12 +3659,23 @@ function toggleZonaAcordeon(header) {
 
 function filtrarClientesPorZonaGlobal() {
   const input = document.getElementById('pm-cli-busq');
-  const contenedor = document.getElementById('pm-zonas-lista');
-  const resultadosBusq = document.getElementById('pm-cli-busq-resultados'); // ✅ cambiar a este
-  if (!input || !contenedor || !resultadosBusq) return;
-
+  if (!input) return;
   const q = input.value.trim().toLowerCase();
-  
+
+  // ¿Estamos en la vista de una localidad? Entonces el header filtra clientes
+  // de esa localidad. Si no, filtra el listado general de zonas.
+  const pasoZona = document.getElementById('pm-paso-zona');
+  const enZona = pasoZona && pasoZona.style.display !== 'none';
+
+  if (enZona) {
+    pmRenderZonaClientes(q);
+    return;
+  }
+
+  const contenedor = document.getElementById('pm-zonas-lista');
+  const resultadosBusq = document.getElementById('pm-cli-busq-resultados');
+  if (!contenedor || !resultadosBusq) return;
+
   if (q.length === 0) {
     contenedor.style.display = 'block';
     resultadosBusq.style.display = 'none';
@@ -3662,7 +3685,7 @@ function filtrarClientesPorZonaGlobal() {
   }
 
   const clientesActivos = _clientes.filter(c => c.activo !== false);
-  const coincidencias = clientesActivos.filter(c => 
+  const coincidencias = clientesActivos.filter(c =>
     (c.nombre || '').toLowerCase().includes(q) ||
     String(c.codigo || '').includes(q) ||
     (c.localidad || '').toLowerCase().includes(q)
@@ -3894,7 +3917,6 @@ let _pmZonaActual = null;
 function pmAbrirZona(codigoZona) {
   _pmZonaActual = codigoZona;
 
-  // Crear el contenedor la primera vez
   let pasoZona = document.getElementById('pm-paso-zona');
   if (!pasoZona) {
     pasoZona = document.createElement('div');
@@ -3913,11 +3935,6 @@ function pmAbrirZona(codigoZona) {
       <div style="font-size:11px; color:var(--txt2); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Localidad</div>
       <div style="font-size:19px; font-weight:700; color:var(--PD); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(zonaTitulo)}</div>
     </div>
-    <div style="position:relative; margin-bottom:12px;">
-      <input id="pm-zona-busq" type="text" placeholder="🔍 Buscar cliente en esta localidad..." autocomplete="off"
-        oninput="pmFiltrarZona()"
-        style="width:100%; height:48px; font-size:16px; border:2px solid var(--P); border-radius:10px; padding:0 14px; box-sizing:border-box; font-family:inherit; background:#fff; color:#000;">
-    </div>
     <div id="pm-zona-lista"></div>
   `;
 
@@ -3925,9 +3942,17 @@ function pmAbrirZona(codigoZona) {
   if (pasoCli) pasoCli.style.display = 'none';
   pasoZona.style.display = 'block';
 
-  pmRenderZonaClientes('');
-  initSwipeZonaPedido();   
+  // Preparar el buscador del header para que filtre solo esta localidad
+  const busq = document.getElementById('pm-cli-busq');
+  if (busq) {
+    busq.value = '';
+    busq.placeholder = `🔍 Buscar en ${zonaTitulo}...`;
+  }
+  const resultados = document.getElementById('pm-cli-busq-resultados');
+  if (resultados) { resultados.style.display = 'none'; resultados.innerHTML = ''; }
 
+  pmRenderZonaClientes('');
+  initSwipeZonaPedido();
 }
 
 function pmRenderZonaClientes(filtro) {
@@ -3970,10 +3995,6 @@ function pmRenderZonaClientes(filtro) {
   `).join('');
 }
 
-function pmFiltrarZona() {
-  const q = document.getElementById('pm-zona-busq')?.value || '';
-  pmRenderZonaClientes(q);
-}
 
 function pmVolverAZonas() {
   _pmZonaActual = null;
@@ -3981,6 +4002,17 @@ function pmVolverAZonas() {
   const pasoCli = document.getElementById('pm-paso-cliente');
   if (pasoZona) pasoZona.style.display = 'none';
   if (pasoCli) pasoCli.style.display = 'block';
+
+  // Restaurar el placeholder del buscador y limpiar cualquier texto
+  const busq = document.getElementById('pm-cli-busq');
+  if (busq) {
+    busq.value = '';
+    busq.placeholder = '🔍 Buscar cliente por nombre o código...';
+  }
+  const resultados = document.getElementById('pm-cli-busq-resultados');
+  if (resultados) { resultados.style.display = 'none'; resultados.innerHTML = ''; }
+
+  renderClientesPorZona();
 }
 
 // Swipe derecho en la vista de zona = volver al listado de localidades.

@@ -2302,7 +2302,6 @@ function cobmAbrirCC(){
   const q=document.getElementById('cobm-cc-q');if(q)q.value='';
   const l=document.getElementById('cobm-cc-lista');if(l)l.innerHTML='';
   poblarSelectZona('cobm-cc-zon');
-  setTimeout(()=>{const q=document.getElementById('cobm-cc-q');if(q)q.focus();},100);
 }
 
 function cobmVolverAcciones(){
