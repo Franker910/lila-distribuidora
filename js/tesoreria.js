@@ -3039,9 +3039,9 @@ function cobmRenderZonasAcordeon(){
       ? `<span class="b bP" style="font-size:10px">${count}</span>`
       : `<span class="b" style="background:var(--bg2);color:var(--txt2);font-size:10px">0</span>`;
     return `<div class="cobm-zona-acordeon" style="border:1.5px solid var(--brd);border-radius:12px;margin-bottom:8px;overflow:hidden;background:#fff">
-      <div onclick="cobmToggleZonaAcordeon(this)" style="display:flex;justify-content:space-between;align-items:center;padding:14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;background:var(--bg2)">
-        <div style="flex:1;min-width:0;font-weight:700;font-size:15px">🗺 ${esc(zNom)}</div>
-        <div style="display:flex;gap:6px;align-items:center">
+      <div onclick="cobmToggleZonaAcordeon(this)" style="display:flex;justify-content:space-between;align-items:center;padding:14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;background:var(--bg2);gap:14px">
+        <div style="flex:1;min-width:0;font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🗺 ${esc(zNom)}</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
           ${badge}
           <span class="cobm-zona-chevron" style="font-size:16px;color:var(--txt2);transition:transform 0.2s">▶</span>
         </div>

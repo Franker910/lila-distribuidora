@@ -3646,10 +3646,10 @@ function renderClientesPorZona() {
     html += `
       <div class="zona-acordeon" style="border:1px solid var(--brd); border-radius:10px; margin-bottom:8px; overflow:hidden;">
         <div class="zona-header" onclick="toggleZonaAcordeon(this)" 
-          style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--bg2); cursor:pointer; user-select:none;">
-          <div style="font-weight:700; font-size:15px;">${esc(zonaDisplay)}</div>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:12px; color:var(--txt2);">${clientes.length} cliente${clientes.length!==1?'s':''}</span>
+          style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--bg2); cursor:pointer; user-select:none; gap:14px;">
+          <div style="font-weight:700; font-size:15px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(zonaDisplay)}</div>
+          <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+            <span style="font-size:12px; color:var(--txt2); white-space:nowrap;">${clientes.length} cliente${clientes.length!==1?'s':''}</span>
             <span class="zona-chevron" style="font-size:14px; color:var(--txt2); transition:transform 0.2s;">▶</span>
           </div>
         </div>
