@@ -1784,12 +1784,6 @@ function abrirPedidoMovil(){
   // ─── Actualizar carrito ─────────────────────────────────────────────
   actualizarCarritoBar();
   
-  // Poner foco en el buscador global
-  setTimeout(() => {
-    const busq = document.getElementById('pm-cli-busq');
-    if (busq) busq.focus();
-  }, 300);
-
   // Limpiar buscador de clientes (header)
   const busqCli = document.getElementById('pm-cli-busq');
   if (busqCli) busqCli.value = '';
@@ -3447,46 +3441,35 @@ function filtrarClientesZona() {
 // Reemplazar la parte del modo pedido en seleccionarZonaUniversal()
 
 function volverHeaderPedidoMovil() {
+  // Si estamos en la vista de una localidad → volver al listado de zonas
+  const pasoZona = document.getElementById('pm-paso-zona');
+  if (pasoZona && pasoZona.style.display !== 'none') {
+    pmVolverAZonas();
+    return;
+  }
+
   const pasoProductos = document.getElementById('pm-paso-productos');
   const pasoCliente = document.getElementById('pm-paso-cliente');
-  
-  // ─── Determinar si estamos en el paso de productos ──────────────────
-  const enProductos = pasoProductos && 
-                      pasoProductos.style.display !== 'none' && 
+
+  const enProductos = pasoProductos &&
+                      pasoProductos.style.display !== 'none' &&
                       pasoProductos.classList.contains('on');
 
-  // ─── Si estamos en productos, volver a clientes ────────────────────
   if (enProductos) {
-    // 1. Cambiar visibilidad de pasos
     pasoProductos.style.display = 'none';
     pasoProductos.classList.remove('on');
     if (pasoCliente) pasoCliente.style.display = 'block';
 
-    // 2. Cambiar visibilidad de buscadores (header)
     const cliBusq = document.getElementById('pm-cli-busq-wrap');
     const proBusq = document.getElementById('pm-pro-busq-wrap');
     if (cliBusq) cliBusq.style.display = 'block';
     if (proBusq) proBusq.style.display = 'none';
 
-    // 3. Limpiar buscador de clientes (input y resultados)
     const busqCli = document.getElementById('pm-cli-busq');
     if (busqCli) busqCli.value = '';
     const resCli = document.getElementById('pm-cli-busq-resultados');
-    if (resCli) {
-      resCli.style.display = 'none';
-      resCli.innerHTML = '';
-    }
+    if (resCli) { resCli.style.display = 'none'; resCli.innerHTML = ''; }
 
-    // 4. Limpiar buscador de productos (input y resultados) - por si acaso
-    const busqPro = document.getElementById('pm-pro-busq');
-    if (busqPro) busqPro.value = '';
-    const resPro = document.getElementById('pm-pro-busq-resultados');
-    if (resPro) {
-      resPro.style.display = 'none';
-      resPro.innerHTML = '';
-    }
-
-    // 5. Limpiar header del cliente (nombre, saldo, etc.)
     const nombreEl = document.getElementById('pm-cli-nombre');
     if (nombreEl) nombreEl.textContent = 'Seleccioná un cliente';
     const detalleEl = document.getElementById('pm-cli-detalle');
@@ -3496,31 +3479,15 @@ function volverHeaderPedidoMovil() {
     const saldoWrap = document.getElementById('pm-cli-saldo-wrap');
     if (saldoWrap) saldoWrap.style.display = 'none';
 
-    // 6. Resetear variables de estado
     _pmCliId = null;
     _pmClientesZonaActual = [];
     _cobZonaInput = '';
 
-    // 7. Ocultar carrito (si está visible)
     const carritoBar = document.getElementById('pm-carrito-bar');
     if (carritoBar) carritoBar.style.display = 'none';
 
-    // 8. Volver a renderizar los acordeones de zonas (estado inicial)
     renderClientesPorZona();
-
-    // Ocultar vista de zona si quedó abierta y resetear zona activa
-    const pasoZona = document.getElementById('pm-paso-zona');
-    if (pasoZona) pasoZona.style.display = 'none';
-    _pmZonaActual = null;
-
-    // 9. Poner foco en el buscador de clientes (header)
-    setTimeout(() => {
-      const busq = document.getElementById('pm-cli-busq');
-      if (busq) busq.focus();
-    }, 100);
-
   } else {
-    // ─── Si no estamos en productos, ir al home ──────────────────────
     go('vendedor-home');
   }
 }
@@ -3651,22 +3618,22 @@ function renderClientesPorZona() {
     return;
   }
 
-  contenedor.innerHTML = zonasOrdenadas.map(zona => {
+  contenedor.innerHTML = `<div style="display:flex; flex-direction:column; gap:12px;">${zonasOrdenadas.map(zona => {
     const clientes = zonasMap[zona].sort((a, b) => a.nombre.localeCompare(b.nombre));
     const zonaDisplay = zona === 'Sin zona' ? '🌍 Sin zona' : (nombreZona(zona) || zona);
     const zonaJsSafe = zona.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     return `
       <div class="zona-item" onclick="pmAbrirZona('${zonaJsSafe}')"
-        style="display:flex; justify-content:space-between; align-items:center; padding:24px 20px; margin-bottom:10px; background:var(--bg); border:2.5px solid var(--P); border-radius:12px; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; transition:background 0.15s;"
-        onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='var(--bg)'">
-        <div style="flex:1; min-width:0;">
-          <div style="font-weight:700; font-size:20px; color:var(--txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(zonaDisplay)}</div>
-          <div style="font-size:16px; color:var(--txt2); margin-top:4px;">${clientes.length} cliente${clientes.length!==1?'s':''}</div>
+        style="display:flex; justify-content:space-between; align-items:center; padding:14px; background:var(--bg2); border:1.5px solid #000; border-radius:12px; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; gap:14px; transition:background 0.15s;"
+        onmouseover="this.style.background='var(--PL)'" onmouseout="this.style.background='var(--bg2)'">
+        <div style="flex:1; min-width:0; font-weight:700; font-size:15px; color:var(--txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">🗺 ${esc(zonaDisplay)}</div>
+        <div style="display:flex; gap:6px; align-items:center; flex-shrink:0;">
+          <span class="b bP" style="font-size:10px;">${clientes.length}</span>
+          <span style="font-size:18px; color:var(--P); font-weight:700; line-height:1; transition:transform 0.2s;">›</span>
         </div>
-        <span style="font-size:30px; color:var(--P); font-weight:700; line-height:1; flex-shrink:0; margin-left:12px;">›</span>
       </div>
     `;
-  }).join('');
+  }).join('')}</div>`;
 }
 
 function toggleZonaAcordeon(header) {
@@ -3942,15 +3909,9 @@ function pmAbrirZona(codigoZona) {
   const zonaTitulo = codigoZona === 'Sin zona' ? 'Sin zona' : (nombreZona(codigoZona) || codigoZona);
 
   pasoZona.innerHTML = `
-    <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
-      <button onclick="pmVolverAZonas()"
-        style="background:var(--bg2); border:1.5px solid var(--brd); border-radius:10px; padding:10px 14px; font-size:15px; font-weight:600; cursor:pointer; min-height:46px; display:flex; align-items:center; gap:6px; color:var(--PD); font-family:inherit; -webkit-tap-highlight-color:transparent;">
-        <span style="font-size:18px;">←</span> Volver
-      </button>
-      <div style="flex:1; min-width:0;">
-        <div style="font-size:11px; color:var(--txt2); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Localidad</div>
-        <div style="font-size:19px; font-weight:700; color:var(--PD); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(zonaTitulo)}</div>
-      </div>
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px; color:var(--txt2); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Localidad</div>
+      <div style="font-size:19px; font-weight:700; color:var(--PD); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(zonaTitulo)}</div>
     </div>
     <div style="position:relative; margin-bottom:12px;">
       <input id="pm-zona-busq" type="text" placeholder="🔍 Buscar cliente en esta localidad..." autocomplete="off"
@@ -3967,7 +3928,6 @@ function pmAbrirZona(codigoZona) {
   pmRenderZonaClientes('');
   initSwipeZonaPedido();   
 
-  setTimeout(() => document.getElementById('pm-zona-busq')?.focus(), 100);
 }
 
 function pmRenderZonaClientes(filtro) {
@@ -4021,7 +3981,6 @@ function pmVolverAZonas() {
   const pasoCli = document.getElementById('pm-paso-cliente');
   if (pasoZona) pasoZona.style.display = 'none';
   if (pasoCli) pasoCli.style.display = 'block';
-  setTimeout(() => document.getElementById('pm-cli-busq')?.focus(), 100);
 }
 
 // Swipe derecho en la vista de zona = volver al listado de localidades.

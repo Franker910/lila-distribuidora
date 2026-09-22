@@ -1189,11 +1189,11 @@ body.modo-movil-vendedor .app-layout {
     <!-- Listas -->
     <div class="g2" style="margin-bottom:16px;">
       <div class="card">
-        <div class="sech"><h2>📄 Últimos remitos</h2><button class="btn sm" onclick="go('remitos')">Ver todos</button></div>
+        <div class="sech"><h2>Últimos remitos</h2><button class="btn sm" onclick="go('remitos')">Ver todos</button></div>
         <div id="d-rem-list"><div class="loading">Cargando...</div></div>
       </div>
       <div class="card">
-        <div class="sech"><h2>⚠️ Cuentas vencidas</h2><button class="btn sm" onclick="go('cuentas')">Ver todas</button></div>
+        <div class="sech"><h2>Cuentas vencidas</h2><button class="btn sm" onclick="go('cuentas')">Ver todas</button></div>
         <div id="d-venc-list"><div class="loading">Cargando...</div></div>
       </div>
     </div>
@@ -1473,7 +1473,7 @@ body.modo-movil-vendedor .app-layout {
   
   <!-- Título y botones -->
   <div class="sech" style="flex-shrink:0;">
-    <h2>🧾 Comprobantes de compras</h2>
+    <h2>Comprobantes de compras</h2>
     <div style="display:flex;gap:6px;">
       <button class="btn P" onclick="abrirComprobante()">+ Nuevo</button>
       <button class="btn A" onclick="document.getElementById('afip-csv-file').click()" title="Importar el CSV de Mis Comprobantes (recibidos) de AFIP">📥 Importar CSV</button>
@@ -1832,7 +1832,7 @@ body.modo-movil-vendedor .app-layout {
   
   <!-- Título y botón "Nuevo comprobante" -->
   <div class="sech" style="flex-shrink:0;">
-    <h2>📄 Remitos emitidos</h2>
+    <h2>Remitos emitidos</h2>
     <div style="position:relative;">
       <button class="btn P" onclick="toggleNuevoCompVentas(event)">+ Nuevo comprobante ▾</button>
       <div id="nuevo-comp-ventas-menu" style="display:none;position:absolute;right:0;top:110%;background:var(--bg);border:1px solid var(--brd);border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.14);z-index:500;min-width:210px;padding:6px 0">
@@ -2269,7 +2269,7 @@ body.modo-movil-vendedor .app-layout {
   <div class="doc-window" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden;">
     
     <div class="sech" style="flex-shrink:0;">
-      <h2>🏦 Caja y bancos</h2>
+      <h2>Caja y bancos</h2>
     </div>
     
     <!-- Tabs -->
@@ -2424,7 +2424,7 @@ body.modo-movil-vendedor .app-layout {
 <!-- CHEQUES EN CARTERA -->
 <div class="panel" id="p-cheques" style="display:flex; flex-direction:column; height:100%; padding:14px;">
   <div class="sech" style="flex-shrink:0;">
-    <h2>📋 Cheques en cartera</h2>
+    <h2>Cheques en cartera</h2>
     <div style="display:flex; gap:6px; align-items:center;">
       <select id="chq-filtro-estado" onchange="renderCarteraCheques(this.value)" style="padding:6px 10px;border:1px solid var(--brd);border-radius:6px;font-size:13px;font-family:inherit">
         <option value="">Todos los estados</option>
@@ -2460,7 +2460,7 @@ body.modo-movil-vendedor .app-layout {
   
   <!-- Título y total de deuda -->
   <div class="sech" style="flex-shrink:0;">
-    <h2>⚖️ Cuentas corrientes</h2>
+    <h2>Cuentas corrientes</h2>
     <div style="font-size:13px;color:var(--P);font-weight:600;" id="cc-total-deuda"></div>
   </div>
 
@@ -2635,7 +2635,7 @@ body.modo-movil-vendedor .app-layout {
 <!-- NOTAS DE CREDITO -->
 <div class="panel" id="p-nc" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">
   <div class="sech" style="flex-shrink:0;">
-    <h2>📋 NC / ND — Notas de crédito y débito</h2>
+    <h2>NC / ND — Notas de crédito y débito</h2>
     <div style="display:flex;gap:6px">
       <button class="btn P" onclick="abrirNC()">+ Nota de crédito</button>
       <button class="btn A" onclick="abrirND()">+ Nota de débito</button>
@@ -2762,7 +2762,7 @@ body.modo-movil-vendedor .app-layout {
   
   <!-- Título y botones principales -->
   <div class="sech" style="flex-shrink:0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-    <h2>💼 Rendición de cobranza</h2>
+    <h2>Rendición de cobranza</h2>
   </div>
 
   <!-- Contenido scrolleable -->
@@ -2863,7 +2863,7 @@ body.modo-movil-vendedor .app-layout {
 <!-- REMITO RAPIDO -->
 <div class="panel" id="p-remito-rapido">
   <div class="sech" style="flex-shrink:0">
-    <h2>⚡ Remito rápido</h2>
+    <h2>Remito rápido</h2>
   </div>
 
   <input type="hidden" id="rr-fecha">
@@ -2960,7 +2960,7 @@ body.modo-movil-vendedor .app-layout {
   
   <!-- Título y botones principales -->
   <div class="sech" style="flex-shrink:0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; width: 200px;">
-    <h2>📊 Control de stock y merma</h2>
+    <h2>Control de stock y merma</h2>
     <div style="display:flex; gap:6px;">
       <button id="stock-btn-nuevo" class="btn P" onclick="iniciarConteo()">+ Nuevo conteo</button>  
     </div>
@@ -3043,7 +3043,7 @@ body.modo-movil-vendedor .app-layout {
     
     <!-- Título y botón "Nuevo gasto" -->
     <div style="margin-bottom:10px;">
-      <h2 style="margin:0 0 6px 0; font-size:15px;">📝 Gastos</h2>
+      <h2 style="margin:0 0 6px 0; font-size:15px;">Gastos</h2>
       <button class="btn P" onclick="abrirGasto()">+ Nuevo gasto</button>
     </div>
 
@@ -3083,14 +3083,14 @@ body.modo-movil-vendedor .app-layout {
 
   <!-- SECCIÓN ASIENTOS (próximamente) -->
   <div id="cont-asientos" style="display:none">
-    <h2 style="margin-bottom:14px">📖 Asientos manuales</h2>
+    <h2 style="margin-bottom:14px">Asientos manuales</h2>
     <div style="color:var(--txt2);font-style:italic;padding:20px">Próximamente — asientos manuales para ajustes contables.</div>
   </div>
 
   <!-- SECCIÓN MAYOR -->
   <div id="cont-mayor" style="display:none; display:flex; flex-direction:column; height:100%;">
     <div class="sech" style="margin-bottom:10px; flex-shrink:0;">
-      <h2 style="margin:0; font-size:15px;">📊 Mayor de cuentas</h2>
+      <h2 style="margin:0; font-size:15px;">Mayor de cuentas</h2>
     </div>
 
     <!-- Filtros en una sola fila -->
@@ -3130,7 +3130,7 @@ body.modo-movil-vendedor .app-layout {
 
 <!-- SECCIÓN ESTADO DE RESULTADO -->
 <div id="cont-resultado" style="display:none">
-  <div class="sech" style="margin-bottom:10px"><h2>💹 Estado de Resultado</h2></div>
+  <div class="sech" style="margin-bottom:10px"><h2>Estado de Resultado</h2></div>
   
   <!-- Filtros-->
   <div class="tb" style="flex-shrink:0; flex-wrap:wrap; gap:8px; margin-bottom:12px; align-items:flex-end;">
@@ -3168,7 +3168,7 @@ body.modo-movil-vendedor .app-layout {
       #cont-mensual .fox-res-neg{color:#b00020;font-weight:700}
     </style>
     <div class="sech" style="margin-bottom:10px">
-      <h2>📅 Resultado mensual (datos FoxPro)</h2>
+      <h2>Resultado mensual (datos FoxPro)</h2>
     </div>
     <div class="fox" style="margin-bottom:12px">
       <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px">
@@ -4669,7 +4669,7 @@ body.modo-movil-vendedor .app-layout {
   
   <!-- HEADER FIJO -->
   <div style="flex-shrink:0; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-    <h2 style="margin:0; font-size:20px;">💲 Listas de precios</h2>
+    <h2 style="margin:0; font-size:20px;">Listas de precios</h2>
     <button class="btn P" onclick="nuevaListaPrecio()" id="lp-btn-nueva">+ Nueva lista</button>
   </div>
 
@@ -4788,7 +4788,7 @@ body.modo-movil-vendedor .app-layout {
 <!-- MAESTROS PROVEEDORES -->
 <div class="panel" id="p-maestro-proveedores" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">
   <div class="sech" style="flex-shrink:0;">
-    <h2>🏭 Proveedores</h2>
+    <h2>Proveedores</h2>
     <button class="btn P" onclick="abrirProveedor()">+ Nuevo</button>
   </div>
 
@@ -5217,14 +5217,14 @@ body.modo-movil-vendedor .app-layout {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260922-07"></script>
-<script src="js/maestros.js?v=20260922-07"></script>
-<script src="js/ventas.js?v=20260922-07"></script>
-<script src="js/tesoreria.js?v=20260922-07"></script>
-<script src="js/contabilidad.js?v=20260922-07"></script>
-<script src="js/informes.js?v=20260922-07"></script>
-<script src="js/logistica.js?v=20260922-07"></script>
-<script src="js/movil_header_observer.js?v=20260922-07"></script>
+<script src="js/app.js?v=20260922-08"></script>
+<script src="js/maestros.js?v=20260922-08"></script>
+<script src="js/ventas.js?v=20260922-08"></script>
+<script src="js/tesoreria.js?v=20260922-08"></script>
+<script src="js/contabilidad.js?v=20260922-08"></script>
+<script src="js/informes.js?v=20260922-08"></script>
+<script src="js/logistica.js?v=20260922-08"></script>
+<script src="js/movil_header_observer.js?v=20260922-08"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
