@@ -1477,6 +1477,8 @@ function hrInit(){
     hrCargarRuta();
     return;
   }
+
+  _initSwipeVolverHome('p-hoja-ruta');
   
   //  Fallback: mostrar admin por defecto
   if (panelAdmin) panelAdmin.style.display = 'block';

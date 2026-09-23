@@ -3035,6 +3035,7 @@ function abrirNCMovil() {
   actualizarTotalNCM();
   
   setTimeout(() => document.getElementById('ncm-cli-q').focus(), 100);
+  _initSwipeVolverHome('p-nc-movil');
 }
 
 // ─── BUSCADOR DE CLIENTES ──────────────────────────────────────────────
@@ -3909,6 +3910,21 @@ function habilitarSwipe(elemento, onSwipeIzq, onSwipeDer) {
       onSwipeDer && onSwipeDer();   // deslizó hacia la derecha → retroceder
     }
   }, { passive: true });
+}
+
+// Engancha swipe derecho sobre un panel completo: al deslizar hacia la
+// derecha, vuelve a vendedor-home. Se usa en paneles que no tienen
+// pasos internos (NC móvil, Hoja de ruta): un solo swipe alcanza para
+// volver. Se engancha una sola vez por contenedor (dataset.swipeOn).
+function _initSwipeVolverHome(panelId){
+  const panel = document.getElementById(panelId);
+  if (!panel || panel.dataset.swipeOn) return;
+  panel.dataset.swipeOn = '1';
+  habilitarSwipe(
+    panel,
+    () => {},                        // swipe izq: no aplica
+    () => go('vendedor-home')        // swipe der: volver al home
+  );
 }
 
 // ─────────────────────────────────────────────────────────────

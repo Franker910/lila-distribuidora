@@ -1303,9 +1303,6 @@ body.modo-movil-vendedor .app-layout {
   
   <!-- Volver (visible solo en móvil) -->
   <div id="pedidos-btn-volver-movil" style="display:none; flex-shrink:0; padding:0 0 8px 0;">
-    <button onclick="go('vendedor-home')" style="background:var(--bg2);border:1.5px solid var(--brd);border-radius:10px;font-size:20px;cursor:pointer;color:var(--PD);display:flex;align-items:center;gap:8px;padding:12px 16px;min-height:48px;-webkit-tap-highlight-color:transparent">
-      <span>←</span><span style="font-size:15px;font-weight:600">Volver al inicio</span>
-    </button>
   </div>
 
   <!-- Título FIJO -->
@@ -1346,7 +1343,6 @@ body.modo-movil-vendedor .app-layout {
         <div id="pm-cli-detalle" style="font-size:11px;opacity:0.8;margin-top:2px;"></div>
       </div>
       <div style="text-align:right;flex-shrink:0;margin-left:10px;">
-        <button id="pm-btn-volver-header" onclick="volverHeaderPedidoMovil()" style="background:rgba(255,255,255,0.22);border:none;color:#fff;border-radius:10px;padding:12px 14px;font-size:14px;font-weight:600;cursor:pointer;min-height:48px;min-width:80px;white-space:nowrap;-webkit-tap-highlight-color:transparent;">← Volver</button>
         <div id="pm-cli-saldo-wrap" style="display:none;cursor:pointer;background:rgba(255,255,255,0.08);border-radius:8px;padding:4px 12px;margin-top:4px;text-align:center;border:1px solid rgba(255,255,255,0.12);" onclick="verSaldoMovil()">
           <div style="font-size:10px;opacity:0.7;font-weight:600;letter-spacing:0.3px;">SALDO CC</div>
           <div id="pm-cli-saldo" style="font-size:22px;font-weight:700;line-height:1.2;"></div>
@@ -1704,7 +1700,6 @@ body.modo-movil-vendedor .app-layout {
         <div style="font-size:11px;opacity:0.8">MI COBRANZA</div>
         <div style="font-size:16px;font-weight:700" id="cob-hoy-titulo">Hoy</div>
       </div>
-      <button onclick="go('vendedor-home')" style="background:rgba(255,255,255,0.22);border:none;color:#fff;border-radius:10px;padding:12px 14px;font-size:14px;font-weight:600;cursor:pointer;min-height:48px;min-width:104px;white-space:nowrap;-webkit-tap-highlight-color:transparent">← Volver</button>
     </div>
   </div>
   <!-- KPIs -->
@@ -1927,7 +1922,6 @@ body.modo-movil-vendedor .app-layout {
           <div id="cobm-cli-saldo" style="font-size:13px;opacity:0.85"></div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;align-items:stretch;flex-shrink:0">
-          <button id="cobm-btn-volver-header" onclick="go('vendedor-home')" style="background:rgba(255,255,255,0.22);border:none;color:#fff;border-radius:10px;padding:12px 14px;font-size:14px;font-weight:600;cursor:pointer;min-height:48px;min-width:104px;white-space:nowrap;-webkit-tap-highlight-color:transparent">← Volver</button>
           <button id="cobm-btn-cc" onclick="cobmVerCCActual()" style="display:none;background:rgba(255,255,255,0.22);border:none;color:#fff;border-radius:10px;padding:12px 14px;font-size:14px;font-weight:600;cursor:pointer;min-height:48px;min-width:104px;white-space:nowrap;-webkit-tap-highlight-color:transparent">📋 Cta. cte.</button>
         </div>
       </div>
@@ -1951,10 +1945,6 @@ body.modo-movil-vendedor .app-layout {
       <!-- Sub-panel: Cuenta corriente -->
       <div id="cobm-panel-cc" style="display:none;margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <button id="cobm-cc-btn-volver" onclick="cobmVolverAcciones()"
-            style="padding:12px 16px;background:var(--bg2);border:1.5px solid var(--brd);border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;min-height:48px;white-space:nowrap;-webkit-tap-highlight-color:transparent">
-            ← Volver
-          </button>
           <div style="font-size:13px;font-weight:700;color:var(--txt)">Cuenta corriente</div>
         </div>
         <input id="cobm-cc-q" type="text" inputmode="text" placeholder="🔍 Buscá por nombre o código..." autocomplete="off"
@@ -1969,10 +1959,6 @@ body.modo-movil-vendedor .app-layout {
       <!-- Sub-panel: Mis cobranzas -->
       <div id="cobm-panel-miscobranzas" style="display:none;margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <button id="cobm-mc-btn-volver" onclick="cobmVolverAcciones()"
-            style="padding:12px 16px;background:var(--bg2);border:1.5px solid var(--brd);border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;min-height:48px;white-space:nowrap;-webkit-tap-highlight-color:transparent">
-            ← Volver
-          </button>
           <div style="font-size:13px;font-weight:700;color:var(--txt)">Mis cobranzas</div>
         </div>
         <div style="background:var(--bg2);border-radius:12px;padding:10px 12px;margin-bottom:12px">
@@ -2666,7 +2652,6 @@ body.modo-movil-vendedor .app-layout {
   
   <!-- HEADER -->
   <div style="flex-shrink:0; background:var(--PD); color:#fff; padding:12px 14px; display:flex; align-items:center; gap:10px;">
-    <button onclick="go('vendedor-home')" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:10px;padding:10px 14px;font-size:16px;font-weight:600;cursor:pointer;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center;">←</button>
     <div>
       <div style="font-size:11px;opacity:0.8;">REGISTRAR DEVOLUCIÓN</div>
       <div style="font-size:16px;font-weight:700;">📋 Nota de crédito</div>
@@ -4879,11 +4864,6 @@ body.modo-movil-vendedor .app-layout {
   
   <!-- HEADER -->
   <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; padding-bottom:12px;">
-    <button onclick="go('vendedor-home')" id="hr-btn-volver"
-      style="display:none; min-width:48px; min-height:48px; padding:0 10px 0 4px; background:none; border:none; cursor:pointer; color:var(--PD); flex-shrink:0; align-items:center; gap:4px; border-radius:10px; -webkit-tap-highlight-color:transparent"
-      aria-label="Volver al inicio">
-      <span style="font-size:26px; line-height:1;">←</span><span style="font-size:14px; font-weight:600;">Volver</span>
-    </button>
     <h2 style="margin:0; flex:1; font-size:18px;">🗺 Hoja de ruta</h2>
   </div>
 
@@ -5228,13 +5208,13 @@ body.modo-movil-vendedor .app-layout {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="js/app.js?v=20260923-06"></script>
-<script src="js/maestros.js?v=20260923-06"></script>
-<script src="js/ventas.js?v=20260923-06"></script>
-<script src="js/tesoreria.js?v=20260923-06"></script>
-<script src="js/contabilidad.js?v=20260923-06"></script>
-<script src="js/informes.js?v=20260923-06"></script>
-<script src="js/logistica.js?v=20260923-06"></script>
-<script src="js/movil_header_observer.js?v=20260923-06"></script>
+<script src="js/maestros.js?v=20260923-07"></script>
+<script src="js/ventas.js?v=20260923-07"></script>
+<script src="js/tesoreria.js?v=20260923-07"></script>
+<script src="js/contabilidad.js?v=20260923-07"></script>
+<script src="js/informes.js?v=20260923-07"></script>
+<script src="js/logistica.js?v=20260923-07"></script>
+<script src="js/movil_header_observer.js?v=20260923-07"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
