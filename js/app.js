@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260923-01';
+const APP_VERSION = '20260923-02';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -1941,6 +1941,29 @@ function _navCerrarCapaSuperior() {
   if (sidebar && sidebar.classList.contains('open')) {
     cerrarMenu();
     return true;
+  }
+  // 4. Pedido móvil: si hay un paso más profundo que la lista de
+  //    clientes/zonas (Productos, Resumen, o el detalle de una
+  //    zona), el atrás retrocede un paso EN VEZ de cambiar de panel
+  //    — así no se pierde el cliente elegido ni el carrito.
+  const panelPedido = document.getElementById('p-pedido-movil');
+  if (panelPedido && panelPedido.classList.contains('on')) {
+    const pasoResumen = document.getElementById('pm-paso-resumen');
+    const pasoProductos = document.getElementById('pm-paso-productos');
+    const pasoZona = document.getElementById('pm-paso-zona');
+    const enResumen = pasoResumen && getComputedStyle(pasoResumen).display !== 'none';
+    const enProductos = pasoProductos && getComputedStyle(pasoProductos).display !== 'none';
+    const enZona = pasoZona && getComputedStyle(pasoZona).display !== 'none';
+    if (enResumen || enProductos || enZona) {
+      if (enResumen) volverProductosMovil();
+      else if (enProductos) volverHeaderPedidoMovil();
+      else if (enZona) pmVolverAZonas();
+      // El navegador ya hizo un "pop" real del historial al apretar
+      // atrás. Lo volvemos a clavar para que el PRÓXIMO atrás siga
+      // encontrando este mismo panel, en vez de saltar de más.
+      history.pushState({type:'panel', panel:'pedido-movil'}, '', location.pathname);
+      return true;
+    }
   }
   return false;
 }
