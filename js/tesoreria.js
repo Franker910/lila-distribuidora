@@ -1095,13 +1095,24 @@ function renderSinHojaRuta(){
   const el=document.getElementById('rend-sin-hoja');if(!el)return;
   const countEl=document.getElementById('rend-sin-hoja-count');
   const mostrarTodos=document.getElementById('rend-mostrar-todos')?.checked;
+
+  // Mismo rango de fechas que usa renderListaHojasRuta(). Sin esto, el
+  // acordeón mostraba cobros huérfanos de cualquier día y descolocaba
+  // al usuario cuando filtraba por "hoy" y le aparecían cobros de ayer.
+  const desde=document.getElementById('rend-hr-desde')?.value||'';
+  const hasta=document.getElementById('rend-hr-hasta')?.value||'';
+
   const hojaKeys=new Set(_hojaRutaTodas.map(r=>String(r.cliente_id)+'|'+r.fecha));
   let cobrosSinHoja=_cobros.filter(c=>!hojaKeys.has(String(c.cliente_id)+'|'+c.fecha));
+
+  // Filtro de fechas primero (aplica siempre)
+  if(desde)cobrosSinHoja=cobrosSinHoja.filter(c=>(c.fecha||'')>=desde);
+  if(hasta)cobrosSinHoja=cobrosSinHoja.filter(c=>(c.fecha||'')<=hasta);
+
+  // Por defecto, solo los "realmente huérfanos": pendientes y sin
+  // número de rendición. Cuando se les asigna número desde el botón
+  // "Asignar número automático", salen de esta lista.
   if(!mostrarTodos){
-    // Por defecto solo mostramos los "realmente huérfanos": pendientes y
-    // sin número de rendición. Cuando se les asigna número desde el botón
-    // "Asignar número automático", dejan de ser huérfanos y salen de esta
-    // lista (aunque sigan pendientes de aprobación).
     cobrosSinHoja=cobrosSinHoja.filter(c=>
       (c.estado_rendicion||'pendiente')==='pendiente'
       && !c.numero_rendicion
@@ -2307,6 +2318,7 @@ function cobmAbrirCC(){
   const q=document.getElementById('cobm-cc-q');if(q)q.value='';
   const l=document.getElementById('cobm-cc-lista');if(l)l.innerHTML='';
   poblarSelectZona('cobm-cc-zon');
+  buscarClienteCC();
 }
 
 function cobmVolverAcciones(){
@@ -2325,13 +2337,26 @@ function buscarClienteCC(){
   const zonaFil=document.getElementById('cobm-cc-zon')?.value||'';
   const lista=document.getElementById('cobm-cc-lista');
   if(!lista)return;
-  if(!q&&!zonaFil){lista.innerHTML='';return;}
-  const res=_clientes.filter(c=>
-    ((c.nombre||'').toLowerCase().includes(q)||(c.codigo||'').toString().includes(q))
-    &&(!zonaFil||c.zona===zonaFil)
-  ).slice(0,8);
-  if(!res.length){lista.innerHTML='<div style="font-size:13px;color:var(--txt2);padding:8px 0">Sin resultados</div>';return;}
-  lista.innerHTML=res.map(c=>`
+
+  // Al abrir el panel no hay filtros, así que mostramos todos los clientes
+  // activos ordenados por nombre. Si el usuario escribe o elige una zona,
+  // se filtra sobre ese universo. Tope de 100 para no congelar el celu con
+  // padrones grandes — si hay más, el buscador es la vía para acotar.
+  const res = _clientes
+    .filter(c => c.activo !== false)
+    .filter(c =>
+      (!q || (c.nombre||'').toLowerCase().includes(q) || (c.codigo||'').toString().includes(q))
+      && (!zonaFil || c.zona === zonaFil)
+    )
+    .sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''))
+    .slice(0, 100);
+
+  if(!res.length){
+    lista.innerHTML = '<div style="font-size:13px;color:var(--txt2);padding:12px 0;text-align:center">Sin resultados</div>';
+    return;
+  }
+
+  lista.innerHTML = res.map(c=>`
     <div onclick="cobmIrCC(${c.id})"
       style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg2);border-radius:10px;margin-bottom:6px;cursor:pointer;border:1.5px solid var(--brd);-webkit-tap-highlight-color:transparent">
       <div style="flex:1;min-width:0">
@@ -3983,7 +4008,7 @@ function limpiarFiltrosRendicion() {
   // la fecha a mano.
   document.getElementById('rend-hr-desde').value = hoyLocal();
   document.getElementById('rend-hr-hasta').value = hoyLocal();
-  renderListaHojasRuta();
+  renderRendicion();
 }
 
 // ─── SELECCIONAR ZONA (UNIVERSAL: cobranza o pedido móvil) ───────────

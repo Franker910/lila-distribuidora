@@ -1733,6 +1733,10 @@ function abrirPedidoMovil(){
   _cobZonaInput = '';
   _pmMarcaAbierta = null;
 
+  // Asegurar que el botón volver esté visible al entrar de nuevo al flujo
+  const _pmBtnVolver = document.getElementById('pm-btn-volver-header');
+  if (_pmBtnVolver) _pmBtnVolver.style.display = '';
+
   // Resetear vista de zona
   const _pmPasoZona = document.getElementById('pm-paso-zona');
   if (_pmPasoZona) _pmPasoZona.style.display = 'none';
@@ -2006,6 +2010,11 @@ function _mostrarPasoProductosMovil() {
       console.log('✅ Marcas renderizadas, cantidad de productos:', _productos?.length || 0);
     });
   });
+
+  // El paso de productos se retrocede con swipe (initSwipePedidoMovil).
+  // Ocultamos el botón "← Volver" del header para dejarlo más limpio.
+  const btnVolver = document.getElementById('pm-btn-volver-header');
+  if (btnVolver) btnVolver.style.display = 'none';
 }
 
 async function verSaldoMovil(){
@@ -3513,6 +3522,10 @@ function volverHeaderPedidoMovil() {
     const carritoBar = document.getElementById('pm-carrito-bar');
     if (carritoBar) carritoBar.style.display = 'none';
 
+    // Al volver de Productos a Cliente, mostrar de nuevo el botón volver
+    const btnVolver = document.getElementById('pm-btn-volver-header');
+    if (btnVolver) btnVolver.style.display = '';
+
     renderClientesPorZona();
   } else {
     go('vendedor-home');
@@ -3979,6 +3992,12 @@ function pmAbrirZona(codigoZona) {
   if (resultados) { resultados.style.display = 'none'; resultados.innerHTML = ''; }
 
   pmRenderZonaClientes('');
+  
+  // En la vista de localidad el botón volver sigue siendo útil (vuelve a
+  // zonas), así que lo aseguramos visible.
+  const btnVolverZona = document.getElementById('pm-btn-volver-header');
+  if (btnVolverZona) btnVolverZona.style.display = '';
+
   initSwipeZonaPedido();
 }
 
