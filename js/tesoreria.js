@@ -1462,8 +1462,8 @@ function renderCC(){
     const venc=c.saldo>0&&dias!==null&&dias>(c.condicion_pago||0)+5;
     const dColor=dias===null?'':venc?'color:var(--D);font-weight:600':dias<=(c.condicion_pago||0)?'color:var(--P)':'color:var(--W)';
     return `<tr style="${venc?'background:var(--DL)':''};cursor:pointer" onclick="histCliente(${c.id})">
+      <td style="color:var(--txt2);font-size:12px;text-align:center;font-variant-numeric:tabular-nums">${esc(c.codigo||c.id)}</td>
       <td style="font-weight:600">
-        <span style="font-size:13px;color:var(--txt2);margin-right:4px">${esc(c.codigo||c.id)}</span>
         ${esc(c.nombre)}
         <div style="font-size:10px;color:var(--txt2)">${esc(c.telefono||'')}</div>
       </td>
@@ -1479,7 +1479,7 @@ function renderCC(){
         <button class="btn P sm" onclick="cobroRapido(${c.id})">💰</button>
       </td>
     </tr>`;
-  }).join(''):'<tr><td colspan="9"><div class="empty">Sin resultados</div></td></tr>';
+  }).join(''):'<tr><td colspan="10"><div class="empty">Sin resultados</div></td></tr>';
   pag('cc-pg',tot,_ccPg,p=>{_ccPg=p;renderCC();});
 }
 

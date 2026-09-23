@@ -66,9 +66,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .login-logo{font-size:48px;margin-bottom:12px}
 .login-title{font-size:22px;font-weight:600;color:var(--PD);margin-bottom:4px}
 .login-sub{font-size:13px;color:var(--txt2);margin-bottom:28px}
-.login-box input{width:100%;padding:11px 14px;border:1.5px solid var(--brd);border-radius:8px;font-size:14px;margin-bottom:12px;font-family:inherit}
+.login-box input{width:100%;padding:15px 16px;border:2px solid var(--brd);border-radius:10px;font-size:17px;margin-bottom:14px;font-family:inherit}
 .login-box input:focus{outline:none;border-color:var(--P)}
-.login-btn{width:100%;padding:12px;background:var(--P);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;font-family:inherit}
+.login-btn{width:100%;padding:16px;background:var(--P);color:#fff;border:none;border-radius:10px;font-size:18px;font-weight:600;cursor:pointer;font-family:inherit}
 .login-btn:hover{background:var(--PD)}
 .login-error{color:var(--D);font-size:12px;margin-top:8px}
 
@@ -1028,20 +1028,20 @@ body.modo-movil-vendedor .app-layout {
     <div style="position:relative; width:100%;">
       <input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password" 
             onkeydown="if(event.key==='Enter')doLogin()"
-            style="width:100%; padding:11px 44px 11px 14px; border:1.5px solid var(--brd); border-radius:8px; font-size:14px; font-family:inherit; box-sizing:border-box;">
+            style="width:100%; padding:15px 60px 15px 16px; border:2px solid var(--brd); border-radius:10px; font-size:17px; font-family:inherit; box-sizing:border-box;">
       <button type="button" 
               onclick="togglePasswordVisibility()" 
               tabindex="-1"
               onmousedown="event.preventDefault();"
-              style="position:absolute; right:12px; top:50%; transform:translateY(-50%); 
-                    background:none; border:none; cursor:pointer; font-size:20px; 
-                    color:#666; padding:0; width:32px; height:32px; 
+              style="position:absolute; right:10px; top:50%; transform:translateY(-50%); 
+                    background:none; border:none; cursor:pointer; font-size:26px; 
+                    color:#666; padding:0; width:46px; height:46px; 
                     display:flex; align-items:center; justify-content:center; border-radius:50%; 
                     transition:background 0.2s;"
               onmouseover="this.style.background='rgba(0,0,0,0.05)'"
               onmouseout="this.style.background='none'"
               aria-label="Mostrar contraseña">
-        <svg id="eye-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg id="eye-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
           <circle cx="12" cy="12" r="3"/>
         </svg>
@@ -2488,6 +2488,7 @@ body.modo-movil-vendedor .app-layout {
       <table class="tbl">
         <thead>
           <tr>
+            <th style="width:60px;text-align:center">Código</th>
             <th>Cliente</th>
             <th>Localidad</th>
             <th>Zona</th>
