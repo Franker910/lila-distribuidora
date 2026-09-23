@@ -1717,7 +1717,9 @@ function renderVendedorHome(){
   }
 }
 
-function abrirPedidoMovil(){
+function abrirPedidoMovil(origen){
+  _pmOrigen = origen || null;
+
   // Si el panel fue reemplazado con innerHTML, restaurarlo primero
   const panel = document.getElementById('p-pedido-movil');
   if (panel && window._pmPanelOriginal && !document.getElementById('pm-cli-nombre')) {
@@ -2575,6 +2577,7 @@ function calcItem() {
 
 // estado temporal de edición de pedido móvil
 let _editPedMovil = null;
+let _pmOrigen = null;   // 'mis-pedidos' si vino del listado de Mis pedidos, null si no
 
  // {id, items:[...]}
 function detalleMovilHTML(p){
@@ -2673,7 +2676,7 @@ function verMisPedidosHoy(){
         `}
         
         <!-- Botón nuevo pedido -->
-        <button onclick="abrirPedidoMovil()" 
+        <button onclick="abrirPedidoMovil('mis-pedidos')" 
           style="width:100%;margin-top:6px;padding:16px;background:var(--P);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
           + Nuevo pedido
         </button>
@@ -2716,7 +2719,13 @@ function editarPedidoMovil(pedId){
   }
   
   // ─── MODO MÓVIL: bottom sheet ───
-  _editPedMovil = { id: pedId, items: JSON.parse(JSON.stringify(p.items || [])) };
+    _editPedMovil = {
+    id: pedId,
+    items: JSON.parse(JSON.stringify(p.items || [])),
+    _original: JSON.stringify((p.items || []).map(it => ({
+      id: it.id, cant: it.cant, precio: it.precio, dto: it.dto || 0
+    })))
+  };
   const cl = document.getElementById('epm-sheet-cliente');
   if (cl) cl.textContent = p.cliente || '';
   const busq = document.getElementById('epm-busq');
@@ -2725,6 +2734,7 @@ function editarPedidoMovil(pedId){
   if (drop) drop.style.display = 'none';
   renderEditPedidoMovil();
   abrirBottomSheetEditar();
+  _initSwipeCerrarSheetEdit();
   setTimeout(() => {
     const b = document.getElementById('epm-busq');
     if (b) { b.value = ''; filtrarAgregarMovil(); }
@@ -2870,6 +2880,19 @@ async function guardarEditPedidoMovil(){
   const {id,items}=_editPedMovil;
   const filtrados=items.filter(it=>it.cant>0);
   if(!filtrados.length){toast('Agregá al menos un producto','err');return;}
+
+  // Comparar contra el estado original: si el usuario no cambió nada,
+  // cerrar el sheet sin guardar ni mostrar toast. Evita el falso
+  // "Pedido actualizado" cuando solo deslizó hacia abajo para cerrar.
+  const actual = JSON.stringify(filtrados.map(it => ({
+    id: it.id, cant: it.cant, precio: it.precio, dto: it.dto || 0
+  })));
+  if (actual === _editPedMovil._original) {
+    cerrarBottomSheetEditar();
+    _editPedMovil = null;
+    return;
+  }
+
   let tot=0;filtrados.forEach(it=>{tot+=it.precio*it.cant*(1-(it.dto||0)/100);});
   tot=Math.round(tot*100)/100;
   const {error}=await sb.from('pedidos').update({items:filtrados,total:tot}).eq('id',id);
@@ -2879,7 +2902,6 @@ async function guardarEditPedidoMovil(){
   await cargarPedidos();
   toast('✅ Pedido actualizado');
   verMisPedidosHoy();
-  // Reabrir el detalle del pedido editado
   setTimeout(()=>{
     const det=document.getElementById('ped-mov-det-'+id);
     const chev=document.getElementById('ped-mov-chevron-'+id);
@@ -3492,6 +3514,9 @@ function volverHeaderPedidoMovil() {
                       pasoProductos.classList.contains('on');
 
   if (enProductos) {
+    // Si vino de una localidad, volver a esa localidad
+    if (_pmZonaActual) { pmAbrirZona(_pmZonaActual); return; }
+
     pasoProductos.style.display = 'none';
     pasoProductos.classList.remove('on');
     if (pasoCliente) pasoCliente.style.display = 'block';
@@ -3527,9 +3552,17 @@ function volverHeaderPedidoMovil() {
     if (btnVolver) btnVolver.style.display = '';
 
     renderClientesPorZona();
-  } else {
-    go('vendedor-home');
+    return;
   }
+
+  // Si el usuario llegó desde "Mis pedidos" (botón + Nuevo pedido), volver ahí
+  if (_pmOrigen === 'mis-pedidos') {
+    _pmOrigen = null;
+    verMisPedidosHoy();
+    return;
+  }
+
+  go('vendedor-home');
 }
 
 function toggleItemsPedido() {
@@ -3881,7 +3914,9 @@ function habilitarSwipe(elemento, onSwipeIzq, onSwipeDer) {
 // ─────────────────────────────────────────────────────────────
 // Swipe del pedido móvil — carrusel completo, como Moviler:
 //   izquierda (avanzar):  Productos → Resumen
-//   derecha   (volver):   Resumen → Productos → Cliente → Home
+//   derecha   (volver):   Resumen → Productos → Cliente/Zona → Home
+// Si el usuario eligió al cliente desde una localidad, el retroceso
+// desde Productos vuelve a esa localidad, no al listado de zonas.
 // La vista de zona (#pm-paso-zona) tiene su propio swipe
 // (initSwipeZonaPedido) y NO llega hasta acá gracias al
 // stopPropagation de habilitarSwipe().
@@ -3895,27 +3930,31 @@ function initSwipePedidoMovil() {
     const el = document.getElementById(id);
     return !!el && getComputedStyle(el).display !== 'none';
   };
+  const irAHome = () => {
+    if (_pmOrigen === 'mis-pedidos') { _pmOrigen = null; verMisPedidosHoy(); }
+    else { go('vendedor-home'); }
+  };
 
   habilitarSwipe(
     cont,
     () => {   // swipe izq = avanzar
       if (visible('pm-paso-productos')) {
-        // Mismo criterio que el botón "Ver pedido →": sin productos no hay resumen
         if (_pmCarrito.length > 0) mostrarResumenMovil();
       }
-      // Cliente: se avanza tocando un cliente. Resumen: es el último paso.
     },
     () => {   // swipe der = volver un paso
       if (visible('pm-paso-resumen')) {
-        volverProductosMovil();          // Resumen → Productos
+        volverProductosMovil();
       } else if (visible('pm-paso-productos')) {
-        volverHeaderPedidoMovil();       // Productos → Cliente
+        // Si vino de una localidad, volver a la lista de clientes de esa
+        // localidad. Si vino directo del listado de zonas, volver al listado.
+        if (_pmZonaActual) pmAbrirZona(_pmZonaActual);
+        else volverHeaderPedidoMovil();
       } else if (visible('pm-paso-cliente')) {
-        go('vendedor-home');             // Cliente → Home (igual que la flecha ←)
+        irAHome();
       } else if (!document.getElementById('pm-paso-cliente')) {
-        // "Mis pedidos de hoy" reemplaza el contenido de este mismo panel
-        // (verMisPedidosHoy), así que tampoco existen los pm-paso-*.
-        go('vendedor-home');             // igual que su flecha ←
+        // "Mis pedidos de hoy" reemplaza el contenido del panel con innerHTML
+        irAHome();
       }
     }
   );
@@ -3978,6 +4017,14 @@ function pmAbrirZona(codigoZona) {
     <div id="pm-zona-lista"></div>
   `;
 
+  // Ocultar pasos que puedan estar visibles si venimos desde Productos o
+  // Resumen (swipe derecha). Sin esto, se vería la vista de zona debajo de
+  // los productos porque el panel es el mismo.
+  const pasoProductos = document.getElementById('pm-paso-productos');
+  if (pasoProductos) { pasoProductos.style.display = 'none'; pasoProductos.classList.remove('on'); }
+  const pasoResumen = document.getElementById('pm-paso-resumen');
+  if (pasoResumen) pasoResumen.style.display = 'none';
+
   const pasoCli = document.getElementById('pm-paso-cliente');
   if (pasoCli) pasoCli.style.display = 'none';
   pasoZona.style.display = 'block';
@@ -3992,7 +4039,7 @@ function pmAbrirZona(codigoZona) {
   if (resultados) { resultados.style.display = 'none'; resultados.innerHTML = ''; }
 
   pmRenderZonaClientes('');
-  
+
   // En la vista de localidad el botón volver sigue siendo útil (vuelve a
   // zonas), así que lo aseguramos visible.
   const btnVolverZona = document.getElementById('pm-btn-volver-header');
@@ -4072,4 +4119,48 @@ function initSwipeZonaPedido() {
     () => {},          // swipe izq: no hace nada (no hay paso siguiente acá)
     () => pmVolverAZonas()  // swipe der = volver a la lista de zonas
   );
+}
+
+// Swipe vertical hacia abajo en el sheet de edición de pedido: guarda los
+// cambios, cierra el sheet y vuelve a "Mis pedidos de hoy" con el acordeón
+// del pedido editado abierto (mismo efecto que apretar "Guardar cambios").
+// No se dispara si el gesto arranca sobre un input/textarea/select, ni
+// dentro de la lista scrollable si esa lista no está arriba de todo.
+function _initSwipeCerrarSheetEdit() {
+  const sheet = document.getElementById('epm-sheet');
+  if (!sheet || sheet.dataset.swipeDownOn) return;
+  sheet.dataset.swipeDownOn = '1';
+
+  let startX = 0, startY = 0, startT = 0, valido = false;
+
+  sheet.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    startX = t.clientX;
+    startY = t.clientY;
+    startT = Date.now();
+    // Ignorar si arranca sobre un input (ahí el usuario quiere escribir)
+    const enInput = !!(e.target && e.target.closest && e.target.closest('input, textarea, select'));
+    // Ignorar si arranca dentro de la lista scrollable y esa lista no
+    // está arriba de todo (es scroll, no cerrar)
+    let listaArriba = true;
+    const lista = document.getElementById('epm-items');
+    if (lista && e.target.closest && e.target.closest('#epm-items') && lista.parentElement) {
+      listaArriba = lista.parentElement.scrollTop <= 1;
+    }
+    valido = !enInput && listaArriba;
+  }, { passive: true });
+
+  sheet.addEventListener('touchend', (e) => {
+    if (!valido) return;
+    const t = e.changedTouches[0];
+    const dy = t.clientY - startY;
+    const dx = t.clientX - startX;
+    const dt = Date.now() - startT;
+    // Filtros: mínimo 80px, claramente más vertical que horizontal,
+    // y que no haya sido muy lento.
+    if (Math.abs(dy) < 80) return;
+    if (Math.abs(dy) < Math.abs(dx) * 1.5) return;
+    if (dt > 800) return;
+    if (dy > 0) guardarEditPedidoMovil();
+  }, { passive: true });
 }

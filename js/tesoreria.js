@@ -2317,8 +2317,27 @@ function cobmAbrirCC(){
 
   const q=document.getElementById('cobm-cc-q');if(q)q.value='';
   const l=document.getElementById('cobm-cc-lista');if(l)l.innerHTML='';
-  poblarSelectZona('cobm-cc-zon');
+  _cobmPoblarZonasSelect();
   buscarClienteCC();
+}
+
+// Puebla el dropdown de zonas del panel de Cuenta corriente móvil.
+// Usa el catálogo real (_zonas) en lugar de inferir de los clientes:
+// si una zona se borró en Maestros → Zonas pero quedan clientes con
+// ese código asignado, ya no se muestra acá. Fuerza el repoblado
+// porque poblarSelectValores() tiene una guarda que no rehace el
+// select si ya tiene opciones (por eso quedaban zonas viejas pegadas).
+function _cobmPoblarZonasSelect(){
+  const sel = document.getElementById('cobm-cc-zon');
+  if (!sel) return;
+  const actual = sel.value;
+  const zonas = (_zonas || [])
+    .filter(z => z.codigo)
+    .sort((a,b) => (a.descripcion||a.codigo||'').localeCompare(b.descripcion||b.codigo||''));
+  sel.innerHTML = '<option value="">Todas las zonas</option>' +
+    zonas.map(z => `<option value="${esc(z.codigo)}">${esc(z.descripcion || ('Zona ' + z.codigo))}</option>`).join('');
+  // Restaurar selección si todavía existe
+  if (actual && zonas.some(z => z.codigo === actual)) sel.value = actual;
 }
 
 function cobmVolverAcciones(){
