@@ -2319,6 +2319,7 @@ function cobmAbrirCC(){
   const l=document.getElementById('cobm-cc-lista');if(l)l.innerHTML='';
   _cobmPoblarZonasSelect();
   buscarClienteCC();
+  _initSwipeSubPanelCobranza(); 
 }
 
 // Puebla el dropdown de zonas del panel de Cuenta corriente móvil.
@@ -2342,12 +2343,11 @@ function _cobmPoblarZonasSelect(){
 
 function cobmVolverAcciones(){
   _cobmDesdeHome = false;
-  // cobm-acciones sigue oculta por diseño: los botones grandes viven en el
-  // home. No la volvemos a mostrar acá.
   document.getElementById('cobm-paso-cliente').style.display='block';
   document.getElementById('cobm-paso-cobro').style.display='none';
   document.getElementById('cobm-panel-cc').style.display='none';
   document.getElementById('cobm-panel-miscobranzas').style.display='none';
+  _cobmResetHeader();
 }
 
 // ── Cuenta corriente desde cobranza ─────────────────────────────────────
@@ -2414,6 +2414,7 @@ function cobmAbrirMisCobranzas(){
 
   _cobmcZona='';
   cobmSetPeriodo('mes');
+  _initSwipeSubPanelCobranza();
 }
 
 function cobmSetPeriodo(periodo){
@@ -2584,14 +2585,7 @@ function limpiarCobMovil(){
   const codEl=document.getElementById('cobm-cli-cod');
   if(codEl){ codEl.value=''; codEl.style.borderColor=''; }
   
-  const nEl=document.getElementById('cobm-cli-nombre');
-  if(nEl) nEl.textContent='Seleccioná un cliente';
-  
-  const sEl=document.getElementById('cobm-cli-saldo');
-  if(sEl) sEl.textContent='';
-  
-  const bcc=document.getElementById('cobm-btn-cc');
-  if(bcc) bcc.style.display='none';
+  _cobmResetHeader();
   
   const pc=document.getElementById('cobm-paso-cliente');
   if(pc) pc.style.display='block';
@@ -2644,6 +2638,27 @@ function limpiarCobMovil(){
   // Ocultar el footer flotante
   const footer = document.getElementById('cobm-fixed-footer');
   if (footer) footer.style.display = 'none';
+}
+
+// Resetea el header morado de cobranza móvil (nombre del cliente, saldo,
+// botón "📋 Cta. cte." y botón "← Volver"). Se llama al volver al paso
+// cliente y al limpiar el flujo, para que no queden datos del cliente
+// que se estaba cobrando antes de retroceder.
+function _cobmResetHeader(){
+  _cobMovilCliId = null;
+  const nombreEl = document.getElementById('cobm-cli-nombre');
+  if (nombreEl) nombreEl.textContent = 'Seleccioná un cliente';
+  const saldoEl = document.getElementById('cobm-cli-saldo');
+  if (saldoEl) saldoEl.textContent = '';
+  const btnCC = document.getElementById('cobm-btn-cc');
+  if (btnCC) btnCC.style.display = 'none';
+  const btnVolver = document.getElementById('cobm-btn-volver-header');
+  if (btnVolver) btnVolver.style.display = '';
+  // Limpiar inputs de búsqueda por si quedaron con texto
+  const q = document.getElementById('cobm-cli-q');
+  if (q) q.value = '';
+  const cod = document.getElementById('cobm-cli-cod');
+  if (cod) { cod.value = ''; cod.style.borderColor = ''; }
 }
 
 // Pool base de clientes para cobranza móvil (sin filtro de chip).
@@ -3344,6 +3359,12 @@ function selClienteCobMovil(id){
   
   const bcc=document.getElementById('cobm-btn-cc');
   if(bcc) bcc.style.display='block';
+
+  // Al entrar a cargar un cobro, sacar el botón "← Volver" del header
+  // para que solo quede "📋 Cta. cte." (el usuario retrocede con swipe
+  // o terminando el cobro).
+  const btnVolverHeader = document.getElementById('cobm-btn-volver-header');
+  if (btnVolverHeader) btnVolverHeader.style.display = 'none';
   
   const pp=document.getElementById('cobm-paso-cobro');
   if(pp) pp.style.display='block';
@@ -4274,4 +4295,26 @@ function irACuentaCorriente(){
 function irAMisCobranzas(){
   go('cobranza');
   setTimeout(()=>{ _cobmDesdeHome = true; cobmAbrirMisCobranzas(); }, 120);
+}
+
+// Swipe derecha en los sub-paneles de cobranza móvil:
+//   · Si el usuario llegó apretando un botón del home → vuelve al home
+//     y limpia el flag.
+//   · Si llegó navegando desde dentro de cobranza → vuelve al paso
+//     cliente con cobmVolverAcciones() (que ya resetea _cobmDesdeHome).
+// Se engancha una sola vez por contenedor (dataset.swipeOn).
+function _initSwipeSubPanelCobranza(){
+  ['cobm-panel-cc', 'cobm-panel-miscobranzas'].forEach(id => {
+    const panel = document.getElementById(id);
+    if (!panel || panel.dataset.swipeOn) return;
+    panel.dataset.swipeOn = '1';
+    habilitarSwipe(
+      panel,
+      () => {},   // swipe izq: no aplica (no hay paso siguiente)
+      () => {     // swipe der: volver
+        if (_cobmDesdeHome) { _cobmDesdeHome = false; go('vendedor-home'); }
+        else cobmVolverAcciones();
+      }
+    );
+  });
 }

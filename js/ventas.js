@@ -3974,15 +3974,27 @@ function initSwipePedidoMovil() {
 // deslizando, en vez de depender solo del botón.
 
 function initSwipeCobranza() {
+  // Paso cobro (cargando forma/importe): swipe derecha vuelve a elegir cliente
   const pasoCobro = document.getElementById('cobm-paso-cobro');
-  if (!pasoCobro || pasoCobro.dataset.swipeOn) return; // evita engancharlo 2 veces
-  pasoCobro.dataset.swipeOn = '1';
+  if (pasoCobro && !pasoCobro.dataset.swipeOn) {
+    pasoCobro.dataset.swipeOn = '1';
+    habilitarSwipe(
+      pasoCobro,
+      () => {},
+      () => cobmVolverAcciones()
+    );
+  }
 
-  habilitarSwipe(
-    pasoCobro,
-    () => {},                 // swipe izq acá no hace nada (no hay "paso siguiente")
-    () => cobmVolverAcciones() // swipe der = volver a elegir cliente (función ya existente)
-  );
+  // Paso cliente (listado de zonas): swipe derecha vuelve al home
+  const pasoCli = document.getElementById('cobm-paso-cliente');
+  if (pasoCli && !pasoCli.dataset.swipeOn) {
+    pasoCli.dataset.swipeOn = '1';
+    habilitarSwipe(
+      pasoCli,
+      () => {},
+      () => go('vendedor-home')
+    );
+  }
 }
 
 // Llamar initSwipeCobranza() una vez, al abrir la pantalla de cobranza
