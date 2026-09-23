@@ -2357,16 +2357,37 @@ function buscarClienteCC(){
   const lista=document.getElementById('cobm-cc-lista');
   if(!lista)return;
 
-  // Al abrir el panel no hay filtros, así que mostramos todos los clientes
-  // activos ordenados por nombre. Si el usuario escribe o elige una zona,
-  // se filtra sobre ese universo. Tope de 100 para no congelar el celu con
-  // padrones grandes — si hay más, el buscador es la vía para acotar.
+  // Misma lógica de búsqueda que renderClientes() en maestros.js:
+  //   · Número puro corto (≤6 dígitos) → código/id exactos. Sin matchear
+  //     teléfono/CUIT para evitar que "10" traiga el 102 o el 1100.
+  //   · Número puro largo (>6 dígitos) → también CUIT y teléfono
+  //     (contiene, sin guiones).
+  //   · Con letras o mixto → nombre, localidad, teléfono, CUIT.
+  // Así el usuario puede tipear "40" y ver exactamente el cliente 40.
+  const esNumeroPuro = /^\d+$/.test(q);
+  const matchea = (c) => {
+    if(!q) return true;
+    if(esNumeroPuro && q.length <= 6){
+      return String(c.codigo||'').trim()===q || String(c.id||'')===q;
+    }
+    if(esNumeroPuro){
+      const cuitNorm = String(c.cuit||'').replace(/\D/g,'');
+      const telNorm  = String(c.telefono||'').replace(/\D/g,'');
+      return String(c.codigo||'').trim()===q
+          || String(c.id||'')===q
+          || cuitNorm.includes(q)
+          || telNorm.includes(q);
+    }
+    return (c.nombre||'').toLowerCase().includes(q)
+        || (c.localidad||'').toLowerCase().includes(q)
+        || (c.telefono||'').toLowerCase().includes(q)
+        || (c.cuit||'').toLowerCase().includes(q);
+  };
+
   const res = _clientes
     .filter(c => c.activo !== false)
-    .filter(c =>
-      (!q || (c.nombre||'').toLowerCase().includes(q) || (c.codigo||'').toString().includes(q))
-      && (!zonaFil || c.zona === zonaFil)
-    )
+    .filter(c => matchea(c))
+    .filter(c => !zonaFil || c.zona === zonaFil)
     .sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''))
     .slice(0, 100);
 
@@ -2379,7 +2400,9 @@ function buscarClienteCC(){
     <div onclick="cobmIrCC(${c.id})"
       style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg2);border-radius:10px;margin-bottom:6px;cursor:pointer;border:1.5px solid var(--brd);-webkit-tap-highlight-color:transparent">
       <div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.nombre)}</div>
+        <div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+          <span style="color:var(--txt2);font-weight:600;margin-right:6px">${esc(c.codigo || c.id)}</span>${esc(c.nombre)}
+        </div>
         <div style="font-size:11px;color:var(--txt2);margin-top:2px">${esc(c.localidad||'')}</div>
       </div>
       ${c.saldo?`<div style="font-size:15px;font-weight:700;color:var(--D);flex-shrink:0;margin-left:10px">${fmt(c.saldo)}</div>`:'<div style="font-size:12px;color:var(--P);flex-shrink:0;margin-left:10px">✓ Al día</div>'}
@@ -2389,11 +2412,12 @@ function buscarClienteCC(){
 function cobmIrCC(clienteId){
   const c=_clientes.find(x=>x.id===clienteId);
   if(!c)return;
-  go('cuentas');
-  setTimeout(()=>{
-    const q=document.getElementById('cc-q');
-    if(q){q.value=c.nombre;renderCC();}
-  },200);
+  // En móvil abrimos directo el modal de cuenta corriente del cliente
+  // (histCliente), que ya tiene una vista de tarjetas para pantallas
+  // angostas (_ccAngosta). Antes hacíamos go('cuentas'), que lleva al
+  // panel PC p-cuentas — la tabla con columnas — que en el celu queda
+  // incómoda y no es lo que el usuario espera al tocar un cliente.
+  histCliente(clienteId);
 }
 
 // ── Mis cobranzas ────────────────────────────────────────────────────────

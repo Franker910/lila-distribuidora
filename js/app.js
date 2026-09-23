@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260923-05';
+const APP_VERSION = '20260923-06';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -292,6 +292,15 @@ async function logout(){
   usuarioActual = null;
   try{ await sb.auth.signOut(); }catch(e){}
   localStorage.removeItem('lila-sesion');
+
+  // Limpiar estado de UI móvil que depende del usuario logueado.
+  // Sin esto, los botones de rol y de admin quedaban con el display
+  // del usuario anterior hasta que el nuevo login los pisara —
+  // y si el nuevo usuario no era dualRol, nunca se pisaban.
+  const _btnRolLogout = document.getElementById('btn-cambiar-rol-movil');
+  if (_btnRolLogout) _btnRolLogout.style.display = 'none';
+  const _btnAdminLogout = document.getElementById('btn-volver-admin');
+  if (_btnAdminLogout) _btnAdminLogout.style.display = 'none';
   
   // Mostrar pantalla de login
   document.getElementById('login-screen').style.display = 'flex';
@@ -1079,24 +1088,6 @@ function go(p,opts = {}) {
     }
   }
   
-  // Si es móvil y el panel no es móvil, redirigir al home
-  if (usuarioActual?.vista === 'movil' && p !== 'vendedor-home') {
-    const panelesMoviles = ['vendedor-home', 'pedido-movil', 'cobranza-hoy', 'cobranza', 'nc-movil'];
-    if (esRepartidorMovil) panelesMoviles.push('hoja-ruta');
-    if (!panelesMoviles.includes(p)) {
-      // Si es admin, mostrar opción de cambiar
-      if (usuarioActual.esAdmin) {
-        if (confirm('📱 ¿Querés cambiar a vista de escritorio?')) {
-          toggleVista();
-          setTimeout(() => go(p), 300);
-        }
-        return;
-      } else {
-        toast('Esta función solo está disponible en escritorio', 'info');
-        return;
-      }
-    }
-  }
 
   //  Limpiar parámetros de la URL para que no interfieran
   const params = new URLSearchParams(window.location.search);
@@ -1787,12 +1778,17 @@ function mostrarVistaMovil() {
   //   if (btnAdmin) btnAdmin.style.display = 'none';
   // }
   
-  // Mostrar toggle de rol solo si tiene dualRolMovil
-  if (usuarioActual?.dualRolMovil) {
-    const btnRol = document.getElementById('btn-cambiar-rol-movil');
-    if (btnRol) {
+  // Mostrar toggle de rol solo si tiene dualRolMovil. Si NO lo tiene,
+  // hay que ocultarlo explícitamente: sin este else, un usuario que
+  // inició con dualRol y después cierra sesión y entra con uno que no
+  // lo tiene, se queda viendo el botón pegado del login anterior.
+  const btnRol = document.getElementById('btn-cambiar-rol-movil');
+  if (btnRol) {
+    if (usuarioActual?.dualRolMovil) {
       btnRol.style.display = 'flex';
       actualizarBtnRolMovil();
+    } else {
+      btnRol.style.display = 'none';
     }
   }
 
