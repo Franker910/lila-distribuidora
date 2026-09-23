@@ -3819,16 +3819,20 @@ const SWIPE_RATIO_MIN = 1.5;
  *                                 derecha (retroceder de pantalla).
  */
 function habilitarSwipe(elemento, onSwipeIzq, onSwipeDer) {
-  let startX = 0, startY = 0, startT = 0;
+  let startX = 0, startY = 0, startT = 0, ignorar = false;
 
   elemento.addEventListener('touchstart', (e) => {
     const t = e.touches[0];
     startX = t.clientX;
     startY = t.clientY;
     startT = Date.now();
+    // Si el dedo arrancó sobre un campo de texto (buscador, cantidad),
+    // es para mover el cursor / seleccionar, no para cambiar de pantalla.
+    ignorar = !!(e.target && e.target.closest && e.target.closest('input, textarea, select'));
   }, { passive: true });
 
   elemento.addEventListener('touchend', (e) => {
+    if (ignorar) return;
     const t = e.changedTouches[0];
     const dx = t.clientX - startX;
     const dy = t.clientY - startY;
@@ -3844,10 +3848,14 @@ function habilitarSwipe(elemento, onSwipeIzq, onSwipeDer) {
     // (si no, es un scroll de lista, no un cambio de pantalla)
     if (distanciaHorizontal < distanciaVertical * SWIPE_RATIO_MIN) return;
 
-    // Filtro 3 (opcional): que no haya sido demasiado lento —
-    // un arrastre lento suele ser el usuario reacomodando el dedo,
-    // no una intención de swipe. 600ms es generoso.
+    // Filtro 3: que no haya sido demasiado lento (600ms es generoso)
     if (dt > 600) return;
+
+    // El gesto ya fue de ESTE contenedor: que no lo procese también un
+    // contenedor padre con su propio swipe (ej: #pm-paso-zona está
+    // dentro de #p-pedido-movil). Sin esto, un mismo deslizamiento
+    // dispara dos navegaciones seguidas.
+    e.stopPropagation();
 
     if (dx < 0) {
       onSwipeIzq && onSwipeIzq();   // deslizó hacia la izquierda → avanzar
@@ -3857,41 +3865,45 @@ function habilitarSwipe(elemento, onSwipeIzq, onSwipeDer) {
   }, { passive: true });
 }
 
-// =====================================================
-// APLICADO A PEDIDO MÓVIL (código real, con los ids y funciones
-// verdaderos de index.html — esto ya es copy-paste directo, no
-// hace falta ventas.js para esta parte)
-// =====================================================
-// Leyendo el index.html real: el pedido tiene 3 pasos
-// (pm-paso-cliente / pm-paso-productos / pm-paso-resumen) y YA
-// EXISTEN los botones para volver:
-//   - "← Volver" del header llama a volverHeaderPedidoMovil()
-//     (Productos → Cliente)
-//   - "Ver pedido →" del carrito llama a toggleResumenCarrito()
-//     (alterna entre Productos y Resumen)
-// El swipe no reimplementa nada: mira qué paso está visible ahora
-// y toca el mismo botón que tocaría el vendedor con el dedo.
-
+// ─────────────────────────────────────────────────────────────
+// Swipe del pedido móvil — carrusel completo, como Moviler:
+//   izquierda (avanzar):  Productos → Resumen
+//   derecha   (volver):   Resumen → Productos → Cliente → Home
+// La vista de zona (#pm-paso-zona) tiene su propio swipe
+// (initSwipeZonaPedido) y NO llega hasta acá gracias al
+// stopPropagation de habilitarSwipe().
+// ─────────────────────────────────────────────────────────────
 function initSwipePedidoMovil() {
   const cont = document.getElementById('p-pedido-movil');
   if (!cont || cont.dataset.swipeOn) return; // evita engancharlo 2 veces
   cont.dataset.swipeOn = '1';
 
+  const visible = (id) => {
+    const el = document.getElementById(id);
+    return !!el && getComputedStyle(el).display !== 'none';
+  };
+
   habilitarSwipe(
     cont,
-    () => {}, // swipe izq: no hace nada por ahora (se avanza tocando cliente/producto, como en Cobranza)
-    () => {   // swipe der = volver un paso
-      const pasoProductos = document.getElementById('pm-paso-productos');
-      const pasoResumen = document.getElementById('pm-paso-resumen');
-      const enResumen = pasoResumen && getComputedStyle(pasoResumen).display !== 'none';
-      const enProductos = pasoProductos && getComputedStyle(pasoProductos).display !== 'none';
-
-      if (enResumen) {
-        toggleResumenCarrito();       // Resumen → Productos
-      } else if (enProductos) {
-        volverHeaderPedidoMovil();    // Productos → Cliente
+    () => {   // swipe izq = avanzar
+      if (visible('pm-paso-productos')) {
+        // Mismo criterio que el botón "Ver pedido →": sin productos no hay resumen
+        if (_pmCarrito.length > 0) mostrarResumenMovil();
       }
-      // si ya está en paso-cliente, no hace nada (es la primera pantalla)
+      // Cliente: se avanza tocando un cliente. Resumen: es el último paso.
+    },
+    () => {   // swipe der = volver un paso
+      if (visible('pm-paso-resumen')) {
+        volverProductosMovil();          // Resumen → Productos
+      } else if (visible('pm-paso-productos')) {
+        volverHeaderPedidoMovil();       // Productos → Cliente
+      } else if (visible('pm-paso-cliente')) {
+        go('vendedor-home');             // Cliente → Home (igual que la flecha ←)
+      } else if (!document.getElementById('pm-paso-cliente')) {
+        // "Mis pedidos de hoy" reemplaza el contenido de este mismo panel
+        // (verMisPedidosHoy), así que tampoco existen los pm-paso-*.
+        go('vendedor-home');             // igual que su flecha ←
+      }
     }
   );
 }
