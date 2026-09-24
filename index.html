@@ -2542,19 +2542,20 @@ body.modo-movil-vendedor .app-layout {
   </div>
  <div style="flex:1;overflow-y:auto;min-height:0;max-height:calc(100vh - 200px)">
     <div class="tbl-wrap"><table class="tbl">
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Localidad</th>
-          <th>Teléfono</th>
-          <th>Zona</th>
-          <th>Vendedor</th>
-          <th>Dto%</th>
-          <th>Saldo</th>
-          <th>Estado</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
+        <thead>
+          <tr>
+            <th style="width:60px;text-align:center">Código</th>
+            <th>Nombre</th>
+            <th>Localidad</th>
+            <th>Teléfono</th>
+            <th>Zona</th>
+            <th>Vendedor</th>
+            <th>Dto%</th>
+            <th>Saldo</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
       <tbody id="cli-tbody"></tbody>
     </table></div>
     <div class="pg" id="cli-pg"></div>
@@ -4865,19 +4866,20 @@ body.modo-movil-vendedor .app-layout {
   <div style="flex:1; overflow-y:auto; min-height:0; max-height:calc(100vh - 280px);">
     <div class="tbl-wrap">
       <table class="tbl">
-        <thead>
-          <tr>
-            <th onclick="toggleOrdenProv('nombre')" style="cursor:pointer;user-select:none;" title="Ordenar A-Z / Z-A">Nombre <span id="prov-sort-nombre"></span></th>
-            <th>CUIT</th>
-            <th>Contacto</th>
-            <th>Teléfono</th>
-            <th>Email</th>
-            <th>Condición</th>
-            <th onclick="toggleOrdenProv('plazo')" style="cursor:pointer;user-select:none;text-align:center;" title="Ordenar por plazo">Plazo días</th>
-            <th onclick="toggleOrdenProv('saldo')" style="cursor:pointer;user-select:none;text-align:right;" title="Ordenar por saldo">Saldo <span id="prov-sort-saldo"></span></th>
-            <th></th>
-          </tr>
-        </thead>
+          <thead>
+            <tr>
+              <th style="width:60px;text-align:center">Código</th>
+              <th onclick="toggleOrdenProv('nombre')" style="cursor:pointer;user-select:none;" title="Ordenar A-Z / Z-A">Nombre <span id="prov-sort-nombre"></span></th>
+              <th>CUIT</th>
+              <th>Contacto</th>
+              <th>Teléfono</th>
+              <th>Email</th>
+              <th>Condición</th>
+              <th onclick="toggleOrdenProv('plazo')" style="cursor:pointer;user-select:none;text-align:center;" title="Ordenar por plazo">Plazo días</th>
+              <th onclick="toggleOrdenProv('saldo')" style="cursor:pointer;user-select:none;text-align:right;" title="Ordenar por saldo">Saldo <span id="prov-sort-saldo"></span></th>
+              <th></th>
+            </tr>
+          </thead>
         <tbody id="prov-tbody"></tbody>
       </table>
     </div>
@@ -5267,14 +5269,14 @@ body.modo-movil-vendedor .app-layout {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260924-04"></script>
-<script src="js/maestros.js?v=20260924-04"></script>
-<script src="js/ventas.js?v=20260924-04"></script>
-<script src="js/tesoreria.js?v=20260924-04"></script>
-<script src="js/contabilidad.js?v=20260924-04"></script>
-<script src="js/informes.js?v=20260924-04"></script>
-<script src="js/logistica.js?v=20260924-04"></script>
-<script src="js/movil_header_observer.js?v=20260924-04"></script>
+<script src="js/app.js?v=20260924-05"></script>
+<script src="js/maestros.js?v=20260924-05"></script>
+<script src="js/ventas.js?v=20260924-05"></script>
+<script src="js/tesoreria.js?v=20260924-05"></script>
+<script src="js/contabilidad.js?v=20260924-05"></script>
+<script src="js/informes.js?v=20260924-05"></script>
+<script src="js/logistica.js?v=20260924-05"></script>
+<script src="js/movil_header_observer.js?v=20260924-05"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

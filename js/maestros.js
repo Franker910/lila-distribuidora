@@ -205,12 +205,8 @@ function renderClientes(){
     
     return `
     <tr style="${!activo ? 'opacity:0.7;' : ''}">
-      <td style="font-weight:600">
-        <span style="font-size:13px;color:var(--txt2);margin-right:4px">
-          ${c.codigo || c.id}
-        </span>
-        ${c.nombre}
-      </td>
+      <td style="color:var(--txt2);font-size:12px;text-align:center;font-variant-numeric:tabular-nums">${c.codigo || c.id}</td>
+      <td style="font-weight:600">${c.nombre}</td>
       <td>${c.localidad||'—'}</td>
       <td>${c.telefono||'—'}</td>
       <td><span class="b bA">${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||'-'}</span></td>
@@ -227,7 +223,7 @@ function renderClientes(){
         <button class="btn sm" onclick="histCliente(${c.id})">📋</button>
       </td>
     </tr>
-  `}).join(''):'<tr><td colspan="9"><div class="empty">Sin clientes</div></td></tr>';
+  `}).join(''):'<tr><td colspan="10"><div class="empty">Sin clientes</div></td></tr>';
   
   pag('cli-pg',tot,_cliPg,p=>{_cliPg=p;renderClientes();});
 }
@@ -1214,10 +1210,8 @@ function renderProveedores(){
   const tbody = document.getElementById('prov-tbody');
   if(!tbody) return;
   tbody.innerHTML = data.length ? data.map(p => `<tr>
-    <td style="font-weight:600">
-      <span style="font-size:13px;color:var(--txt2);margin-right:4px">${esc(p.codigo||p.id||'')}</span>
-      ${esc(p.nombre)}
-    </td>
+    <td style="color:var(--txt2);font-size:12px;text-align:center;font-variant-numeric:tabular-nums">${esc(p.codigo||p.id||'')}</td>
+    <td style="font-weight:600">${esc(p.nombre)}</td>
     <td style="color:var(--txt2)">${p.cuit||'—'}</td>
     <td>${esc(p.contacto||'—')}</td>
     <td>${esc(p.telefono||'—')}</td>
@@ -1227,7 +1221,7 @@ function renderProveedores(){
     <td style="text-align:right;font-weight:600;color:${p._saldo>0?'var(--D)':'var(--txt2)'};cursor:pointer" onclick="histProveedor(${p.id})" title="Ver cuenta corriente">${fmt(p._saldo)}</td>
     <td><button class="btn sm" onclick="editarProveedor(${p.id})">✏️</button>
         <button class="btn D sm" onclick="eliminarProveedor(${p.id})">🗑</button></td>
-  </tr>`).join('') : '<tr><td colspan="9"><div class="empty">Sin proveedores</div></td></tr>';
+  </tr>`).join('') : '<tr><td colspan="10"><div class="empty">Sin proveedores</div></td></tr>';
 }
 
 function abrirProveedor(){
