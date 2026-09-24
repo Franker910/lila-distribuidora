@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260924-03';
+const APP_VERSION = '20260924-04';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -1602,8 +1602,16 @@ function f3Seleccionar(tipo, id){
 function _navGetFocusables(from){
   if(from.closest('.drop'))return[];
   const scope=from.closest('.mbg')||from.closest('.panel')||document.body;
-  const sel='input:not([disabled]):not([type="hidden"]):not([tabindex="-1"]),select:not([disabled]):not([tabindex="-1"])';
-  const all=[...scope.querySelectorAll(sel)].filter(el=>el.offsetParent!==null&&!el.closest('.drop'));
+  // Incluye inputs, selects y botones. Los botones del footer de modal
+  // (.mf) quedan EXCLUIDOS para no caer por accidente en Guardar/Cancelar
+  // con la flecha y cerrar el modal sin querer.
+  const sel='input:not([disabled]):not([type="hidden"]):not([tabindex="-1"]),select:not([disabled]):not([tabindex="-1"]),button:not([disabled]):not([tabindex="-1"])';
+  const all=[...scope.querySelectorAll(sel)].filter(el=>{
+    if(el.offsetParent===null) return false;
+    if(el.closest('.drop')) return false;
+    if(el.closest('.mf')) return false;    // botones de footer de modal
+    return true;
+  });
   const wi=all.filter(el=>el.tabIndex>0).sort((a,b)=>a.tabIndex-b.tabIndex);
   const wo=all.filter(el=>!(el.tabIndex>0));
   return[...wi,...wo];
@@ -1693,10 +1701,29 @@ document.addEventListener('keydown',function(e){
   if(e.defaultPrevented)return;
   const el=e.target;
   const tag=el.tagName;
-  if(tag!=='INPUT'&&tag!=='SELECT')return;
+  if(tag!=='INPUT'&&tag!=='SELECT'&&tag!=='BUTTON')return;
   if(el.closest('.drop'))return;
+
+  // ←/→ siempre navegan entre campos
   if(e.key==='ArrowRight'&&!e.ctrlKey&&!e.altKey&&!e.shiftKey){e.preventDefault();_navNext(el);return;}
-  if(e.key==='ArrowLeft'&&!e.ctrlKey&&!e.altKey&&!e.shiftKey){e.preventDefault();_navPrev(el);return;}
+  if(e.key==='ArrowLeft'  &&!e.ctrlKey&&!e.altKey&&!e.shiftKey){e.preventDefault();_navPrev(el);return;}
+
+  // ↓/↑ navegan igual que ←/→, EXCEPTO en los controles donde el
+  // navegador ya usa las flechas para otra cosa:
+  //   · input[type=number] → sube/baja el valor con step
+  //   · select             → cambia la opción elegida
+  //   · textarea           → mueve el cursor
+  if((e.key==='ArrowDown'||e.key==='ArrowUp')&&!e.ctrlKey&&!e.altKey&&!e.shiftKey){
+    const esNumber = el.tagName==='INPUT' && el.type==='number';
+    const esSelect = el.tagName==='SELECT';
+    const esTextarea = el.tagName==='TEXTAREA';
+    if(esNumber||esSelect||esTextarea) return; // comportamiento nativo
+    e.preventDefault();
+    if(e.key==='ArrowDown') _navNext(el);
+    else                    _navPrev(el);
+    return;
+  }
+
   if(e.key==='Home'){_verDetalleDesdeInput(el);}
 });
 
