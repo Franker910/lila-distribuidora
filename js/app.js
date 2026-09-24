@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260924-05';
+const APP_VERSION = '20260924-06';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -2033,6 +2033,61 @@ window.addEventListener('popstate', (e) => {
     setTimeout(() => { _navDesdePopstate = false; }, 0);
   }
 });
+
+// ─── Swipe-down en el modal de cuenta corriente (m-ver) ───
+// Cierra el modal al deslizar el dedo hacia abajo, pero SOLO si el
+// contenido está arriba de todo: si el usuario está scrolleado mirando
+// movimientos, el gesto scrollea (comportamiento nativo) y no cierra.
+// Aplica tanto al modal abierto desde Cuenta corriente móvil como al
+// abierto desde el botón "📋 Cta. cte." del paso cobro.
+(function initSwipeCerrarModalCC(){
+  function enganchar(){
+    const modal = document.getElementById('m-ver');
+    if (!modal || modal.dataset.swipeDownOn) return;
+    modal.dataset.swipeDownOn = '1';
+
+    let startY = 0, startX = 0, startT = 0, valido = false;
+
+    modal.addEventListener('touchstart', (e) => {
+      if (!modal.classList.contains('on')) { valido = false; return; }
+      const t = e.touches[0];
+      startX = t.clientX;
+      startY = t.clientY;
+      startT = Date.now();
+      // Ignorar si arranca sobre un campo de texto
+      const enInput = !!(e.target && e.target.closest && e.target.closest('input, textarea, select'));
+      if (enInput) { valido = false; return; }
+      // Ignorar si el contenido está scrolleado (el usuario está leyendo)
+      const body = document.getElementById('m-ver-body');
+      const modalScrolled = modal.scrollTop > 2;
+      const bodyScrolled = body && body.scrollTop > 2;
+      valido = !modalScrolled && !bodyScrolled;
+    }, { passive: true });
+
+    modal.addEventListener('touchend', (e) => {
+      if (!valido) return;
+      const t = e.changedTouches[0];
+      const dy = t.clientY - startY;
+      const dx = t.clientX - startX;
+      const dt = Date.now() - startT;
+      // Filtros: mínimo 80px vertical, claramente más vertical que horizontal,
+      // y que no haya sido muy lento.
+      if (Math.abs(dy) < 80) return;
+      if (Math.abs(dy) < Math.abs(dx) * 1.5) return;
+      if (dt > 800) return;
+      if (dy > 0) {
+        valido = false;
+        cerrar('m-ver');
+      }
+    }, { passive: true });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', enganchar);
+  } else {
+    enganchar();
+  }
+})();
 
 // Observadores de apertura/cierre de capas (modales, sidebar, F3).
 // Cada apertura empuja un estado; cada cierre "normal" lo consume.
