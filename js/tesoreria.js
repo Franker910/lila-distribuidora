@@ -826,7 +826,9 @@ function renderListaHojasRuta(){
   if(q)lista=lista.filter(g=>g.vendedor.toLowerCase().includes(q));
   if(desde)lista=lista.filter(g=>g.fecha>=desde);
   if(hasta)lista=lista.filter(g=>g.fecha<=hasta);
-  if(num)lista=lista.filter(g=>g.filas.some(f=>String(f.numero_rendicion||'').includes(num)));
+  // Match exacto: si buscás "11", trae la rendición 11 y no la 110, 115
+  // o 511 (que `includes` sí matchearía).
+  if(num)lista=lista.filter(g=>g.filas.some(f=>String(f.numero_rendicion||'')===String(num)));
   if(!lista.length){
     el.innerHTML='<div class="empty">No hay hojas de ruta cargadas.</div>';
     if(wrap){ el.appendChild(wrap); wrap.style.display='none'; }
@@ -1096,28 +1098,38 @@ function renderSinHojaRuta(){
   const countEl=document.getElementById('rend-sin-hoja-count');
   const mostrarTodos=document.getElementById('rend-mostrar-todos')?.checked;
 
-  // Mismo rango de fechas que usa renderListaHojasRuta(). Sin esto, el
-  // acordeón mostraba cobros huérfanos de cualquier día y descolocaba
-  // al usuario cuando filtraba por "hoy" y le aparecían cobros de ayer.
+  // Filtros de la barra superior (mismos que usa renderListaHojasRuta)
   const desde=document.getElementById('rend-hr-desde')?.value||'';
   const hasta=document.getElementById('rend-hr-hasta')?.value||'';
+  const num=(document.getElementById('rend-hr-num')?.value||'').trim();
 
   const hojaKeys=new Set(_hojaRutaTodas.map(r=>String(r.cliente_id)+'|'+r.fecha));
   let cobrosSinHoja=_cobros.filter(c=>!hojaKeys.has(String(c.cliente_id)+'|'+c.fecha));
 
-  // Filtro de fechas primero (aplica siempre)
+  // Filtro de fechas (aplica siempre)
   if(desde)cobrosSinHoja=cobrosSinHoja.filter(c=>(c.fecha||'')>=desde);
   if(hasta)cobrosSinHoja=cobrosSinHoja.filter(c=>(c.fecha||'')<=hasta);
 
-  // Por defecto, solo los "realmente huérfanos": pendientes y sin
-  // número de rendición. Cuando se les asigna número desde el botón
-  // "Asignar número automático", salen de esta lista.
-  if(!mostrarTodos){
-    cobrosSinHoja=cobrosSinHoja.filter(c=>
-      (c.estado_rendicion||'pendiente')==='pendiente'
-      && !c.numero_rendicion
-    );
+  // Filtro por número de rendición: match EXACTO, se aplica siempre
+  // que haya algo en el input (independiente del checkbox de mostrar
+  // todos). Si no hay número, no se filtra por número.
+  if(num){
+    cobrosSinHoja=cobrosSinHoja.filter(c=>String(c.numero_rendicion||'')===String(num));
   }
+
+  // Filtro por estado, según el checkbox "Mostrar todos":
+  //   · Mostrar todos MARCADO → se ven pendientes + aprobados + rechazados.
+  //   · Mostrar todos DESMARCADO → solo pendientes.
+  // En ambos casos, si NO hay número en el input, también se filtra a
+  // los que NO tienen número asignado (huérfanos reales). Si hay
+  // número, ese filtro extra no aplica porque ya se filtró por número.
+  if(!mostrarTodos){
+    cobrosSinHoja=cobrosSinHoja.filter(c=>(c.estado_rendicion||'pendiente')==='pendiente');
+  }
+  if(!num){
+    cobrosSinHoja=cobrosSinHoja.filter(c=>!c.numero_rendicion);
+  }
+
   if(countEl){
     if(cobrosSinHoja.length){ countEl.textContent=cobrosSinHoja.length; countEl.style.display=''; }
     else { countEl.style.display='none'; }
