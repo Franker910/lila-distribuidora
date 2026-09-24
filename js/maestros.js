@@ -1466,3 +1466,388 @@ async function toggleActivoCliente(id, activo) {
     toast('❌ Error al ' + accionTexto + ': ' + error.message, 'err', 5000);
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// IMPORTAR SALDOS DE CLIENTES
+// ═══════════════════════════════════════════════════════════════
+// Lee un Excel (formato FoxPro: Código | Cliente | Dirección |
+// Localidad | Saldo), matchea por código contra _clientes y actualiza
+// clientes.saldo. Tiene preview previo + undo (24h) desde localStorage.
+// const IMP_SALDOS_SNAPSHOT_KEY = 'lila_saldos_snapshot_undo';
+let _impSalDatos = null;    // {filas:[...], matcheadas:[], nomatch:[], totalExcel:0, totalDb:0}
+
+function abrirImportarSaldos(){
+  _impSalDatos = null;
+  document.getElementById('imp-sal-paso1').style.display='block';
+  document.getElementById('imp-sal-paso2').style.display='none';
+  document.getElementById('imp-sal-paso3').style.display='none';
+  document.getElementById('imp-sal-footer1').style.display='flex';
+  document.getElementById('imp-sal-footer2').style.display='none';
+  document.getElementById('imp-sal-footer3').style.display='none';
+  document.getElementById('imp-sal-msg').textContent='';
+  document.getElementById('imp-sal-file').value='';
+  document.getElementById('m-import-saldos').classList.add('on');
+}
+
+function _volverPaso1Saldos(){
+  document.getElementById('imp-sal-paso2').style.display='none';
+  document.getElementById('imp-sal-paso1').style.display='block';
+  document.getElementById('imp-sal-footer2').style.display='none';
+  document.getElementById('imp-sal-footer1').style.display='flex';
+}
+
+// Acepta números, "1.234,56", "1234.56", "1.234" (miles en AR sin decimales),
+// "$ 1.234,56". Devuelve null si no se puede interpretar.
+function _parseSaldo(v){
+  if(v===null||v===undefined) return null;
+  if(typeof v === 'number') return isFinite(v)?v:null;
+  let s = String(v).trim();
+  if(!s) return null;
+  s = s.replace(/[$\s]/g,'');
+  if(s.includes(',')){
+    // Formato argentino: 1.234,56 → quitar puntos, coma a punto
+    s = s.replace(/\./g,'').replace(',','.');
+  } else if(/^\d{1,3}(\.\d{3})+$/.test(s)){
+    // Formato miles sin decimales: 1.234.567 → 1234567
+    s = s.replace(/\./g,'');
+  }
+  const n = parseFloat(s);
+  return isNaN(n)?null:n;
+}
+
+function _procesarArchivoSaldos(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const msg = document.getElementById('imp-sal-msg');
+  msg.style.color='var(--txt2)';
+  msg.textContent='⏳ Leyendo archivo...';
+
+  if(typeof XLSX === 'undefined'){
+    msg.style.color='var(--D)';
+    msg.textContent='❌ La librería XLSX no está cargada. Recargá la página.';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try{
+      const wb = XLSX.read(e.target.result, {type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+
+      // Detectar fila de inicio: primer renglón donde col[0] sea código
+      // numérico y col[4] (o la última) sea un saldo interpretable.
+      let inicio = -1;
+      for(let i=0;i<Math.min(rows.length,20);i++){
+        const r = rows[i]; if(!r||r.length<2) continue;
+        const cod = String(r[0]||'').trim();
+        const saldo = _parseSaldo(r[4]);
+        if(/^\d+$/.test(cod) && saldo !== null){ inicio=i; break; }
+      }
+      if(inicio < 0){
+        msg.style.color='var(--D)';
+        msg.textContent='❌ No encontré filas con datos válidos. Verificá que el Excel tenga Código en la col. A y Saldo en la col. E.';
+        return;
+      }
+
+      const filas=[];
+      for(let i=inicio;i<rows.length;i++){
+        const r = rows[i]; if(!r) continue;
+        const cod = String(r[0]||'').trim();
+        const nombre = String(r[1]||'').trim();
+        const saldo = _parseSaldo(r[4]);
+        if(!/^\d+$/.test(cod) || saldo===null) continue;
+        filas.push({codigo:cod, nombre, saldo});
+      }
+
+      if(!filas.length){
+        msg.style.color='var(--D)';
+        msg.textContent='❌ Cero filas válidas. Revisá el archivo.';
+        return;
+      }
+
+      // Match por código contra _clientes
+      const mapaCli = {};
+      _clientes.forEach(c=>{
+        const cod = String(c.codigo||'').trim();
+        if(cod) mapaCli[cod]=c;
+      });
+
+      const matcheadas=[], nomatch=[];
+      filas.forEach(f=>{
+        const c = mapaCli[f.codigo];
+        if(c){
+          matcheadas.push({
+            id:c.id, codigo:f.codigo, nombre:c.nombre,
+            saldoNuevo:f.saldo, saldoActual:Number(c.saldo||0)
+          });
+        } else {
+          nomatch.push(f);
+        }
+      });
+
+      const totalExcel = matcheadas.reduce((a,m)=>a+m.saldoNuevo,0);
+      const totalDb    = matcheadas.reduce((a,m)=>a+m.saldoActual,0);
+      const cambiados  = matcheadas.filter(m=>Math.abs(m.saldoNuevo-m.saldoActual)>=0.01);
+
+      _impSalDatos = {filas, matcheadas, nomatch, totalExcel, totalDb, cambiados};
+
+      _renderPreviewSaldos();
+      document.getElementById('imp-sal-paso1').style.display='none';
+      document.getElementById('imp-sal-paso2').style.display='block';
+      document.getElementById('imp-sal-footer1').style.display='none';
+      document.getElementById('imp-sal-footer2').style.display='flex';
+    } catch(err){
+      console.error(err);
+      msg.style.color='var(--D)';
+      msg.textContent='❌ Error al leer el archivo: '+(err.message||err);
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function _renderPreviewSaldos(){
+  const d = _impSalDatos; if(!d) return;
+  const fmtN = n => '$'+(Math.round(n||0)).toLocaleString('es-AR');
+  const dif = d.totalExcel - d.totalDb;
+  const colDif = Math.abs(dif)<1 ? 'var(--txt2)' : (dif>0?'var(--D)':'var(--P)');
+
+  document.getElementById('imp-sal-resumen').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px">
+      <div style="background:var(--bg2);border-radius:8px;padding:10px 12px">
+        <div style="font-size:11px;color:var(--txt2)">Filas del Excel</div>
+        <div style="font-size:18px;font-weight:700">${d.filas.length}</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:8px;padding:10px 12px">
+        <div style="font-size:11px;color:var(--txt2)">Matcheadas</div>
+        <div style="font-size:18px;font-weight:700;color:var(--P)">${d.matcheadas.length}</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:8px;padding:10px 12px">
+        <div style="font-size:11px;color:var(--txt2)">A actualizar</div>
+        <div style="font-size:18px;font-weight:700;color:var(--A)">${d.cambiados.length}</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:8px;padding:10px 12px">
+        <div style="font-size:11px;color:var(--txt2)">Sin match</div>
+        <div style="font-size:18px;font-weight:700;color:${d.nomatch.length?'var(--W)':'var(--txt2)'}">${d.nomatch.length}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div style="background:var(--PL);border-radius:8px;padding:10px 12px">
+        <div style="font-size:11px;color:var(--txt2)">Total Excel (match)</div>
+        <div style="font-size:16px;font-weight:700">${fmtN(d.totalExcel)}</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:8px;padding:10px 12px">
+        <div style="font-size:11px;color:var(--txt2)">Total actual en DB</div>
+        <div style="font-size:16px;font-weight:700">${fmtN(d.totalDb)}</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:8px;padding:10px 12px">
+        <div style="font-size:11px;color:var(--txt2)">Diferencia</div>
+        <div style="font-size:16px;font-weight:700;color:${colDif}">${dif>0?'+':''}${fmtN(dif)}</div>
+      </div>
+    </div>`;
+
+  // Top 30 diferencias por magnitud
+  const orden = d.matcheadas
+    .map(m => ({...m, dif: m.saldoNuevo - m.saldoActual}))
+    .filter(m => Math.abs(m.dif) >= 0.01)
+    .sort((a,b) => Math.abs(b.dif) - Math.abs(a.dif))
+    .slice(0, 30);
+
+  if(!orden.length){
+    document.getElementById('imp-sal-diferencias').innerHTML =
+      '<div style="padding:14px;text-align:center;color:var(--txt2);font-size:13px">Ningún saldo cambia</div>';
+  } else {
+    document.getElementById('imp-sal-diferencias').innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead style="position:sticky;top:0;background:var(--bg2)">
+          <tr>
+            <th style="padding:6px 8px;text-align:center;border-bottom:1px solid var(--brd);width:50px">Cód.</th>
+            <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--brd)">Cliente</th>
+            <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--brd)">Actual</th>
+            <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--brd)">Nuevo</th>
+            <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--brd)">Dif.</th>
+          </tr>
+        </thead>
+        <tbody>${orden.map(m=>`
+          <tr>
+            <td style="padding:5px 8px;text-align:center;color:var(--txt2);border-bottom:1px solid var(--brd)">${m.codigo}</td>
+            <td style="padding:5px 8px;border-bottom:1px solid var(--brd)">${esc(m.nombre)}</td>
+            <td style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--brd)">${fmtN(m.saldoActual)}</td>
+            <td style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--brd);font-weight:600">${fmtN(m.saldoNuevo)}</td>
+            <td style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--brd);font-weight:700;color:${m.dif>0?'var(--D)':'var(--P)'}">${m.dif>0?'+':''}${fmtN(m.dif)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  // Sin match
+  const contN = document.getElementById('imp-sal-nomatch');
+  if(d.nomatch.length){
+    contN.innerHTML = `
+      <div style="font-size:12px;font-weight:700;color:var(--W);margin-bottom:6px">⚠️ Sin match en la base (${d.nomatch.length})</div>
+      <div style="max-height:140px;overflow-y:auto;border:1px solid var(--brd);border-radius:8px;background:var(--bg2)">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <tbody>${d.nomatch.slice(0,100).map(f=>`
+            <tr><td style="padding:4px 8px;text-align:center;color:var(--txt2);width:60px">${f.codigo}</td>
+            <td style="padding:4px 8px">${esc(f.nombre)}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      ${d.nomatch.length>100?`<div style="font-size:11px;color:var(--txt2);padding:4px 0">… y ${d.nomatch.length-100} más</div>`:''}`;
+  } else {
+    contN.innerHTML = '';
+  }
+}
+
+async function _aplicarSaldos(){
+  const d = _impSalDatos; if(!d) return;
+  const forzar = document.getElementById('imp-sal-forzar')?.checked || false;
+  const aAplicar = forzar ? d.matcheadas : d.cambiados;
+  if(!aAplicar.length){
+    alert('No hay saldos para actualizar.');
+    return;
+  }
+
+  // Cambiar a paso 3
+  document.getElementById('imp-sal-paso2').style.display='none';
+  document.getElementById('imp-sal-paso3').style.display='block';
+  document.getElementById('imp-sal-footer2').style.display='none';
+  document.getElementById('imp-sal-footer3').style.display='flex';
+
+  const prog = document.getElementById('imp-sal-progreso');
+  const res = document.getElementById('imp-sal-resultado');
+  res.innerHTML = '';
+  prog.innerHTML = '<div style="font-size:13px;color:var(--txt2)">Guardando snapshot de seguridad…</div>';
+
+  // 1. Guardar snapshot en Supabase ANTES de aplicar (por si se corta la
+  //    conexión a mitad de camino, ya queda registrado el estado previo).
+  const archivoNombre = document.getElementById('imp-sal-file')?.files?.[0]?.name || 'archivo.xlsx';
+  const {error:errLog} = await sb.from('import_saldos_log').insert({
+    usuario: usuarioActual?.nombre || '',
+    archivo: archivoNombre,
+    cantidad: aAplicar.length,
+    total_excel: d.totalExcel,
+    total_db: d.totalDb,
+    cambios: aAplicar.map(m => ({
+      id: m.id,
+      saldo_antes: m.saldoActual,
+      saldo_nuevo: m.saldoNuevo
+    }))
+  });
+  if(errLog){
+    prog.innerHTML = '';
+    res.innerHTML = `<div style="background:var(--DL);border-radius:10px;padding:16px;text-align:center">
+      <div style="font-size:36px;margin-bottom:6px">❌</div>
+      <div style="font-size:15px;font-weight:700;color:var(--D)">No se pudo guardar el snapshot</div>
+      <div style="font-size:12px;color:var(--txt2);margin-top:6px">${esc(errLog.message||'Error desconocido')}</div>
+      <div style="font-size:12px;color:var(--txt2);margin-top:8px">No se aplicó ningún cambio.</div>
+    </div>`;
+    return;
+  }
+
+  // 2. Aplicar los cambios en batches de 20
+  const BATCH = 20;
+  let aplicados = 0, errores = 0;
+  for(let i=0; i<aAplicar.length; i+=BATCH){
+    const lote = aAplicar.slice(i, i+BATCH);
+    const resultados = await Promise.all(lote.map(m =>
+      sb.from('clientes').update({ saldo: m.saldoNuevo }).eq('id', m.id)
+    ));
+    resultados.forEach(r => { if(r.error) errores++; });
+    aplicados += lote.length;
+    const pct = Math.round(aplicados / aAplicar.length * 100);
+    prog.innerHTML = `
+      <div style="font-size:13px;color:var(--txt2);margin-bottom:6px">
+        Actualizando… ${aplicados} / ${aAplicar.length} (${pct}%)
+      </div>
+      <div style="background:var(--bg2);border-radius:6px;height:8px;overflow:hidden">
+        <div style="background:var(--P);height:100%;width:${pct}%;transition:width .2s"></div>
+      </div>`;
+  }
+
+  // 3. Recargar clientes y reconstruir vista
+  await cargarClientes();
+  renderClientes();
+
+  prog.innerHTML = '';
+  const ok = aplicados - errores;
+  res.innerHTML = `
+    <div style="background:${errores?'var(--WL)':'var(--PL)'};border-radius:10px;padding:16px;text-align:center">
+      <div style="font-size:36px;margin-bottom:6px">${errores?'⚠️':'✅'}</div>
+      <div style="font-size:16px;font-weight:700;color:${errores?'var(--W)':'var(--P)'}">
+        ${ok} cliente(s) actualizado(s)
+      </div>
+      ${errores?`<div style="font-size:12px;color:var(--D);margin-top:6px">${errores} con error — revisar consola</div>`:''}
+      <div style="font-size:12px;color:var(--txt2);margin-top:8px">
+        Podés deshacer este cambio desde el aviso en la pantalla de Clientes (válido 24h).
+      </div>
+    </div>`;
+  await _renderUndoBanner();
+}
+
+// Devuelve el último snapshot de importación no deshecho, hecho en las
+// últimas 24h. null si no hay nada pendiente de undo.
+async function _leerSnapshotUndo(){
+  try{
+    const hace24h = new Date(Date.now() - 24*60*60*1000).toISOString();
+    const {data, error} = await sb.from('import_saldos_log')
+      .select('*')
+      .eq('deshecho', false)
+      .gte('fecha', hace24h)
+      .order('fecha', {ascending:false})
+      .limit(1)
+      .maybeSingle();
+    if(error){ console.error('[snapshot]', error.message); return null; }
+    return data || null;
+  }catch(e){
+    console.error('[snapshot]', e);
+    return null;
+  }
+}
+
+async function _renderUndoBanner(){
+  const cont = document.getElementById('cli-undo-banner');
+  if(!cont) return;
+  const s = await _leerSnapshotUndo();
+  if(!s){ cont.style.display='none'; cont.innerHTML=''; return; }
+  const fechaFmt = new Date(s.fecha).toLocaleString('es-AR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  cont.style.display='block';
+  cont.innerHTML = `
+    <div style="background:var(--WL);border:1px solid var(--W);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px">
+      <span>📥 Última importación de saldos: <b>${s.cantidad}</b> cliente(s) el ${fechaFmt} por ${esc(s.usuario||'—')}</span>
+      <button class="btn sm W" onclick="_deshacerImportSaldos()">↩ Deshacer</button>
+    </div>`;
+}
+
+async function _deshacerImportSaldos(){
+  const s = await _leerSnapshotUndo();
+  if(!s){ alert('El undo ya expiró o no hay importaciones recientes.'); return; }
+  const cambios = Array.isArray(s.cambios) ? s.cambios : [];
+  if(!cambios.length){ alert('El snapshot no tiene cambios para restaurar.'); return; }
+  if(!confirm(`¿Deshacer la importación de ${cambios.length} cliente(s)?\nSe restauran los saldos previos.`)) return;
+
+  const BATCH = 20;
+  for(let i=0; i<cambios.length; i+=BATCH){
+    const lote = cambios.slice(i, i+BATCH);
+    await Promise.all(lote.map(m =>
+      sb.from('clientes').update({ saldo: m.saldo_antes }).eq('id', m.id)
+    ));
+  }
+
+  // Marcar el log como deshecho
+  const {error:errUpd} = await sb.from('import_saldos_log').update({
+    deshecho: true,
+    deshecho_fecha: new Date().toISOString(),
+    deshecho_por: usuarioActual?.nombre || ''
+  }).eq('id', s.id);
+  if(errUpd){
+    console.error('[undo] no se pudo marcar el log:', errUpd.message);
+    toast('Saldos restaurados, pero no se pudo marcar el log. Avisá a Alexis.', 'err', 6000);
+  } else {
+    toast('✅ Saldos restaurados');
+  }
+
+  await cargarClientes();
+  renderClientes();
+  await _renderUndoBanner();
+}

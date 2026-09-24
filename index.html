@@ -2512,8 +2512,12 @@ body.modo-movil-vendedor .app-layout {
 <div class="panel" id="p-clientes">
   <div class="sech">
     <h2>Clientes</h2>
-    <button class="btn P" onclick="abrirCliente()">+ Nuevo</button>
+    <div style="display:flex;gap:6px">
+      <button class="btn A" onclick="abrirImportarSaldos()" title="Importar Excel de saldos de FoxPro o del contador">📥 Importar saldos</button>
+      <button class="btn P" onclick="abrirCliente()">+ Nuevo</button>
+    </div>
   </div>
+  <div id="cli-undo-banner" style="display:none;margin-bottom:10px"></div>
   <div class="tb">
     <input id="cli-q" placeholder="Nombre, teléfono, localidad..." oninput="renderClientes();resetNav('cli-tbody')" onkeydown="navCliTabla(event)" title="↑↓ navegar · Enter abrir · Esc volver">
   </div>
@@ -4256,6 +4260,61 @@ body.modo-movil-vendedor .app-layout {
 </div>
 </div>
 
+<!-- MODAL IMPORTAR SALDOS DE CLIENTES -->
+<div class="mbg" id="m-import-saldos">
+<div class="mdl" style="width:720px;max-width:98vw">
+  <div class="mh">
+    <h3>📥 Importar saldos de clientes</h3>
+    <button class="btn sm" onclick="cerrar('m-import-saldos')">✕</button>
+  </div>
+
+  <!-- PASO 1: Subir archivo -->
+  <div id="imp-sal-paso1" class="mb">
+    <p style="font-size:13px;color:var(--txt2);margin-bottom:14px">
+      Excel con columnas <b>Código | Cliente | Dirección | Localidad | Saldo</b>. El match se hace por <b>código</b>.
+      No se modifica nada hasta que confirmes en el paso 3.
+    </p>
+    <input type="file" id="imp-sal-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="_procesarArchivoSaldos(this)">
+    <div onclick="document.getElementById('imp-sal-file').click()"
+      style="border:2px dashed var(--brd);border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;background:var(--bg2)">
+      <div style="font-size:42px;margin-bottom:8px">📄</div>
+      <div style="font-weight:600;font-size:14px;margin-bottom:4px">Tocá para elegir el archivo</div>
+      <div style="font-size:12px;color:var(--txt2)">.xlsx · .xls · .csv</div>
+    </div>
+    <div id="imp-sal-msg" style="margin-top:12px;font-size:13px"></div>
+  </div>
+
+  <!-- PASO 2: Preview -->
+  <div id="imp-sal-paso2" class="mb" style="display:none">
+    <div id="imp-sal-resumen" style="margin-bottom:14px"></div>
+    <div style="font-size:12px;font-weight:700;color:var(--PD);margin-bottom:6px">📊 Mayores diferencias (top 30)</div>
+    <div id="imp-sal-diferencias" style="max-height:280px;overflow-y:auto;border:1px solid var(--brd);border-radius:8px"></div>
+    <div id="imp-sal-nomatch" style="margin-top:14px"></div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;cursor:pointer">
+      <input type="checkbox" id="imp-sal-forzar" style="width:16px;height:16px">
+      Forzar también los que <b>ya tienen el mismo saldo</b> (por defecto solo se actualizan los que cambian)
+    </label>
+  </div>
+
+  <!-- PASO 3: Aplicando / resultado -->
+  <div id="imp-sal-paso3" class="mb" style="display:none">
+    <div id="imp-sal-progreso" style="margin-bottom:12px"></div>
+    <div id="imp-sal-resultado"></div>
+  </div>
+
+  <div class="mf" id="imp-sal-footer1">
+    <button class="btn" onclick="cerrar('m-import-saldos')">Cancelar</button>
+  </div>
+  <div class="mf" id="imp-sal-footer2" style="display:none">
+    <button class="btn" onclick="_volverPaso1Saldos()">← Volver</button>
+    <button class="btn P" onclick="_aplicarSaldos()">✓ Aplicar cambios</button>
+  </div>
+  <div class="mf" id="imp-sal-footer3" style="display:none">
+    <button class="btn" onclick="cerrar('m-import-saldos')">Cerrar</button>
+  </div>
+</div>
+</div>
+
 <!-- MODAL PRODUCTO -->
 <div class="mbg" id="m-producto">
 <div class="mdl" style="width:800px;max-width:98vw">
@@ -5208,14 +5267,14 @@ body.modo-movil-vendedor .app-layout {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260923-06"></script>
-<script src="js/maestros.js?v=20260923-07"></script>
-<script src="js/ventas.js?v=20260923-07"></script>
-<script src="js/tesoreria.js?v=20260923-07"></script>
-<script src="js/contabilidad.js?v=20260923-07"></script>
-<script src="js/informes.js?v=20260923-07"></script>
-<script src="js/logistica.js?v=20260923-07"></script>
-<script src="js/movil_header_observer.js?v=20260923-07"></script>
+<script src="js/app.js?v=20260923-08"></script>
+<script src="js/maestros.js?v=20260923-08"></script>
+<script src="js/ventas.js?v=20260923-08"></script>
+<script src="js/tesoreria.js?v=20260923-08"></script>
+<script src="js/contabilidad.js?v=20260923-08"></script>
+<script src="js/informes.js?v=20260923-08"></script>
+<script src="js/logistica.js?v=20260923-08"></script>
+<script src="js/movil_header_observer.js?v=20260923-08"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
