@@ -2685,33 +2685,16 @@ function _cobmResetHeader(){
   if (cod) { cod.value = ''; cod.style.borderColor = ''; }
 }
 
-// Pool base de clientes para cobranza móvil (sin filtro de chip).
-// El filtrado por chip (ruta / deuda / todos) se aplica después, en
-// cobmRenderZonasAcordeon y en buscarClienteCobMovil.
-// Criterio por rol:
-//   · Repartidor puro    → todos los clientes activos del sistema.
-//   · Admin              → todos los clientes activos.
-//   · dualRolMovil       → todos los clientes activos (David, y también
-//                          Alexis/Mauricio cuando están en rol
-//                          vendedor desde el celu). Operativamente
-//                          funcionan como repartidores cuando salen a
-//                          la calle, así que cobran lo que aparezca,
-//                          no solo lo asignado a su vendedor.
-//   · Vendedor puro      → solo los clientes asignados a él.
+// Pool base de clientes para cobranza móvil.
+// No hace falta chequear el rol acá: _clientes ya viene filtrado por
+// _aplicarFiltroClientesPorRol() según el rol actual del usuario.
+//   · Repartidor puro o admin → _clientes = universo completo.
+//   · David en rol repartidor → universo completo (recargado al
+//     cambiar de rol vía toggleRolMovil).
+//   · David en rol vendedor  → solo sus clientes.
+//   · Vendedor puro (Franco) → solo sus clientes.
 function _cobmCliPool(){
-  const esAdmin = usuarioActual?.esAdmin
-    || usuarioActual?.rol === 'admin'
-    || usuarioActual?.rol_original === 'admin';
-  const veTodos = esAdmin
-    || usuarioActual?.rol === 'repartidor'
-    || usuarioActual?.dualRolMovil;
-  if(veTodos){
-    return _clientes.filter(c => c.activo !== false);
-  }
-  const v = usuarioActual?.vendedor || usuarioActual?.nombre || '';
-  if(!v) return _clientes.filter(c => c.activo !== false);
-  const filtrado = _clientes.filter(c => (c.vendedor||'').toLowerCase() === v.toLowerCase() && c.activo !== false);
-  return filtrado.length ? filtrado : _clientes.filter(c => c.activo !== false);
+  return _clientes.filter(c => c.activo !== false);
 }
 
 // ¿Este cliente tiene al menos una factura (remito) pendiente de cobro real?

@@ -55,14 +55,14 @@ const MENUS_REPARTIDOR=['vendedor-home','cobranza','hoja-ruta','nc'];
 let usuarioActual = null;
 
 // ─── ESTADO LOCAL ───
-let _clientes=[], _productos=[], _pedidos=[], _pedidosTodos=[], _remitos=[], _cobros=[], _cargas=[], _gastosReparto=[];
+let _clientes=[], _clientesTodos=[], _productos=[], _pedidos=[], _pedidosTodos=[], _remitos=[], _cobros=[], _cargas=[], _gastosReparto=[];
 
 let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260924-01';
+const APP_VERSION = '20260924-02';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -607,12 +607,14 @@ function volverAdmin() {
 // Alternar Vendedor/Repartidor en el mismo celular (mauricio, alexis, david:
 // dualRolMovil=true en USUARIOS). Reutiliza tal cual toda la UI que ya
 // distingue por usuarioActual.rol, sin tocar ningún otro chequeo del código.
-function toggleRolMovil(){
+async function toggleRolMovil(){
   if(!usuarioActual)return;
   usuarioActual.rol = usuarioActual.rol==='repartidor'?'vendedor':'repartidor';
-  // Mantener vista móvil
   usuarioActual.vista = 'movil';
   actualizarBtnRolMovil();
+  // Recalcular _clientes según el nuevo rol SIN volver a pedir a Supabase
+  // (usamos el universo ya cacheado en _clientesTodos).
+  _aplicarFiltroClientesPorRol();
   renderVendedorHome();
   if(usuarioActual.rol==='repartidor')cargarHojaRutaRepartidor();
   toast(`📲 Ahora estás como ${usuarioActual.rol==='repartidor'?'Repartidor':'Vendedor'}`);
@@ -1796,6 +1798,30 @@ function mostrarVistaMovil() {
   document.querySelectorAll('.movil-only').forEach(el => {
     el.style.display = '';
   });
+}
+
+// Recalcula _clientes a partir de _clientesTodos según el rol actual.
+//   · Admin / Repartidor → _clientes = universo completo.
+//   · Vendedor (incluye dualRol en rol vendedor) → solo los suyos
+//     + los que no tienen vendedor asignado.
+// No hace fetch: opera sobre lo que ya está en memoria. Así el
+// cambio de rol es instantáneo.
+function _aplicarFiltroClientesPorRol(){
+  if(!_clientesTodos.length){ _clientes = []; return; }
+  const esAdmin = usuarioActual?.esAdmin
+    || usuarioActual?.rol === 'admin'
+    || usuarioActual?.rol_original === 'admin';
+  const esRepartidor = usuarioActual?.rol === 'repartidor';
+
+  if(usuarioActual?.vendedor && !esAdmin && !esRepartidor){
+    const v = usuarioActual.vendedor.toLowerCase();
+    _clientes = _clientesTodos.filter(c => {
+      const cv = (c.vendedor || '').toLowerCase();
+      return cv === '' || cv.includes(v);
+    });
+  } else {
+    _clientes = _clientesTodos;
+  }
 }
 
 function mostrarVistaEscritorio() {

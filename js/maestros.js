@@ -65,14 +65,15 @@ async function cargarClientes() {
     || usuarioActual?.rol === 'repartidor'
     || usuarioActual?.dualRolMovil;
 
-  if (usuarioActual?.vendedor && !veTodos) {
-    _clientes = all.filter(c => {
-      const v = c.vendedor || '';
-      return v === '' || v.toLowerCase().includes(usuarioActual.vendedor.toLowerCase());
-    });
-  } else {
-    _clientes = all;
-  }
+  // Guardar SIEMPRE el universo completo. _clientesTodos nunca se filtra,
+  // así que sirve de fuente para recalcular cuando el usuario cambia de
+  // rol (David dualRol vendedor ↔ repartidor) sin volver a pedir a Supabase.
+  _clientesTodos = all;
+
+  // _clientes queda filtrado según el rol actual del usuario. La lógica
+  // vive en _aplicarFiltroClientesPorRol (app.js) para reutilizarla desde
+  // toggleRolMovil().
+  _aplicarFiltroClientesPorRol();
 }
 
 async function cargarListasPrecios(){
