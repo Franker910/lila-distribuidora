@@ -53,8 +53,19 @@ async function cargarClientes() {
     if (result.length < pageSize) hasMore = false;
   }
 
-  // Aplicar filtro por vendedor (si existe)
-  if (usuarioActual?.vendedor) {
+  // Filtro por vendedor SOLO para vendedores puros (Franco). Los
+  // repartidores y los usuarios con dualRolMovil (David, y Alexis/
+  // Mauricio cuando estén en rol vendedor desde el celu) tienen que
+  // ver TODOS los clientes: cobran lo que aparece en la calle, no
+  // solo lo asignado a su vendedor. Los admins también ven todos.
+  const esAdmin = usuarioActual?.esAdmin
+    || usuarioActual?.rol === 'admin'
+    || usuarioActual?.rol_original === 'admin';
+  const veTodos = esAdmin
+    || usuarioActual?.rol === 'repartidor'
+    || usuarioActual?.dualRolMovil;
+
+  if (usuarioActual?.vendedor && !veTodos) {
     _clientes = all.filter(c => {
       const v = c.vendedor || '';
       return v === '' || v.toLowerCase().includes(usuarioActual.vendedor.toLowerCase());
