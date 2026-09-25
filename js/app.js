@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260925-03';
+const APP_VERSION = '20260925-04';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -1998,11 +1998,14 @@ function _navPush(state) {
   history.pushState(state, '', location.pathname);
 }
 
+let _navConsumosPropios = 0;   // cuántos history.back() propios están pendientes
+
 // Consume un estado: equivale a "el usuario tocó atrás". Se usa cuando una
 // capa se cierra por métodos normales (botón, Escape) para no dejar un estado
 // fantasma en el history.
 function _navConsumir() {
   _navDesdePopstate = true;
+  _navConsumosPropios++;
   history.back();
   setTimeout(() => { _navDesdePopstate = false; }, 0);
 }
@@ -2079,10 +2082,18 @@ function _navCerrarCapaSuperior() {
 window.addEventListener('popstate', (e) => {
   _navDesdePopstate = true;
   try {
-    // 1) Si hay capa abierta, cerrarla (consume el atrás del usuario).
-    if (_navCerrarCapaSuperior()) return;
+    // Si este popstate lo disparamos nosotros al cerrar una capa,
+    // solo consumirlo y salir: no procesar ninguna otra capa. Sin
+    // esto, cerrar un modal desde cobranza móvil disparaba el caso #5
+    // (cobmVolverAcciones) que devolvía al listado de zonas sin que
+    // el usuario hubiera apretado atrás.
+    if (_navConsumosPropios > 0) {
+      _navConsumosPropios--;
+      return;
+    }
 
-    // 2) Sin capa: navegar al panel del state si es distinto al actual.
+    // Popstate real del usuario (atrás del celu/navegador):
+    if (_navCerrarCapaSuperior()) return;
     const panelDest = e.state?.panel;
     if (panelDest && panelDest !== _navPanelActual) {
       go(panelDest, {fromPop: true});
