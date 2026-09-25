@@ -15,6 +15,14 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <title>Distribuidora Lila — Sistema de Gestión</title>
 
+<!-- ── AUTO-LOGIN SIN PARPADEO: si hay sesión guardada, no mostrar el login
+     mientras app.js la valida (ver AUTO-SESIÓN). Si no sirve, se muestra. ── -->
+<script>
+try{ if(localStorage.getItem('lila-auth')) document.documentElement.classList.add('auto-login'); }catch(e){}
+setTimeout(function(){ document.documentElement.classList.remove('auto-login'); }, 20000); // red de seguridad (app.js lo saca antes)
+</script>
+<style>html.auto-login #login-screen{visibility:hidden}</style>
+
 <!-- ── SERVICE WORKER: registrar ANTES del login para interceptar desde la primera carga ── -->
 <script>
 (function(){
@@ -1049,6 +1057,7 @@ body.modo-movil-vendedor .app-layout {
     </div>
     <button class="login-btn" onclick="doLogin()">Ingresar</button>
     <div class="login-error" id="login-err"></div>
+    <button type="button" class="btn-instalar-app" onclick="instalarApp()" style="display:none; margin-top:14px; width:100%; padding:13px; background:var(--PL); color:var(--PD); border:2px solid var(--P); border-radius:10px; font-size:16px; font-weight:600; cursor:pointer; font-family:inherit;">📲 Instalar app en el celular</button>
   </div>
 </div>
 
@@ -1223,6 +1232,7 @@ body.modo-movil-vendedor .app-layout {
   
   <!-- Botones de usuarios dualRolMovil -->
   <div style="display:flex; justify-content:flex-end; gap:8px; padding:10px 14px 0; flex-wrap:wrap; flex-shrink:0;">
+    <button type="button" class="btn-instalar-app" onclick="instalarApp()" style="display:none; font-size:12px; padding:6px 12px; background:var(--PL); color:var(--PD); border:1.5px solid var(--P); border-radius:6px; cursor:pointer; font-family:inherit; margin-right:auto;">📲 Instalar app</button>
     <button onclick="logout()" title="Cerrar sesión" style="font-size:12px; padding:6px 12px; background:var(--bg2); color:var(--txt); border:1.5px solid var(--brd); border-radius:6px; cursor:pointer; font-family:inherit; -webkit-tap-highlight-color:transparent;">
      Salir
     </button>
@@ -5269,14 +5279,15 @@ body.modo-movil-vendedor .app-layout {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260925-01"></script>
-<script src="js/maestros.js?v=20260925-01"></script>
-<script src="js/ventas.js?v=20260925-01"></script>
-<script src="js/tesoreria.js?v=20260925-01"></script>
-<script src="js/contabilidad.js?v=20260925-01"></script>
-<script src="js/informes.js?v=20260925-01"></script>
-<script src="js/logistica.js?v=20260925-01"></script>
-<script src="js/movil_header_observer.js?v=20260925-01"></script>
+<script src="js/app.js?v=20260925-03"></script>
+<script src="js/maestros.js?v=20260925-03"></script>
+<script src="js/ventas.js?v=20260925-03"></script>
+<script src="js/tesoreria.js?v=20260925-03"></script>
+<script src="js/contabilidad.js?v=20260925-03"></script>
+<script src="js/informes.js?v=20260925-03"></script>
+<script src="js/logistica.js?v=20260925-03"></script>
+<script src="js/movil_header_observer.js?v=20260925-03"></script>
+<script src="js/instalar_app.js?v=20260925-03"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

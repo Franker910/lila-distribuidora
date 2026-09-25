@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260925-01';
+const APP_VERSION = '20260925-03';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -314,14 +314,51 @@ async function logout(){
 
 // ─── AUTO-SESIÓN ───
 // Si Supabase tiene una sesión guardada válida, entra directo sin pedir contraseña.
+//
+// Caso "después de una actualización pide login": la actualización recarga
+// la página justo cuando el celular vuelve del fondo (o incluso EN el fondo).
+// Si el token venció (1 h), getSession() tiene que renovarlo por internet, y
+// en ese momento el celular muchas veces todavía no tiene red → la renovación
+// falla, getSession() devuelve session=null y antes se mostraba el login.
+// Pero la sesión SIGUE guardada (Supabase solo la borra si el servidor la
+// rechaza, no por falta de red). Entonces: si hay sesión guardada, esperar a
+// que la app esté visible y con red, y reintentar antes de rendirse.
+function _haySesionGuardada(){
+  try{ return !!localStorage.getItem('lila-auth'); }catch(e){ return false; }
+}
+function _esperarVisibleYOnline(){
+  return new Promise(res=>{
+    const ok=()=>!document.hidden && navigator.onLine!==false;
+    if(ok()) return res();
+    const chk=()=>{ if(ok()){ document.removeEventListener('visibilitychange',chk); window.removeEventListener('online',chk); res(); } };
+    document.addEventListener('visibilitychange',chk);
+    window.addEventListener('online',chk);
+  });
+}
 document.addEventListener('DOMContentLoaded', async function(){
   try{
-    const {data:{session}} = await sb.auth.getSession();
-    if(!session) return;
-    const found = usuarioPorEmail(session.user?.email);
-    if(!found){ await sb.auth.signOut(); return; }
-    entrarApp(found);
-  }catch(e){ /* sin sesión o sin conexión: queda la pantalla de login */ }
+    const esperas=[0,1000,2000,3000,4000]; // ~10 s en total, ya visible y con red
+    for(const ms of esperas){
+      if(ms){ await new Promise(r=>setTimeout(r,ms)); }
+      await _esperarVisibleYOnline();
+      if(usuarioActual) return; // entró a mano mientras reintentábamos
+      let session=null;
+      try{ ({data:{session}} = await sb.auth.getSession()); }catch(e){}
+      if(session){
+        const found = usuarioPorEmail(session.user?.email);
+        if(!found){ await sb.auth.signOut(); return; }
+        entrarApp(found);
+        return;
+      }
+      // Sin sesión y nada guardado (o el servidor la rechazó y Supabase la
+      // borró): no tiene sentido reintentar → login normal.
+      if(!_haySesionGuardada()) return;
+    }
+  }catch(e){ /* sin sesión: queda la pantalla de login */ }
+  finally{
+    // Ya se resolvió: si no entró, el login tiene que verse (ver anti-parpadeo en index.html)
+    document.documentElement.classList.remove('auto-login');
+  }
 });
 
 // ─── CARGA INICIAL ───
@@ -2014,6 +2051,27 @@ function _navCerrarCapaSuperior() {
       return true;
     }
   }
+
+  // 5. Cobranza móvil: si está en el paso de carga de cobro o en un
+  //    sub-panel (Cuenta corriente / Mis cobranzas), el atrás
+  //    retrocede un paso dentro del panel, sin perder lo cargado.
+  const cobMovil = document.getElementById('cob-movil');
+  const panelCobranza = document.getElementById('p-cobranza');
+  const enCobranza = cobMovil && panelCobranza && panelCobranza.classList.contains('on') && cobMovil.offsetParent !== null;
+  if (enCobranza) {
+    const pasoCobro = document.getElementById('cobm-paso-cobro');
+    const panelCC = document.getElementById('cobm-panel-cc');
+    const panelMC = document.getElementById('cobm-panel-miscobranzas');
+    const enPasoCobro = pasoCobro && getComputedStyle(pasoCobro).display !== 'none';
+    const enCC = panelCC && getComputedStyle(panelCC).display !== 'none';
+    const enMC = panelMC && getComputedStyle(panelMC).display !== 'none';
+    if (enPasoCobro || enCC || enMC) {
+      if (enPasoCobro) cobmVolverAcciones();
+      else if (enCC || enMC) cobmVolverAcciones();
+      history.pushState({type:'panel', panel:'cobranza'}, '', location.pathname);
+      return true;
+    }
+  }
   return false;
 }
 
@@ -2034,50 +2092,68 @@ window.addEventListener('popstate', (e) => {
   }
 });
 
-// ─── Swipe-down en el modal de cuenta corriente (m-ver) ───
-// Cierra el modal al deslizar el dedo hacia abajo, pero SOLO si el
-// contenido está arriba de todo: si el usuario está scrolleado mirando
-// movimientos, el gesto scrollea (comportamiento nativo) y no cierra.
+// ─── Gestos para cerrar el modal de cuenta corriente (m-ver) ───
+// Dos formas de volver sin buscar la ✕:
+//   1) Deslizar hacia la DERECHA (izquierda → derecha), como el "atrás"
+//      de cualquier app. Funciona en cualquier parte, aunque estés
+//      scrolleado mirando movimientos. Excepción: si el dedo arranca
+//      sobre la tabla y la tabla está corrida a la derecha, el gesto
+//      la vuelve a correr (nativo) y no cierra.
+//   2) Deslizar hacia ABAJO, solo si el contenido está arriba de todo
+//      (si estás scrolleado, el gesto scrollea y no cierra).
 // Aplica tanto al modal abierto desde Cuenta corriente móvil como al
 // abierto desde el botón "📋 Cta. cte." del paso cobro.
 (function initSwipeCerrarModalCC(){
+  // ¿Algún contenedor entre el dedo y el modal está corrido a la derecha?
+  function hayScrollHorizontal(el, tope){
+    for (let n = el; n && n !== tope; n = n.parentElement) {
+      if (n.scrollLeft > 2) return true;
+    }
+    return false;
+  }
+
   function enganchar(){
     const modal = document.getElementById('m-ver');
     if (!modal || modal.dataset.swipeDownOn) return;
     modal.dataset.swipeDownOn = '1';
 
-    let startY = 0, startX = 0, startT = 0, valido = false;
+    let startY = 0, startX = 0, startT = 0;
+    let abajoValido = false, derechaValido = false;
 
     modal.addEventListener('touchstart', (e) => {
-      if (!modal.classList.contains('on')) { valido = false; return; }
+      abajoValido = derechaValido = false;
+      if (!modal.classList.contains('on')) return;
+      if (e.touches.length !== 1) return; // pinch/zoom: no
       const t = e.touches[0];
       startX = t.clientX;
       startY = t.clientY;
       startT = Date.now();
       // Ignorar si arranca sobre un campo de texto
-      const enInput = !!(e.target && e.target.closest && e.target.closest('input, textarea, select'));
-      if (enInput) { valido = false; return; }
-      // Ignorar si el contenido está scrolleado (el usuario está leyendo)
+      if (e.target && e.target.closest && e.target.closest('input, textarea, select')) return;
+      // Abajo: solo si el contenido está arriba de todo
       const body = document.getElementById('m-ver-body');
-      const modalScrolled = modal.scrollTop > 2;
-      const bodyScrolled = body && body.scrollTop > 2;
-      valido = !modalScrolled && !bodyScrolled;
+      abajoValido = !(modal.scrollTop > 2) && !(body && body.scrollTop > 2);
+      // Derecha: siempre, salvo que la tabla bajo el dedo esté corrida
+      derechaValido = !hayScrollHorizontal(e.target, modal);
     }, { passive: true });
 
     modal.addEventListener('touchend', (e) => {
-      if (!valido) return;
+      const puedeAbajo = abajoValido, puedeDerecha = derechaValido;
+      abajoValido = derechaValido = false;
+      if (!puedeAbajo && !puedeDerecha) return;
+      if (!modal.classList.contains('on')) return;
       const t = e.changedTouches[0];
       const dy = t.clientY - startY;
       const dx = t.clientX - startX;
-      const dt = Date.now() - startT;
-      // Filtros: mínimo 80px vertical, claramente más vertical que horizontal,
-      // y que no haya sido muy lento.
-      if (Math.abs(dy) < 80) return;
-      if (Math.abs(dy) < Math.abs(dx) * 1.5) return;
-      if (dt > 800) return;
-      if (dy > 0) {
-        valido = false;
-        cerrar('m-ver');
+      if (Date.now() - startT > 800) return; // gestos muy lentos no cuentan
+
+      // Derecha: mínimo 70px y claramente más horizontal que vertical
+      const esDerecha = dx > 70 && dx > Math.abs(dy) * 1.5;
+      // Abajo: mínimo 80px y claramente más vertical que horizontal
+      const esAbajo = dy > 80 && dy > Math.abs(dx) * 1.5;
+
+      if ((esDerecha && puedeDerecha) || (esAbajo && puedeAbajo)) {
+        cerrar('m-ver'); // respeta el History API (el observer consume la entrada)
       }
     }, { passive: true });
   }
