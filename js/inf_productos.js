@@ -122,10 +122,20 @@ function ipInit(){
   }
   const selC=document.getElementById('ip-cat');
   if(selC && selC.options.length<=1){
-    const cats=[...new Set(_productos.map(p=>p.rubro).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+    // Categorías oficiales (las mismas que usa Maestros → Productos, ver CATS en maestros.js).
+    // No se pueblan dinámicamente desde la base porque hay productos con rubro mal
+    // cargado (códigos numéricos del FoxPro viejo, mayúsculas y tildes inconsistentes).
+    // Ver cleanup pendiente en la tabla productos.
+    const cats=['Fiambres','Quesos','Lácteos','Condimentos','Conservas','Snacks','Congelados','Otros'];
     selC.innerHTML='<option value="">Todas las categorías</option>'+cats.map(c=>`<option>${esc(c)}</option>`).join('');
   }
   ipSubTab('analisis');
+}
+
+// Normaliza texto para comparar categorías sin importar mayúsculas ni tildes.
+// Así 'FIAMBRES', 'Fiambres' y 'fiambres' cuentan como la misma categoría.
+function _ipNormCat(s){
+  return String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
 }
 
 function ipCambioPeriodo(){
@@ -163,10 +173,20 @@ function ipRender(){
     if(!a.ult || l.fecha>a.ult) a.ult=l.fecha;
   });
 
+  // Mismo criterio que usa el resto de la app (renderClientes, cobmBuscarPorCod):
+  //   · Número puro ("10", "500") → match EXACTO de código, para que "10" no
+  //     traiga 110, 210, 1010, etc. por substring.
+  //   · Con letras o mixto → contains sobre nombre y código (como antes).
+  const esNumeroPuro = /^\d+$/.test(q);
   const rows=_productos.filter(p=>{
     if(p.activo===false) return false;
-    if(q && !((p.nombre||'').toLowerCase().includes(q) || String(p.codigo||'').includes(q))) return false;
-    if(cat && (p.rubro||'')!==cat) return false;
+    if(q){
+      const okQ = esNumeroPuro
+        ? String(p.codigo||'').trim() === q
+        : ((p.nombre||'').toLowerCase().includes(q) || String(p.codigo||'').includes(q));
+      if(!okQ) return false;
+    }
+    if(cat && _ipNormCat(p.rubro)!==_ipNormCat(cat)) return false;
     if(prov && (p.proveedor_nom||'')!==prov) return false;
     return true;
   }).map(p=>{
