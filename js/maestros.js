@@ -136,7 +136,7 @@ function poblarZonas(){
 // ─── CLIENTES ───
 function renderClientes(){
   const q=(document.getElementById('cli-q').value||'').toLowerCase();
-  poblarSelectValores('cli-f-zona',_clientes.map(c=>c.zona||''),nombreZona);
+  _poblarSelectZonasClientes(); 
   poblarSelectValores('cli-f-ven',_clientes.map(c=>(c.vendedor||'').trim()));
   
   // Filtros de texto
@@ -227,6 +227,25 @@ function renderClientes(){
   
   pag('cli-pg',tot,_cliPg,p=>{_cliPg=p;renderClientes();});
 }
+
+// Puebla el filtro de zonas del panel Clientes usando el catálogo real
+// (_zonas) en vez de inferir de los clientes. Se fuerza el repoblado
+// (ignora la guarda de poblarSelectValores) porque el usuario puede
+// agregar/borrar zonas desde Maestros → Zonas y queremos que el filtro
+// se actualice sin recargar la página.
+function _poblarSelectZonasClientes(){
+  const sel = document.getElementById('cli-f-zona');
+  if(!sel) return;
+  const actual = sel.value;
+  const zonas = (_zonas||[]).filter(z=>z.codigo).sort((a,b)=>
+    (a.descripcion||a.codigo||'').localeCompare(b.descripcion||b.codigo||'')
+  );
+  sel.innerHTML = '<option value="">Todas las zonas</option>' +
+    zonas.map(z=>`<option value="${esc(z.codigo)}">${esc(z.descripcion||('Zona '+z.codigo))}</option>`).join('');
+  // Restaurar la selección si la zona todavía existe
+  if(actual && zonas.some(z=>z.codigo===actual)) sel.value = actual;
+}
+
 function abrirCliente(){
   document.getElementById('cli-edit-id').value='';
   document.getElementById('m-cli-title').textContent='Nuevo cliente';
@@ -361,6 +380,23 @@ async function guardarCliente(){
   const nom = (document.getElementById('cli-nom').value||'').trim().toUpperCase();
   if(!nom){ alert('Ingresá el nombre'); return; }
   const editId = document.getElementById('cli-edit-id').value;
+
+  // Validación de teléfono (solo si el usuario escribió algo)
+  const telRaw = document.getElementById('cli-tel').value.trim();
+  const telNorm = _normalizarTelefono(telRaw);
+  if(telNorm === null){
+    alert(
+      '⚠️ El teléfono no parece válido.\n\n' +
+      'Escribilo con entre 8 y 15 dígitos. Ejemplos:\n' +
+      '  · 3414567890\n' +
+      '  · 341 456 7890\n' +
+      '  · 0341-456-7890\n' +
+      '  · +54 9 341 456 7890\n\n' +
+      'Podés usar espacios, guiones, puntos o paréntesis como separadores.'
+    );
+    document.getElementById('cli-tel').focus();
+    return;
+  }
   
   // OBTENER EL CÓDIGO DE ZONA
   let zonaCodigo = document.getElementById('cli-zona-codigo').value;
@@ -378,7 +414,7 @@ async function guardarCliente(){
     categoria: document.getElementById('cli-cat')?.value || 'Cons. Final',
     direccion: document.getElementById('cli-dir').value.trim(),
     localidad: document.getElementById('cli-loc').value.trim().toUpperCase(),
-    telefono: document.getElementById('cli-tel').value.trim(),
+    telefono: telNorm,
     zona: zonaCodigo,
     vendedor: document.getElementById('cli-ven').value.trim(),
     descuento: parseFloat(document.getElementById('cli-dto').value) || 0,
@@ -410,6 +446,21 @@ async function guardarCliente(){
     console.error('❌ Error al guardar cliente:', error);
     toast('❌ Error al guardar: ' + (error.message || error), 'err');
   }
+}
+
+// Normaliza un teléfono: deja solo dígitos, permite un + al inicio
+// (código de país), valida longitud 8-15 dígitos.
+// Devuelve:
+//   · string con el teléfono normalizado (ej. "3414567890" o "+5493414567890")
+//   · "" si estaba vacío (teléfono opcional, no es error)
+//   · null si no es interpretable (llamador debe rechazar y avisar)
+function _normalizarTelefono(t){
+  const raw = String(t||'').trim();
+  if(!raw) return '';
+  const tienePlus = raw.startsWith('+');
+  const soloDigitos = raw.replace(/\D/g,'');
+  if(soloDigitos.length < 8 || soloDigitos.length > 15) return null;
+  return (tienePlus?'+':'') + soloDigitos;
 }
 
 function limpiarFiltrosClientes() {
