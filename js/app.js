@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260928-01';
+const APP_VERSION = '20260928-02';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -1010,10 +1010,8 @@ const _BC_SUB = {
   'inf:comisiones':         {icon:'💰', label:'Comisiones'},
   'inf:comisiones2':        {icon:'⚙️', label:'Configuración de comisiones'},
   'inf:gerencial':          {icon:'📊', label:'Gerencial'},
-  'inf:cmg-prod':           {icon:'📦', label:'CMG Productos'},
   'inf:cmg-cli':            {icon:'👥', label:'CMG Clientes'},
   'inf:financiamiento':     {icon:'🏭', label:'Financiamiento'},
-  'inf:precios':            {icon:'💰', label:'Análisis de precios'},
   'inf:financiero':         {icon:'📊', label:'Mayores'},
   'inf:plazos':             {icon:'📋', label:'Plazos'},
   'inf:calce':              {icon:'📊', label:'Calce de plazos'},

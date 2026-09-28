@@ -570,20 +570,6 @@ function informeSinCompras(){
   ${data.slice(0,50).map(c=>{const d=diasDesde(c.ultimo_remito);return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--brd);font-size:12px"><span><b>${esc(c.nombre)}</b> <span style="color:var(--txt2)">${esc(c.localidad||'')} · ${esc(c.vendedor||'—')}</span></span><span class="b bW">${d!==null?d+'d':'nunca'}</span></div>`;}).join('')}`;
 }
 
-async function informeProductos(){
-  const {data}=await sb.from('remitos').select('items,fecha').order('fecha',{ascending:false}).limit(200);
-  const el=document.getElementById('inf-pro-res');
-  if(!data||!data.length){el.innerHTML='<div style="color:var(--txt2);font-size:12px">Sin datos</div>';return;}
-  const prod={};
-  data.forEach(r=>(r.items||[]).forEach(it=>{
-    if(!prod[it.nom])prod[it.nom]={cant:0,total:0};
-    prod[it.nom].cant+=it.cant;
-    prod[it.nom].total+=it.precio*it.cant*(1-it.dto/100);
-  }));
-  el.innerHTML=`<div style="font-size:12px;color:var(--txt2);margin-bottom:8px">Basado en últimos 200 remitos</div>`+
-  Object.entries(prod).sort((a,b)=>b[1].total-a[1].total).slice(0,15).map(([nom,d])=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--brd);font-size:12px"><span><b>${nom}</b></span><span style="color:var(--P);font-weight:600">${fmt(d.total)}</span></div>`).join('');
-}
-
 async function informeComisiones(){
   const desde=document.getElementById('inf-com-desde').value;
   const hasta=document.getElementById('inf-com-hasta').value;
@@ -927,7 +913,7 @@ function navInfTabs(e){
 }
 
 function infTab(tab){
-  const tabs = ['ventas','descuentos','descuentos-cliente','clientes','productos','comisiones','gerencial','comisiones2','cmg-prod','cmg-cli','financiamiento','precios','financiero','plazos','calce','historico'];
+    const tabs = ['ventas','descuentos','descuentos-cliente','clientes','productos','comisiones','gerencial','comisiones2','cmg-cli','financiamiento','financiero','plazos','calce','historico'];
 
   setBreadcrumbSub('inf', tab);
 
@@ -942,6 +928,7 @@ function infTab(tab){
     }
   });
 
+  if (tab === 'productos') setTimeout(() => ipInit(), 50);
   if (tab === 'gerencial') setTimeout(() => cargarGerencialSupabase(), 100);
   if (tab === 'historico') setTimeout(() => informeHistoricoChart(null, true), 150);
   if (tab === 'plazos') {

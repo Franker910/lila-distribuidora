@@ -171,6 +171,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .bW{background:var(--WL);color:var(--W)}
 .bD{background:var(--DL);color:var(--D)}
 
+/* Informes → Análisis de productos */
+.ip-filtros{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.ip-filtros .fg{min-width:140px}
+.ip-checks{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:600}
+.ip-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.ip-kpi{background:var(--bg);border:1px solid var(--brd);border-radius:6px;padding:8px 10px}
+.ip-kpi .n{font-size:17px;font-weight:700;color:#000}
+.ip-kpi .l{font-size:11px;color:#333;margin-top:2px;font-weight:600}
+.ip-tbl td,.ip-tbl th{padding:4px 7px;font-size:12px}
+.tbl th.r,.tbl td.r{text-align:right;white-space:nowrap}
+.ip-sort{cursor:pointer;user-select:none}
+.ip-row{cursor:pointer}
+.ip-sub>td{background:var(--bg2)!important;padding:6px 10px 10px 30px}
+.ip-tbl-listas{width:auto;min-width:60%}
+.ip-tbl-listas td,.ip-tbl-listas th{padding:3px 8px;font-size:12px}
+
 /* Modal */
 .mbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6)!important;z-index:600;overflow-y:auto;padding:20px 10px}
 .mbg.on{display:flex;align-items:flex-start;justify-content:center}
@@ -1019,18 +1035,6 @@ body.modo-movil-vendedor .app-layout {
 #pm-zonas-lista > div:last-child,
 #pm-cli-resultados-busqueda > div:last-child {
   border-bottom: none !important;
-}
-
-/* Inputs numéricos sin flechitas de incremento (para los que el usuario
-   escribe a mano y no quiere subir/bajar con las flechas). */
-input.no-spin::-webkit-outer-spin-button,
-input.no-spin::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-input.no-spin {
-  -moz-appearance: textfield;
-  appearance: textfield;
 }
 
 </style>
@@ -2926,19 +2930,13 @@ input.no-spin {
             </div>
             <div id="rr-cli-info" style="display:none;background:var(--bg2);border-radius:8px;padding:8px 11px;font-size:12px;color:var(--txt2);margin-top:8px"></div>
             <div id="rr-pedido-chip" style="display:none;margin-top:8px"></div>
-            <div id="rr-carga-num-wrap" style="margin-top:8px; display:flex; gap:12px; flex-wrap:wrap; align-items:flex-start;">
-              <div>
-                <label style="font-size:10px;color:var(--txt2);font-weight:600;display:block;margin-bottom:2px">🚚 Carga Nº (opcional)</label>
-                <input id="rr-carga-num" type="number" inputmode="numeric" min="0" step="1" placeholder="Ej: 30" class="no-spin" style="width:80px;padding:6px 10px;border:1px solid var(--brd);border-radius:8px;font-size:13px;font-family:inherit;">
-              </div>
-              <div>
-                <label style="font-size:10px;color:var(--txt2);font-weight:600;display:block;margin-bottom:2px">📋 Rendición Nº (opcional)</label>
-                <input id="rr-rend-num" type="number" inputmode="numeric" min="0" step="1" placeholder="Ej: 12" class="no-spin" style="width:80px;padding:6px 10px;border:1px solid var(--brd);border-radius:8px;font-size:13px;font-family:inherit;">
-              </div>
+            <div id="rr-carga-num-wrap" style="margin-top:8px">
+              <label style="font-size:10px;color:var(--txt2);font-weight:600;display:block;margin-bottom:2px">🚚 Carga Nº (opcional, vincula este remito a una carga)</label>
+              <input id="rr-carga-num" type="number" inputmode="numeric" min="0" step="1" placeholder="Ej: 30" style="width:120px;padding:6px 10px;border:1px solid var(--brd);border-radius:8px;font-size:13px;font-family:inherit;">
             </div>
             <div style="margin-top:8px">
               <label style="font-size:10px;color:var(--txt2);font-weight:600;display:block;margin-bottom:2px">📝 Observaciones</label>
-              <textarea id="rr-obs" placeholder="Ej: Facturar a nombre de X, dejar factura, dejar en puerta trasera..." style="width:50%;height:56px;padding:6px 10px;border:1px solid var(--brd);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
+              <textarea id="rr-obs" placeholder="Ej: Facturar a nombre de X, dejar factura, dejar en puerta trasera..." style="width:100%;height:56px;padding:6px 10px;border:1px solid var(--brd);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
             </div>
           </div>
 
@@ -2959,6 +2957,7 @@ input.no-spin {
             ← Volver
           </button>
           <button class="btn" id="rr-btn-limpiar" onclick="limpiarRR()">Limpiar</button>
+          <button class="btn P" onclick="emitirRemitoRapido()" style="min-width:140px" tabindex="9">🧾 Emitir remito</button>
         </div>
       </div>
 
@@ -3342,10 +3341,8 @@ input.no-spin {
     <button id="inf-tab-comisiones" class="btn sm" onclick="infTab('comisiones')" tabindex="-1">💰 Comisiones</button>
     <button id="inf-tab-comisiones2" class="btn sm" onclick="infTab('comisiones2')" tabindex="-1">⚙️ Configuración de comisiones</button>
     <button id="inf-tab-gerencial" class="btn sm" onclick="infTab('gerencial')" tabindex="-1">📊 Gerencial</button>
-    <button id="inf-tab-cmg-prod" class="btn sm" onclick="infTab('cmg-prod')" tabindex="-1">📦 CMG Productos</button>
     <button id="inf-tab-cmg-cli" class="btn sm" onclick="infTab('cmg-cli')" tabindex="-1">👥 CMG Clientes</button>
     <button id="inf-tab-financiamiento" class="btn sm" onclick="infTab('financiamiento')" tabindex="-1">🏭 Financiamiento</button>
-    <button id="inf-tab-precios" class="btn sm" onclick="infTab('precios')" tabindex="-1">💰 Análisis de precios</button>
     <button id="inf-tab-financiero" class="btn sm" onclick="infTab('financiero')" tabindex="-1">📊 Mayores</button>
     <button id="inf-tab-plazos" class="btn sm" onclick="infTab('plazos')" tabindex="-1">📋 Plazos</button>
     <button id="inf-tab-calce" class="btn sm" onclick="infTab('calce')" tabindex="-1">📊 Calce de plazos</button>
@@ -3610,14 +3607,106 @@ input.no-spin {
 
   <!-- PRODUCTOS -->
   <div id="inf-sec-productos" style="display:none">
-    <div class="card" style="margin-bottom:12px">
-      <div style="font-weight:600;margin-bottom:10px">📦 Productos más vendidos</div>
-      <div class="fr">
-        <div class="fg"><label>Desde</label><input type="date" id="inf-pv-desde"></div>
-        <div class="fg"><label>Hasta</label><input type="date" id="inf-pv-hasta"></div>
-        <div class="fg" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn P" onclick="informeProductos()" style="width:100%">Ver informe</button></div>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button id="ip-subbtn-analisis" class="btn sm" onclick="ipSubTab('analisis')">🔎 Análisis por producto</button>
+      <button id="ip-subbtn-cmg" class="btn sm" onclick="ipSubTab('cmg')">📦 CMG</button>
+      <button id="ip-subbtn-precios" class="btn sm" onclick="ipSubTab('precios')">💰 Precios vs objetivo</button>
+    </div>
+
+    <div id="ip-sub-analisis">
+      <div class="card" style="margin-bottom:10px">
+        <div class="ip-filtros">
+          <div class="fg"><label>Período</label>
+            <select id="ip-per" onchange="ipCambioPeriodo()">
+              <option value="mes">Mes actual</option>
+              <option value="mesant">Mes anterior</option>
+              <option value="3m">Últimos 3 meses</option>
+              <option value="anio">Año actual</option>
+              <option value="12m">Últimos 12 meses</option>
+              <option value="custom">Elegir fechas…</option>
+            </select></div>
+          <div class="fg" style="display:none"><label>Desde</label><input type="date" id="ip-desde" onchange="ipRender()"></div>
+          <div class="fg" style="display:none"><label>Hasta</label><input type="date" id="ip-hasta" onchange="ipRender()"></div>
+          <div class="fg"><label>Categoría</label><select id="ip-cat" onchange="ipRender()"><option value="">Todas las categorías</option></select></div>
+          <div class="fg"><label>Proveedor</label><select id="ip-prov" onchange="ipRender()"><option value="">Todos los proveedores</option></select></div>
+          <div class="fg"><label>Buscar</label><input type="text" id="ip-q" placeholder="Código o nombre" oninput="ipRender()"></div>
+          <div class="fg ip-checks">
+            <label><input type="checkbox" id="ip-solo-venta" checked onchange="ipRender()"> Solo con ventas</label>
+            <label><input type="checkbox" id="ip-costo-iva" onchange="ipToggleCostoIva()"> Costo con IVA</label>
+          </div>
+          <div class="fg" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn" onclick="ipExportarCSV()">⬇ CSV</button></div>
+        </div>
+        <div id="ip-leyenda" style="font-size:12px;margin-top:8px"></div>
       </div>
-      <div id="inf-prod-res" style="margin-top:10px"></div>
+      <div class="ip-kpis" id="ip-kpis"></div>
+      <div id="ip-res" style="margin-top:10px"></div>
+    </div>
+
+    <div id="ip-sub-cmg" style="display:none">
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:10px">📦 Contribución marginal bruta por producto</div>
+      <div class="fr">
+        <div class="fg"><label>Desde</label><input type="date" id="cmgp-desde"></div>
+        <div class="fg"><label>Hasta</label><input type="date" id="cmgp-hasta"></div>
+        <div class="fg"><label>Categoría</label>
+          <select id="cmgp-cat" style="width:100%" onchange="poblarSubcats('cmgp-cat','cmgp-subcat')">
+            <option value="">Todas</option>
+            <option value="Fiambres">Fiambres</option>
+            <option value="Quesos">Quesos</option>
+            <option value="Lácteos">Lácteos</option>
+            <option value="Condimentos">Condimentos</option>
+            <option value="Conservas">Conservas</option>
+            <option value="Snacks">Snacks</option>
+            <option value="Congelados">Congelados</option>
+            <option value="Otros">Otros</option>
+          </select>
+        </div>
+        <div class="fg"><label>Subcategoría</label>
+          <select id="cmgp-subcat" style="width:100%" disabled><option value="">Todas</option></select>
+        </div>
+        <div class="fg" style="justify-content:flex-end"><label>&nbsp;</label>
+          <button class="btn P" onclick="informeCMGProductos()" style="width:100%">Calcular</button>
+        </div>
+      </div>
+      <div id="cmgp-res" style="margin-top:12px"></div>
+      <div id="cmgp-chart-wrap" style="display:none;margin-top:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--PD);margin-bottom:6px">Participación en CMG total — top 10 productos</div>
+        <div style="position:relative;height:280px"><canvas id="cmgp-chart"></canvas></div>
+      </div>
+    </div>
+  
+    </div>
+
+    <div id="ip-sub-precios" style="display:none">
+    <div class="card" style="margin-bottom:12px">
+      <div style="font-weight:600;margin-bottom:6px">💰 Estado de márgenes por producto</div>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Compara el margen real de cada producto con su margen objetivo. Los gastos fijos y el combustible configurados en Gastos Fijos se prorratean por volumen vendido para mostrar el costo total real.</p>
+      <div class="fr" style="margin-bottom:10px">
+        <div class="fg"><label>Período ventas (desde)</label><input type="date" id="prec-desde"></div>
+        <div class="fg"><label>Período ventas (hasta)</label><input type="date" id="prec-hasta"></div>
+        <div class="fg"><label>Categoría</label>
+          <select id="prec-cat" style="width:100%" onchange="poblarSubcats('prec-cat','prec-subcat')">
+            <option value="">Todas</option>
+            <option value="Fiambres">Fiambres</option>
+            <option value="Quesos">Quesos</option>
+            <option value="Lácteos">Lácteos</option>
+            <option value="Condimentos">Condimentos</option>
+            <option value="Conservas">Conservas</option>
+            <option value="Snacks">Snacks</option>
+            <option value="Congelados">Congelados</option>
+            <option value="Otros">Otros</option>
+          </select>
+        </div>
+        <div class="fg"><label>Subcategoría</label>
+          <select id="prec-subcat" style="width:100%" disabled><option value="">Todas</option></select>
+        </div>
+        <div class="fg" style="justify-content:flex-end"><label>&nbsp;</label>
+          <button class="btn P" onclick="informePrecios()" style="width:100%">Analizar</button>
+        </div>
+      </div>
+      <div id="inf-prec-res"></div>
+    </div>
+  
     </div>
   </div>
 
@@ -3735,41 +3824,6 @@ input.no-spin {
     </div>
   </div>
 
-  <!-- CMG PRODUCTOS -->
-  <div id="inf-sec-cmg-prod" style="display:none">
-    <div class="card">
-      <div style="font-weight:600;margin-bottom:10px">📦 Contribución marginal bruta por producto</div>
-      <div class="fr">
-        <div class="fg"><label>Desde</label><input type="date" id="cmgp-desde"></div>
-        <div class="fg"><label>Hasta</label><input type="date" id="cmgp-hasta"></div>
-        <div class="fg"><label>Categoría</label>
-          <select id="cmgp-cat" style="width:100%" onchange="poblarSubcats('cmgp-cat','cmgp-subcat')">
-            <option value="">Todas</option>
-            <option value="Fiambres">Fiambres</option>
-            <option value="Quesos">Quesos</option>
-            <option value="Lácteos">Lácteos</option>
-            <option value="Condimentos">Condimentos</option>
-            <option value="Conservas">Conservas</option>
-            <option value="Snacks">Snacks</option>
-            <option value="Congelados">Congelados</option>
-            <option value="Otros">Otros</option>
-          </select>
-        </div>
-        <div class="fg"><label>Subcategoría</label>
-          <select id="cmgp-subcat" style="width:100%" disabled><option value="">Todas</option></select>
-        </div>
-        <div class="fg" style="justify-content:flex-end"><label>&nbsp;</label>
-          <button class="btn P" onclick="informeCMGProductos()" style="width:100%">Calcular</button>
-        </div>
-      </div>
-      <div id="cmgp-res" style="margin-top:12px"></div>
-      <div id="cmgp-chart-wrap" style="display:none;margin-top:14px">
-        <div style="font-size:12px;font-weight:700;color:var(--PD);margin-bottom:6px">Participación en CMG total — top 10 productos</div>
-        <div style="position:relative;height:280px"><canvas id="cmgp-chart"></canvas></div>
-      </div>
-    </div>
-  </div>
-
   <!-- CMG CLIENTES -->
   <div id="inf-sec-cmg-cli" style="display:none">
     <div class="card">
@@ -3798,38 +3852,6 @@ input.no-spin {
       <p style="font-size:12px;color:var(--txt2);margin-bottom:12px">Compara el plazo que te otorga cada proveedor con el plazo promedio que vos le dás a tus clientes. Si el plazo del proveedor es mayor, el proveedor te financia (positivo). Si es menor, vos estás financiando a tus clientes (negativo).</p>
       <button class="btn P" onclick="informeFinanciamiento()" style="margin-bottom:4px">Ver análisis</button>
       <div id="inf-fin-res" style="margin-top:12px"></div>
-    </div>
-  </div>
-
-  <!-- ANÁLISIS DE PRECIOS -->
-  <div id="inf-sec-precios" style="display:none">
-    <div class="card" style="margin-bottom:12px">
-      <div style="font-weight:600;margin-bottom:6px">💰 Estado de márgenes por producto</div>
-      <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Compara el margen real de cada producto con su margen objetivo. Los gastos fijos y el combustible configurados en Gastos Fijos se prorratean por volumen vendido para mostrar el costo total real.</p>
-      <div class="fr" style="margin-bottom:10px">
-        <div class="fg"><label>Período ventas (desde)</label><input type="date" id="prec-desde"></div>
-        <div class="fg"><label>Período ventas (hasta)</label><input type="date" id="prec-hasta"></div>
-        <div class="fg"><label>Categoría</label>
-          <select id="prec-cat" style="width:100%" onchange="poblarSubcats('prec-cat','prec-subcat')">
-            <option value="">Todas</option>
-            <option value="Fiambres">Fiambres</option>
-            <option value="Quesos">Quesos</option>
-            <option value="Lácteos">Lácteos</option>
-            <option value="Condimentos">Condimentos</option>
-            <option value="Conservas">Conservas</option>
-            <option value="Snacks">Snacks</option>
-            <option value="Congelados">Congelados</option>
-            <option value="Otros">Otros</option>
-          </select>
-        </div>
-        <div class="fg"><label>Subcategoría</label>
-          <select id="prec-subcat" style="width:100%" disabled><option value="">Todas</option></select>
-        </div>
-        <div class="fg" style="justify-content:flex-end"><label>&nbsp;</label>
-          <button class="btn P" onclick="informePrecios()" style="width:100%">Analizar</button>
-        </div>
-      </div>
-      <div id="inf-prec-res"></div>
     </div>
   </div>
 
@@ -5288,6 +5310,18 @@ input.no-spin {
 </div>
 </div>
 
+<!-- MODAL FICHA DE PRODUCTO (Informes → Productos) -->
+<div class="mbg" id="m-ipficha" onclick="if(event.target===this)ipFichaCerrar()">
+  <div class="mdl" style="width:1100px">
+    <div class="mh">
+      <h3 id="ipf-titulo">Producto</h3>
+      <button class="btn sm" onclick="ipFichaCerrar()">✕ Cerrar</button>
+    </div>
+    <div style="padding:8px 14px 0;display:flex;gap:6px;flex-wrap:wrap" id="ipf-tabs"></div>
+    <div class="mb" id="ipf-body" style="padding:14px"></div>
+  </div>
+</div>
+
 </div><!-- fin app-layout -->
 </div><!-- /app -->
 
@@ -5296,15 +5330,16 @@ input.no-spin {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260928-01"></script>
-<script src="js/maestros.js?v=20260928-01"></script>
-<script src="js/ventas.js?v=20260928-01"></script>
-<script src="js/tesoreria.js?v=20260928-01"></script>
-<script src="js/contabilidad.js?v=20260928-01"></script>
-<script src="js/informes.js?v=20260928-01"></script>
-<script src="js/logistica.js?v=20260928-01"></script>
-<script src="js/movil_header_observer.js?v=20260928-01"></script>
-<script src="js/instalar_app.js?v=20260928-01"></script>
+<script src="js/app.js?v=20260928-02"></script>
+<script src="js/maestros.js?v=20260928-02"></script>
+<script src="js/ventas.js?v=20260928-02"></script>
+<script src="js/tesoreria.js?v=20260928-02"></script>
+<script src="js/contabilidad.js?v=20260928-02"></script>
+<script src="js/informes.js?v=20260928-02"></script>
+<script src="js/inf_productos.js?v=20260928-02"></script>
+<script src="js/logistica.js?v=20260928-02"></script>
+<script src="js/movil_header_observer.js?v=20260928-02"></script>
+<script src="js/instalar_app.js?v=20260928-02"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
