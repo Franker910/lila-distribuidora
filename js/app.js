@@ -71,6 +71,9 @@ const APP_VERSION = '20260928-04';
 document.addEventListener('DOMContentLoaded', function(){
   const vEl=document.getElementById('top-version');
   if(vEl) vEl.textContent='v'+APP_VERSION;
+  // Versión visible en el home móvil (esquina superior izquierda).
+  const vhEl=document.getElementById('vh-version');
+  if(vhEl) vhEl.textContent='v'+APP_VERSION;
 });
 function actualizarApp(){
   if('serviceWorker' in navigator){

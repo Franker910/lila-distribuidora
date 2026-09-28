@@ -1498,8 +1498,8 @@ async function guardarComprobante(){
         ?Math.round((stockActual*costoActual+cantidad*costoReal)/(stockActual+cantidad)*100)/100
         :Math.round(costoReal*100)/100;
       upd.costo=costoPromedio;
-      const margen=prod.margen_objetivo||30;
-      upd.precio=margen>0&&margen<100?Math.ceil(costoPromedio/(1-margen/100)):prod.precio;
+      // El precio ya NO se recalcula al cargar una compra: el producto guarda
+      // el costo y el precio de venta sale de la lista de precios del cliente.
       costosCambiados++;
     }
     if(cantidad>0){
@@ -1878,8 +1878,8 @@ async function guardarCargaArticulos(){
         ?Math.round((stockActual*costoActual+cantidad*costoReal)/(stockActual+cantidad)*100)/100
         :Math.round(costoReal*100)/100;
       upd.costo=costoPromedio;
-      const margen=prod.margen_objetivo||30;
-      upd.precio=margen>0&&margen<100?Math.ceil(costoPromedio/(1-margen/100)):prod.precio;
+      // El precio ya NO se recalcula al cargar una compra: el producto guarda
+      // el costo y el precio de venta sale de la lista de precios del cliente.
       costosCambiados++;
     }
     if(cantidad>0){

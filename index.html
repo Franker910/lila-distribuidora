@@ -883,6 +883,18 @@ body.modo-movil-vendedor .app-layout {
 }
 
 /* ---------------------------------------------------------------------
+   VERSIÓN VISIBLE EN EL HOME MÓVIL
+   ---------------------------------------------------------------------
+   El span #vh-version nace con font-size:10px inline para verse discreto
+   en escritorio (si algún día se muestra), pero en el home del celular
+   queda demasiado chico. Se sube SOLO cuando el body tiene la clase
+   modo-movil-vendedor, que es exactamente el home del vendedor/repartidor
+   en el celular. No afecta ningún otro caso. */
+body.modo-movil-vendedor #vh-version {
+  font-size: 14px !important;
+}
+
+/* ---------------------------------------------------------------------
    1b) ACHICAR EL HEADER DE PEDIDO MÓVIL ("NUEVO PEDIDO" / Volver / buscador)
    ---------------------------------------------------------------------
    Apunto directo a la estructura real que vi en index.html (línea
@@ -1258,8 +1270,9 @@ input.no-spin {
 <div class="panel" id="p-vendedor-home" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:0;">
   
   <!-- Botones de usuarios dualRolMovil -->
-  <div style="display:flex; justify-content:flex-end; gap:8px; padding:10px 14px 0; flex-wrap:wrap; flex-shrink:0;">
-    <button type="button" class="btn-instalar-app" onclick="instalarApp()" style="display:none; font-size:12px; padding:6px 12px; background:var(--PL); color:var(--PD); border:1.5px solid var(--P); border-radius:6px; cursor:pointer; font-family:inherit; margin-right:auto;">📲 Instalar app</button>
+  <div style="display:flex; justify-content:flex-end; align-items:center; gap:8px; padding:10px 14px 0; flex-wrap:wrap; flex-shrink:0;">
+    <span id="vh-version" style="font-size:10px; color:#999; margin-right:auto;"></span>
+    <button type="button" class="btn-instalar-app" onclick="instalarApp()" style="display:none; font-size:12px; padding:6px 12px; background:var(--PL); color:var(--PD); border:1.5px solid var(--P); border-radius:6px; cursor:pointer; font-family:inherit;">📲 Instalar app</button>
     <button onclick="logout()" title="Cerrar sesión" style="font-size:12px; padding:6px 12px; background:var(--bg2); color:var(--txt); border:1.5px solid var(--brd); border-radius:6px; cursor:pointer; font-family:inherit; -webkit-tap-highlight-color:transparent;">
      Salir
     </button>
