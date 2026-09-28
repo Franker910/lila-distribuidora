@@ -1055,6 +1055,7 @@ function limpiarRR(){
   document.getElementById('rr-cli-info').style.display='none';
   document.getElementById('rr-obs').value='';
   const rcn=document.getElementById('rr-carga-num');if(rcn)rcn.value='';
+  const rrn=document.getElementById('rr-rend-num');if(rrn)rrn.value='';
   const chip=document.getElementById('rr-pedido-chip');
   if(chip){chip.style.display='none';chip.innerHTML='';}
 
@@ -1117,6 +1118,7 @@ async function emitirRemitoRapido(){
   }
 
   const cargaNumVal=document.getElementById('rr-carga-num')?.value.trim();
+  const rendNumVal=document.getElementById('rr-rend-num')?.value.trim();
   const {data:rem,error}=await sb.from('remitos').insert({
     cliente_id:parseInt(cid),cliente:c?.nombre||'?',localidad:c?.localidad||'',
     zona:c?.zona||'',vendedor:document.getElementById('rr-ven').value||c?.vendedor||'',
@@ -1126,6 +1128,7 @@ async function emitirRemitoRapido(){
     direccion:c?.direccion||c?.domicilio||'',
     telefono:c?.telefono||'',
     carga_id:_facturandoCargaId||(cargaNumVal?(parseInt(cargaNumVal)||null):null),
+    numero_rendicion: rendNumVal?(parseInt(rendNumVal)||null):null,
     pedido_id:_rrPedidoId||null
   }).select().single();
   if(error){alert('Error: '+error.message);return;}
