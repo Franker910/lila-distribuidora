@@ -1728,6 +1728,12 @@ function abrirPedidoMovil(origen){
   if (panel && window._pmPanelOriginal && !document.getElementById('pm-cli-nombre')) {
     panel.innerHTML = window._pmPanelOriginal;
   }
+
+  // Asegurar que el header (cliente + buscadores) esté visible. Si el usuario
+  // venía del resumen de un pedido anterior, el header había quedado oculto
+  // y sin esto arrancaría sin nombre de cliente ni buscador.
+  const _pmHeaderRestore = document.getElementById('pm-header');
+  if (_pmHeaderRestore) _pmHeaderRestore.style.display = '';
   
   // Resetear estado
   _pmCliId = null;
@@ -2268,61 +2274,49 @@ function agregarAlCarrito(){
 }
 
 function actualizarCarritoBar(){
-  const bar = document.getElementById('pm-carrito-bar');
-  if (!bar) return;
-  
-  const tot = _pmCarrito.reduce((a,x) => a + x.neto, 0);
-  const n = _pmCarrito.length;
-  
-  const itemsEl = document.getElementById('pm-carrito-items');
-  const totalEl = document.getElementById('pm-carrito-total');
-  const btnVer = document.getElementById('pm-carrito-btn-ver');
-  
-  if (itemsEl) itemsEl.textContent = n + ' producto' + (n !== 1 ? 's' : '');
-  if (totalEl) totalEl.textContent = fmt(tot);
-  
-  // Detectar si el resumen está visible
-  const resumen = document.getElementById('pm-paso-resumen');
-  const resumenVisible = resumen && resumen.style.display === 'block';
-  
-  if (n > 0) {
-    bar.style.display = 'flex';
-    if (btnVer) {
-      btnVer.textContent = resumenVisible ? '← Seguir agregando' : 'Ver pedido →';
-    }
-  } else {
-    bar.style.display = 'none';
-  }
+  // La barra flotante con botones ya no existe: el resumen se abre
+  // deslizando a la izquierda desde la lista de productos, y el botón
+  // de confirmar vive en el footer sticky del resumen.
+  // La función queda como no-op por compatibilidad: varias partes del
+  // flujo la siguen llamando (agregarAlCarrito, limpiarCobMovil, etc.)
+  // y no queremos tocar cada llamador.
 }
 
 function mostrarResumenMovil(){
   const pasoProd = document.getElementById('pm-paso-productos');
   const pasoRes = document.getElementById('pm-paso-resumen');
-  if (pasoProd) pasoProd.style.display = 'none';
-  if (pasoRes) pasoRes.style.display = 'block';
-  
+  const header = document.getElementById('pm-header');
+  if (pasoProd) {
+    // Ojo: el CSS tiene display:none !important para #pm-paso-productos
+    // sin la clase .on. La forma de ocultarlo es removiendo la clase,
+    // no seteando style.display (que queda pisado por el !important).
+    pasoProd.style.display = 'none';
+    pasoProd.classList.remove('on');
+  }
+  if (pasoRes) pasoRes.style.display = 'flex';  // flex column para que el footer sticky funcione
+  // Ocultar el header (cliente + buscadores) para dar más espacio al resumen.
+  // El cliente ya se sabe, y el buscador de productos solo aplica en la lista.
+  if (header) header.style.display = 'none';
+
   const tot = _pmCarrito.reduce((a,x) => a + x.neto, 0);
   document.getElementById('pm-resumen-total').textContent = fmt(tot);
-  
+
   document.getElementById('pm-resumen-items').innerHTML = _pmCarrito.map((x, index) => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--brd);font-size:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--brd);">
       <div style="flex:1;min-width:0;">
-        <div style="font-weight:600;">${esc(x.nom)}</div>
-        <div style="color:var(--txt2);font-size:12px;">${x.cant} ${x.un} × ${fmt(x.precio)}${x.dto>0?' − '+x.dto+'%':''}</div>
+        <div style="font-weight:700;font-size:17px;">${esc(x.nom)}</div>
+        <div style="color:var(--txt2);font-size:14px;margin-top:3px;">${x.cant} ${x.un} × ${fmt(x.precio)}${x.dto>0?' − '+x.dto+'%':''}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-        <div style="font-weight:700;color:var(--PD);">${fmt(x.neto)}</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+        <div style="font-weight:700;color:var(--PD);font-size:17px;">${fmt(x.neto)}</div>
         <button onclick="eliminarProductoResumen(${index})" 
-          style="background:var(--DL);color:var(--D);border:none;border-radius:6px;width:30px;height:30px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
+          style="background:var(--DL);color:var(--D);border:none;border-radius:8px;width:42px;height:42px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
           title="Eliminar producto">
           ✕
         </button>
       </div>
     </div>
   `).join('');
-  
-  // Actualizar el botón del carrito
-  actualizarCarritoBar();
 }
 
 function eliminarProductoResumen(index) {
@@ -2345,14 +2339,18 @@ function eliminarProductoResumen(index) {
 function volverProductosMovil(){
   const pasoProd = document.getElementById('pm-paso-productos');
   const pasoRes = document.getElementById('pm-paso-resumen');
-  if (pasoProd) pasoProd.style.display = 'block';
+  const header = document.getElementById('pm-header');
+  if (pasoProd) {
+    // La clase .on es la que fuerza display:flex !important vía CSS.
+    pasoProd.style.display = 'flex';
+    pasoProd.classList.add('on');
+  }
   if (pasoRes) pasoRes.style.display = 'none';
+  // Restaurar el header (cliente + buscador de productos).
+  if (header) header.style.display = '';
 
   // Recargar marcas para que los badges se actualicen
   cargarMarcasMovil();
-  
-  // Actualizar el botón del carrito
-  actualizarCarritoBar();
 }
 
 async function confirmarPedidoMovil(){
@@ -3499,6 +3497,34 @@ function filtrarClientesZona() {
   renderizarClientesZona(filtrados);
 }
 
+// Al retroceder desde la lista de productos del pedido móvil, si hay
+// items en el carrito preguntar antes de descartar. Devuelve:
+//   · true  → ya volvió (o no había nada que confirmar)
+//   · false → el usuario canceló, hay que quedarse en el paso de productos
+// Si confirma, limpia el carrito y vuelve a la lista de clientes de la
+// localidad elegida (o al listado general de zonas si no eligió una).
+function _pmIntentarVolverDeProductos(){
+  // Sin items: vuelve directo, como antes.
+  if(_pmCarrito.length === 0){
+    volverHeaderPedidoMovil();
+    return true;
+  }
+  // Con items: preguntar antes de descartar.
+  const cant = _pmCarrito.length;
+  const ok = confirm(
+    '⚠️ Tenés ' + cant + ' producto' + (cant!==1?'s':'') + ' sin confirmar.\n\n' +
+    '¿Querés descartar el pedido y volver a la lista de clientes?'
+  );
+  if(!ok) return false;  // canceló: quedarse en productos
+  // Confirmó: limpiar carrito y volver.
+  _pmCarrito = [];
+  _pmProdActual = null;
+  cerrarPopupMovil();          // por si el popup de cantidad quedó abierto
+  actualizarCarritoBar();      // oculta la barra flotante
+  volverHeaderPedidoMovil();   // vuelve a la localidad o al listado de zonas
+  return true;
+}
+
 // Modificar la función que se ejecuta al seleccionar una zona en pedido
 // Reemplazar la parte del modo pedido en seleccionarZonaUniversal()
 
@@ -3824,14 +3850,6 @@ function _pmActualizarBadgeMarca(prodId) {
   }
 }
 
-function toggleResumenCarrito() {
-  const resumen = document.getElementById('pm-paso-resumen');
-  if (resumen && resumen.style.display === 'block') {
-    volverProductosMovil(); // cerrar resumen
-  } else {
-    mostrarResumenMovil(); // abrir resumen
-  }
-}
 
 // =====================================================
 // SWIPE ENTRE PANTALLAS (estilo Moviler) — código genérico
@@ -3965,10 +3983,9 @@ function initSwipePedidoMovil() {
       if (visible('pm-paso-resumen')) {
         volverProductosMovil();
       } else if (visible('pm-paso-productos')) {
-        // Si vino de una localidad, volver a la lista de clientes de esa
-        // localidad. Si vino directo del listado de zonas, volver al listado.
-        if (_pmZonaActual) pmAbrirZona(_pmZonaActual);
-        else volverHeaderPedidoMovil();
+        // Si hay items en el carrito, pregunta antes de descartar.
+        // Si el usuario cancela, no se mueve nada.
+        _pmIntentarVolverDeProductos();
       } else if (visible('pm-paso-cliente')) {
         irAHome();
       } else if (!document.getElementById('pm-paso-cliente')) {

@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260928-04';
+const APP_VERSION = '20260929-01';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -2045,9 +2045,22 @@ function _navCerrarCapaSuperior() {
     const enProductos = pasoProductos && getComputedStyle(pasoProductos).display !== 'none';
     const enZona = pasoZona && getComputedStyle(pasoZona).display !== 'none';
     if (enResumen || enProductos || enZona) {
-      if (enResumen) volverProductosMovil();
-      else if (enProductos) volverHeaderPedidoMovil();
-      else if (enZona) pmVolverAZonas();
+      if (enResumen) {
+        volverProductosMovil();
+      } else if (enProductos) {
+        // Si hay items en el carrito, _pmIntentarVolverDeProductos()
+        // muestra un confirm. Si el usuario cancela, quedarse en productos
+        // y re-clavar el estado para que el próximo atrás re-dispare.
+        const volvio = (typeof _pmIntentarVolverDeProductos === 'function')
+          ? _pmIntentarVolverDeProductos()
+          : (volverHeaderPedidoMovil(), true);
+        if (!volvio) {
+          history.pushState({type:'panel', panel:'pedido-movil'}, '', location.pathname);
+          return true;
+        }
+      } else if (enZona) {
+        pmVolverAZonas();
+      }
       // El navegador ya hizo un "pop" real del historial al apretar
       // atrás. Lo volvemos a clavar para que el PRÓXIMO atrás siga
       // encontrando este mismo panel, en vez de saltar de más.
