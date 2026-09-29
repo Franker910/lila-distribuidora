@@ -1060,6 +1060,28 @@ input.no-spin {
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+/* ---------------------------------------------------------------------
+   PULL-TO-REFRESH BLOQUEADO EN MÓVIL
+   ---------------------------------------------------------------------
+   El gesto de tirar la página hacia abajo desde el tope disparaba el
+   pull-to-refresh del navegador (recarga la app sin que el usuario lo
+   pida). En una lista larga scrolleando hacia arriba, o volviendo al
+   tope de un panel, esto se disparaba solo y molestaba.
+
+   overscroll-behavior-y: contain bloquea el gesto del navegador pero
+   mantiene el rebote natural dentro del contenedor scrollable.
+   Solo se aplica en móvil (max-width 768px) — en PC no existe el
+   pull-to-refresh, así que no afecta nada. */
+@media (max-width: 768px) {
+  .body, .scroll-content, #main-body,
+  #p-pedido-movil, #cob-movil,
+  #pm-paso-cliente, #pm-paso-productos, #pm-paso-resumen,
+  #pm-marcas-lista {
+    overscroll-behavior-y: contain;
+  }
+}
+
 </style>
 </head>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
@@ -5333,16 +5355,16 @@ input.no-spin {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20260929-03"></script>
-<script src="js/maestros.js?v=20260929-03"></script>
-<script src="js/ventas.js?v=20260929-03"></script>
-<script src="js/tesoreria.js?v=20260929-03"></script>
-<script src="js/contabilidad.js?v=20260929-03"></script>
-<script src="js/informes.js?v=20260929-03"></script>
-<script src="js/inf_productos.js?v=20260929-03"></script>
-<script src="js/logistica.js?v=20260929-03"></script>
-<script src="js/movil_header_observer.js?v=20260929-03"></script>
-<script src="js/instalar_app.js?v=20260929-03"></script>
+<script src="js/app.js?v=20260929-04"></script>
+<script src="js/maestros.js?v=20260929-04"></script>
+<script src="js/ventas.js?v=20260929-04"></script>
+<script src="js/tesoreria.js?v=20260929-04"></script>
+<script src="js/contabilidad.js?v=20260929-04"></script>
+<script src="js/informes.js?v=20260929-04"></script>
+<script src="js/inf_productos.js?v=20260929-04"></script>
+<script src="js/logistica.js?v=20260929-04"></script>
+<script src="js/movil_header_observer.js?v=20260929-04"></script>
+<script src="js/instalar_app.js?v=20260929-04"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
