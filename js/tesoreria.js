@@ -2344,13 +2344,14 @@ function _cobmPoblarZonasSelect(){
   const sel = document.getElementById('cobm-cc-zon');
   if (!sel) return;
   const actual = sel.value;
-  const zonas = (_zonas || [])
-    .filter(z => z.codigo)
-    .sort((a,b) => (a.descripcion||a.codigo||'').localeCompare(b.descripcion||b.codigo||''));
+  // Zona ahora es la localidad del cliente. Poblamos con las zonas reales
+  // del pool de clientes activos, no con el catálogo _zonas.
+  const zonas = [...new Set(
+    (_clientes||[]).filter(c => c.activo !== false && c.zona).map(c => c.zona)
+  )].sort((a,b) => a.localeCompare(b,'es'));
   sel.innerHTML = '<option value="">Todas las zonas</option>' +
-    zonas.map(z => `<option value="${esc(z.codigo)}">${esc(z.descripcion || ('Zona ' + z.codigo))}</option>`).join('');
-  // Restaurar selección si todavía existe
-  if (actual && zonas.some(z => z.codigo === actual)) sel.value = actual;
+    zonas.map(z => `<option value="${esc(z)}">${esc(z)}</option>`).join('');
+  if (actual && zonas.includes(actual)) sel.value = actual;
 }
 
 function cobmVolverAcciones(){
@@ -3110,15 +3111,16 @@ function cobmRenderZonasAcordeon(){
     if(!porZona[z]) porZona[z] = [];
     porZona[z].push(c);
   });
-  // Zonas a mostrar: catálogo completo + cualquier zona del pool que no esté
-  // en el catálogo (por si hay clientes con zonas viejas o sin cargar).
-  const setZonas = new Set();
-  (_zonas || []).forEach(z => { if(z.codigo) setZonas.add(z.codigo); });
-  Object.keys(porZona).forEach(z => setZonas.add(z));
-  // Ordenar por descripción alfabética
+  // Zona ahora es la localidad del cliente (texto libre). Ya no tiene sentido
+  // mezclar el catálogo _zonas acá: si lo hacíamos, aparecían acordeones
+  // fantasma "Arequito" (del catálogo, sin clientes) duplicando "AREQUITO"
+  // (del pool real). Mostramos solo las zonas que efectivamente tienen
+  // clientes en el pool activo.
+  const setZonas = new Set(Object.keys(porZona));
+  // Ordenar alfabéticamente por localidad
   const zonasArr = [...setZonas].filter(Boolean).sort((a, b) => {
-    const na = a === '_sin' ? 'zzz-sin-zona' : (nombreZona(a) || a).toLowerCase();
-    const nb = b === '_sin' ? 'zzz-sin-zona' : (nombreZona(b) || b).toLowerCase();
+    const na = a === '_sin' ? 'zzz-sin-zona' : a.toLowerCase();
+    const nb = b === '_sin' ? 'zzz-sin-zona' : b.toLowerCase();
     return na.localeCompare(nb);
   });
 
@@ -3129,7 +3131,7 @@ function cobmRenderZonasAcordeon(){
 
   cont.innerHTML = zonasArr.map(z => {
     const clis = (porZona[z] || []).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
-    const zNom = z === '_sin' ? 'Sin zona' : (nombreZona(z) || z);
+    const zNom = z === '_sin' ? 'Sin zona' : z;
     const count = clis.length;
     const badge = count
       ? `<span class="b bP" style="font-size:10px">${count}</span>`
