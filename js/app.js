@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20260929-01';
+const APP_VERSION = '20260929-02';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -580,8 +580,11 @@ function poblarSelectValores(id,valores,formatearTexto){
 
 // Nombre real de la zona (ej. "Arequito") en vez del código (ej. "Z2"), con fallback si no tiene descripción cargada
 function nombreZona(codigo){
-  const z=(_zonas||[]).find(x=>x.codigo===codigo);
-  return z?.descripcion||('Zona '+codigo);
+  // Buscar en el catálogo (para los casos donde todavía es código)
+  const z = (_zonas||[]).find(x => x.codigo === codigo);
+  if(z && z.descripcion) return z.descripcion;
+  // Si no matchea, asumir que ya es un nombre de localidad y devolverlo tal cual
+  return codigo || '—';
 }
 
 function poblarSelectZona(id){
