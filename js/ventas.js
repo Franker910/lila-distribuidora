@@ -772,6 +772,14 @@ function selProRR(id){
 function _rrStagingKeydown(e, campo) {
   const esPeso = _rrProTemp && ['kg','kilo','kilos','k','kilogramo','kilogramos'].includes((_rrProTemp.unidad||'').toLowerCase().trim());
 
+  if (e.key === 'Home') {
+    e.preventDefault();
+    if (campo === 'precio' && _rrProTemp) {
+      _rrHistPrecioAbrir(document.getElementById('rr-precio'), _rrProTemp.id, -1);
+    }
+    return;
+  }
+
   // Enter y Tab caminan por todos los campos de la fila, como en FoxPro:
   // Cant → Peso (si va por kg) → Precio → Dto → agrega el producto.
   // Ctrl+Enter agrega el producto desde cualquier campo.
@@ -903,7 +911,7 @@ function _rrStagingRowHTML(){
     <select id="rr-item-lista" onchange="actualizarListaStagingRR(this.value)" style="width:72px;font-size:11px" title="Lista de precios para este producto">${_rrListaOptions(_rrStagingVals.lista)}</select>
     <input type="text" inputmode="decimal" id="rr-cant" value="${_rrStagingVals.cant}" oninput="updStagingRR('cant',this.value,this)" onkeydown="_rrStagingKeydown(event,'cant')" style="width:58px" title="Cantidad">
     ${pesoCol}
-    <input type="text" inputmode="decimal" id="rr-precio" value="${_rrStagingVals.precio}" oninput="updStagingRR('precio',this.value,this)" onkeydown="_rrStagingKeydown(event,'precio')" onfocus="_rrHistPrecioAbrir(this,${p?p.id:'null'},-1)" onblur="_rrHistPrecioCerrar()" style="width:88px;text-align:right">
+    <input type="text" inputmode="decimal" id="rr-precio" value="${_rrStagingVals.precio}" oninput="updStagingRR('precio',this.value,this)" onkeydown="_rrStagingKeydown(event,'precio')" onblur="_rrHistPrecioCerrar()" style="width:88px;text-align:right">
     <input type="text" inputmode="decimal" id="rr-dto" value="${_rrStagingVals.dto}" oninput="updStagingRR('dto',this.value,this)" onkeydown="_rrStagingKeydown(event,'dto')" style="width:42px;text-align:center">
     <span class="ptot">${neto>0?fmt(neto):'—'}</span>
     <span style="width:42px;flex-shrink:0;">
@@ -931,6 +939,19 @@ function _rrListaOptions(selectedListaId) {
 // la fila anterior/siguiente (o a la fila de carga, al llegar al final);
 // ←/→ mueve el foco entre columnas de la misma fila (cant → peso → precio).
 function _rrItemKeydown(e,idx,field){
+
+  if (e.key === 'Home') {
+    e.preventDefault();
+    if (field === 'precio') {
+      const it = _rrItems[idx];
+      if (it) {
+        const el = document.querySelector(`#rr-items input[data-idx="${idx}"][data-field="precio"]`);
+        _rrHistPrecioAbrir(el, it.id, idx);
+      }
+    }
+    return;
+  }
+
   if(e.key==='F7'||e.key==='Delete'){
     e.preventDefault();
     delItemRR(idx);
@@ -1082,7 +1103,7 @@ function renderItemsRR(){
       <select onchange="actualizarListaItemRR(${i},this.value)" style="width:72px;font-size:11px" title="Lista de precios para este producto">${_rrListaOptions(it.listaId)}</select>
       <input type="text" inputmode="decimal" data-idx="${i}" data-field="cant" value="${it.cant}" oninput="updItemRR(${i},'cant',this.value,this)" onkeydown="_rrItemKeydown(event,${i},'cant')" style="width:58px" title="Cantidad">
       ${pesoCol}
-      <input type="text" inputmode="decimal" data-idx="${i}" data-field="precio" value="${it.precio}" oninput="updItemRR(${i},'precio',this.value,this)" onkeydown="_rrItemKeydown(event,${i},'precio')" onfocus="_rrHistPrecioAbrir(this,${it.id},${i})" onblur="_rrHistPrecioCerrar()" style="width:88px;text-align:right">
+      <input type="text" inputmode="decimal" data-idx="${i}" data-field="precio" value="${it.precio}" oninput="updItemRR(${i},'precio',this.value,this)" onkeydown="_rrItemKeydown(event,${i},'precio')" onblur="_rrHistPrecioCerrar()" style="width:88px;text-align:right">
       <input type="text" inputmode="decimal" data-idx="${i}" data-field="dto" value="${it.dto||0}" oninput="updItemRR(${i},'dto',this.value,this)" onkeydown="_rrItemKeydown(event,${i},'dto')" style="width:42px;text-align:center" title="Descuento %">
       <span class="ptot">${q>0?fmt(neto):'—'}</span>
       <button class="btn D sm" onclick="delItemRR(${i})" title="Eliminar (F7)">🗑</button>
