@@ -926,7 +926,11 @@ function renderGrillaRendicion(){
     const importeCobrado=cobs.reduce((a,c)=>a+(c.importe||0),0);
     const formas=[...new Set(cobs.map(c=>c.forma).filter(Boolean))].join('+');
     const estado=cobPrincipal?(cobPrincipal.estado_rendicion||'pendiente'):null;
-    const numRend=cobPrincipal?.numero_rendicion||hr.numero_rendicion||null;
+    const cgDelCobro = cobPrincipal?.carga_id ? _cargas.find(c=>c.id===cobPrincipal.carga_id) : null;
+    const numRend = cobPrincipal?.numero_rendicion 
+      || cgDelCobro?.numero_rendicion 
+      || hr.numero_rendicion 
+      || null;
     const hora=_horaCobro(cobPrincipal);
     return {hr,cli,zona,importeRemito,cobs,cobPrincipal,importeCobrado,formas,estado,numRend,hora};
   });
@@ -1077,7 +1081,11 @@ async function rendAsignarNumeroAuto(){
   for(const cid of clienteIds){
     await sb.from('cobros').update({numero_rendicion:num}).eq('cliente_id',cid).eq('fecha',fecha).is('numero_rendicion',null);
   }
-  await Promise.all([cargarCobros(),cargarHojaRutaTodas()]);
+  // Mismo criterio que hrCerrarYGenerarRendicion: propagar también a cargas.
+  let cq = sb.from('cargas').update({numero_rendicion:num}).eq('fecha',fecha).is('numero_rendicion',null);
+  if(vendedor && vendedor !== '—') cq = cq.ilike('vendedor', vendedor);
+  await cq;
+  await Promise.all([cargarCobros(),cargarHojaRutaTodas(),cargarCargas()]);
   renderRendicion();
   toast(`✅ Número de rendición #${num} asignado`);
 }
@@ -3516,6 +3524,7 @@ async function guardarCobMovil(){
     vendedor:usuarioActual?.nombre||'',
     reparto:_cargaActivaHoy?(_cargaActivaHoy.nombre||('Reparto #'+_cargaActivaHoy.id)):'',
     carga_id:_cargaActivaHoy?.id||null,
+    numero_rendicion:_cargaActivaHoy?.numero_rendicion||null,
     observaciones:document.getElementById('cobm-obs')?.value||'',
     imputaciones,saldo_favor:resto>0?resto:0,
     comprobante_url,

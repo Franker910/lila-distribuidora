@@ -609,6 +609,14 @@ function selCliRR(id){
     <div style="font-size:12px;color:var(--txt2)">${esc(c.direccion?'📍 '+esc(c.direccion)+', ':'')} ${esc(c.localidad||'')} · ${(_zonas.find(z=>z.codigo===c.zona)?.descripcion||c.zona)||''} | 📞 ${esc(c.telefono||'—')} | Lista: <b>${c.lista||1}</b> | Dto: <b>${c.descuento||0}%</b> | Saldo CC: <b style="${(c.saldo||0)>0?'color:var(--D)':''}">${fmt(c.saldo)}</b>${dias!==null?` | Último rem: <b>${dias} días</b>`:''}</div>`;
   info.style.display='block';
 
+  // Si estamos facturando una carga con número de rendición asignado,
+  // precargar el campo (el operador lo puede cambiar si quiere).
+  const rrn = document.getElementById('rr-rend-num');
+  if(rrn && _facturandoCargaId){
+    const cg = _cargas.find(c=>c.id===_facturandoCargaId);
+    if(cg && cg.numero_rendicion) rrn.value = cg.numero_rendicion;
+  }
+
   // Pedido pendiente → solo un chip chico que avisa que existe; usarlo es opcional.
   const pedPend=_pedidos.filter(p=>p.cliente_id===id&&p.estado==='pendiente');
   const chip=document.getElementById('rr-pedido-chip');
@@ -1261,21 +1269,18 @@ async function emitirRemitoRapido(){
     setTimeout(()=>{const el=document.getElementById('rr-cli-cod');if(el){el.focus();el.select();}},80);
   }
   renderDash();renderCC();renderRemitos();
-  // Guardar remito actual por si quiere imprimir después
+  // Guardar remito actual por si quiere imprimir después (queda en memoria,
+  // no se muestra ningún botón en el aviso).
   _remActual=rem;_verTipo='remito';
-  // Mostrar opciones sin confirm bloqueante
+  // Aviso simple de "remito grabado", sin botones. Se auto-cierra a los 3,5s.
   const num='R-'+String(rem.id).padStart(4,'0');
   const toast = document.createElement('div');
-  toast.style.cssText='position:fixed;bottom:20px;right:20px;background:var(--bg);border:1px solid var(--P);border-radius:10px;padding:14px 18px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.15);display:flex;flex-direction:column;gap:8px';
+  toast.style.cssText='position:fixed;bottom:20px;right:20px;background:var(--bg);border:1px solid var(--P);border-radius:10px;padding:14px 18px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.15);display:flex;flex-direction:column;gap:4px;animation:slideUpBanner .25s ease-out';
   toast.innerHTML=`
     <div style="font-weight:600;font-size:14px;color:var(--P)">✅ Remito ${num} grabado</div>
-    <div style="font-size:13px;color:var(--txt2)">${esc(rem.cliente)} · ${fmt(rem.total)}</div>
-    <div style="display:flex;gap:8px;margin-top:4px">
-      <button onclick="imprimirRemito();this.closest('div[style*=fixed]').remove()" style="flex:1;padding:8px;background:var(--P);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">🖨️ Imprimir</button>
-      <button onclick="this.closest('div[style*=fixed]').remove()" style="flex:1;padding:8px;background:var(--bg2);border:0.5px solid var(--brd);border-radius:6px;cursor:pointer">Cerrar</button>
-    </div>`;
+    <div style="font-size:13px;color:var(--txt2)">${esc(rem.cliente)} · ${fmt(rem.total)}</div>`;
   document.body.appendChild(toast);
-  setTimeout(()=>{ if(toast.parentNode) toast.remove(); }, 8000);
+  setTimeout(()=>{ if(toast.parentNode) toast.remove(); }, 3500);
   // Facturación secuencial por carga (pesaje real, cajón por cajón): avanzar
   // al siguiente pedido pendiente en vez de dejar el formulario en blanco.
   if(_facturandoCargaId)_facturarSiguientePedidoCarga();

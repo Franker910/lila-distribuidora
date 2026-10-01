@@ -572,6 +572,10 @@ function _facturarSiguientePedidoCarga(){
   selCliRR(ped.cliente_id);
   cargarItemsDePedido(ped.id);
   _renderCargaSidebar(ped.id);
+    // Si la carga ya tiene número de rendición asignado, precargarlo para que
+  // el remito quede vinculado automáticamente. Si no, queda vacío (manual).
+  const rrn=document.getElementById('rr-rend-num');
+  if(rrn && cg.numero_rendicion) rrn.value = cg.numero_rendicion;
   // Foco al primer campo de peso a completar (o al primero de la lista si
   // no hay ninguno por kg) — único punto que mueve el foco en este modo.
   setTimeout(()=>{
@@ -1610,7 +1614,13 @@ async function hrCerrarYGenerarRendicion(){
   const gq=sb.from('gastos_reparto').update({numero_rendicion:num}).eq('fecha',fecha).is('numero_rendicion',null);
   if(vend)gq.eq('vendedor',vend);
   await gq;
-  await Promise.all([cargarCobros(),cargarGastosReparto()]);
+  // Las cargas de esa fecha (y vendedor, si se especificó) también quedan
+  // vinculadas a la rendición. Se usa LOWER() para evitar que un cambio de
+  // mayúsculas en el nombre del vendedor rompa el match.
+  let cq = sb.from('cargas').update({numero_rendicion:num}).eq('fecha',fecha).is('numero_rendicion',null);
+  if(vend) cq = cq.ilike('vendedor', vend);
+  await cq;
+  await Promise.all([cargarCobros(),cargarGastosReparto(),cargarCargas()]);
   alert(`✅ Hoja de ruta cerrada — Rendición #${num} generada.`);
   hrCargarRuta();
 }
