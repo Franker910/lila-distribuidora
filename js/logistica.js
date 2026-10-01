@@ -232,6 +232,13 @@ function renderCargas(){
       remsDisp=Object.values(porPedido);
     }
     const tieneRemitos=remsDisp.length>0;
+    // Avance de la facturación: cuántos pedidos de la carga ya tienen remito.
+    // Sirve para retomar una carga que quedó a la mitad (corte de luz, etc.):
+    // "Facturar con pesaje" sigue solo con los pendientes.
+    const pedsCarga=_pedidosDeCarga(cg.id);
+    const nRemitados=pedsCarga.filter(p=>p.estado==='remitado'||p.remito_id).length;
+    const nPend=pedsCarga.length-nRemitados;
+    const aMedias=cg.estado==='lista'&&nRemitados>0&&nPend>0;
     return `<div class="ccard">
       <div class="ccard-h">
         <div>
@@ -243,7 +250,7 @@ function renderCargas(){
           </div>
           <div class="ccard-sub">${(cg.pedidos||[]).length} pedidos · ${esc(peds.slice(0,6).map(p=>p.cliente).join(' · '))}${peds.length>6?` · +${peds.length-6} más`:''}</div>
         </div>
-        <div style="text-align:right"><div class="ccard-tot">${fmt(cg.total)}</div><span class="b ${cg.estado==='armando'?'bW':cg.estado==='lista'?'bA':cg.estado==='emitida'?'bP':'bP'}">${cg.estado}</span></div>
+        <div style="text-align:right"><div class="ccard-tot">${fmt(cg.total)}</div><span class="b ${cg.estado==='armando'?'bW':cg.estado==='lista'?'bA':cg.estado==='emitida'?'bP':'bP'}">${cg.estado}</span>${aMedias?`<div style="margin-top:4px"><span class="b bW" title="Quedó a la mitad: tocá 'Seguir facturando' para continuar con los pendientes">⏸ ${nRemitados} de ${pedsCarga.length} remitidos</span></div>`:''}</div>
       </div>
       <div class="ccard-acts">
         ${(cg.estado==='armando' || cg.estado==='lista') ? `<button class="btn P sm" onclick="editarCarga(${cg.id})">✏️ Editar</button>` : `<button class="btn sm" style="opacity:0.5;cursor:default;" disabled>✏️ Editar</button>`}
@@ -252,7 +259,7 @@ function renderCargas(){
         
         ${cg.estado==='lista' ? `<button class="btn A sm" onclick="emitirRemitos(${cg.id})">📄 Emitir remitos</button>` : `<button class="btn sm" style="opacity:0.5;cursor:default;" disabled>📄 Emitir remitos</button>`}
         
-        ${cg.estado==='lista' ? `<button class="btn P sm" onclick="facturarCargaConPesaje(${cg.id})" title="Cargar el peso real de cada cajón y emitir el remito uno por uno">⚖️ Facturar con pesaje</button>` : `<button class="btn sm" style="opacity:0.5;cursor:default;" disabled>⚖️ Facturar con pesaje</button>`}
+        ${cg.estado==='lista' ? `<button class="btn P sm" onclick="facturarCargaConPesaje(${cg.id})" title="${aMedias?'Retoma con los pedidos que todavía no tienen remito':'Cargar el peso real de cada cajón y emitir el remito uno por uno'}">⚖️ ${aMedias?`Seguir facturando (${nPend} pendiente${nPend!==1?'s':''})`:'Facturar con pesaje'}</button>` : `<button class="btn sm" style="opacity:0.5;cursor:default;" disabled>⚖️ Facturar con pesaje</button>`}
         
         <button class="btn sm" onclick="resumenCarga(${cg.id})">📋 Resumen</button>
         

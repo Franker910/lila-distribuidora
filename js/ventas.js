@@ -622,8 +622,8 @@ function selCliRR(id){
     chip.style.display='none';
     chip.innerHTML='';
   }
-  // En modo facturar carga no hay fila de carga (está oculta) y el foco lo
-  // maneja _facturarSiguientePedidoCarga() al final de la secuencia.
+  // En modo facturar carga el foco lo maneja _facturarSiguientePedidoCarga()
+  // (va al primer peso a completar), no la fila de carga.
   if(!_facturandoCargaId){
     setTimeout(()=>{const f=document.getElementById('rr-cod');if(f){f.focus();f.select();}},120);
   }
@@ -764,68 +764,44 @@ function selProRR(id){
 function _rrStagingKeydown(e, campo) {
   const esPeso = _rrProTemp && ['kg','kilo','kilos','k','kilogramo','kilogramos'].includes((_rrProTemp.unidad||'').toLowerCase().trim());
 
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    // Si es pesable y el peso está vacío o 0, no confirmar: ir a peso
-    if (esPeso) {
-      const peso = parseFloat(_rrStagingVals.peso) || 0;
-      if (peso <= 0) {
-        const input = document.getElementById('rr-peso');
-        if (input) {
-          input.style.borderColor = 'var(--D)';
-          input.style.background = '#fdecea';
-          input.focus();
-          input.select();
-        }
-        toast('⚠️ Ingresá el peso real del producto (kg) antes de confirmar.', 'warn');
-        return;
-      }
-    }
-    _rrCommitStaging();
-    return;
-  }
-
-  if (e.key !== 'Tab') return;
+  // Enter y Tab caminan por todos los campos de la fila, como en FoxPro:
+  // Cant → Peso (si va por kg) → Precio → Dto → agrega el producto.
+  // Ctrl+Enter agrega el producto desde cualquier campo.
+  if (e.key !== 'Enter' && e.key !== 'Tab') return;
   e.preventDefault();
 
-  const orden = esPeso ? ['peso', 'precio', 'dto'] : ['cant', 'precio', 'dto'];
-  const idx = orden.indexOf(campo);
-  if (idx === -1) {
-    _rrCommitStaging();
-    return;
-  }
-
-  if (campo === 'peso' && esPeso) {
-    const peso = parseFloat(_rrStagingVals.peso) || 0;
-    if (peso <= 0) {
-      const input = document.getElementById('rr-peso');
-      if (input) {
-        input.style.borderColor = 'var(--D)';
-        input.style.background = '#fdecea';
-        input.focus();
-        input.select();
-      }
-      toast('⚠️ Ingresá el peso real del producto (kg) antes de continuar.', 'warn');
-      return;
-    } else {
-      const input = document.getElementById('rr-peso');
-      if (input) {
-        input.style.borderColor = '';
-        input.style.background = '';
-      }
+  const marcarPeso = () => {
+    const input = document.getElementById('rr-peso');
+    if (input) {
+      input.style.borderColor = 'var(--D)';
+      input.style.background = '#fdecea';
+      input.focus();
+      input.select();
     }
-  }
+  };
+  const pesoOk = !esPeso || (parseFloat(_rrStagingVals.peso) || 0) > 0;
 
-  if (idx >= orden.length - 1) {
+  if (e.key === 'Enter' && e.ctrlKey) {
+    if (!pesoOk) { marcarPeso(); toast('⚠️ Ingresá el peso real del producto (kg) antes de confirmar.', 'warn'); return; }
     _rrCommitStaging();
     return;
   }
 
-  const nextField = document.getElementById('rr-' + orden[idx + 1]);
-  if (nextField) {
-    nextField.focus();
-    nextField.select();
+  if (campo === 'peso' && esPeso && !pesoOk) {
+    marcarPeso();
+    toast('⚠️ Ingresá el peso real del producto (kg) antes de continuar.', 'warn');
+    return;
   }
+
+  const orden = esPeso ? ['cant', 'peso', 'precio', 'dto'] : ['cant', 'precio', 'dto'];
+  const idx = orden.indexOf(campo);
+  if (idx === -1 || idx >= orden.length - 1) {
+    if (!pesoOk) { marcarPeso(); toast('⚠️ Ingresá el peso real del producto (kg) antes de confirmar.', 'warn'); return; }
+    _rrCommitStaging();
+    return;
+  }
+  const nextField = document.getElementById('rr-' + orden[idx + 1]);
+  if (nextField) { nextField.focus(); nextField.select(); }
 }
 
 function updStagingRR(campo,v,inputEl){
@@ -919,7 +895,7 @@ function _rrStagingRowHTML(){
     <select id="rr-item-lista" onchange="actualizarListaStagingRR(this.value)" style="width:72px;font-size:11px" title="Lista de precios para este producto">${_rrListaOptions(_rrStagingVals.lista)}</select>
     <input type="text" inputmode="decimal" id="rr-cant" value="${_rrStagingVals.cant}" oninput="updStagingRR('cant',this.value,this)" onkeydown="_rrStagingKeydown(event,'cant')" style="width:58px" title="Cantidad">
     ${pesoCol}
-    <input type="text" inputmode="decimal" id="rr-precio" value="${_rrStagingVals.precio}" oninput="updStagingRR('precio',this.value,this)" onkeydown="_rrStagingKeydown(event,'precio')" style="width:88px;text-align:right">
+    <input type="text" inputmode="decimal" id="rr-precio" value="${_rrStagingVals.precio}" oninput="updStagingRR('precio',this.value,this)" onkeydown="_rrStagingKeydown(event,'precio')" onfocus="_rrHistPrecioAbrir(this,${p?p.id:'null'},-1)" onblur="_rrHistPrecioCerrar()" style="width:88px;text-align:right">
     <input type="text" inputmode="decimal" id="rr-dto" value="${_rrStagingVals.dto}" oninput="updStagingRR('dto',this.value,this)" onkeydown="_rrStagingKeydown(event,'dto')" style="width:42px;text-align:center">
     <span class="ptot">${neto>0?fmt(neto):'—'}</span>
     <span style="width:42px;flex-shrink:0;">
@@ -965,20 +941,116 @@ function _rrItemKeydown(e,idx,field){
     if(nextEl){nextEl.focus();nextEl.select();}
     return;
   }
+  const it=_rrItems[idx];if(!it)return;
+  const orden=it.esPeso?['cant','peso','precio','dto']:['cant','precio','dto'];
+  const oi=orden.indexOf(field);
+  const enfocar=(el)=>{if(el){el.focus();el.select();}};
+  const campoItem=(i,f)=>document.querySelector(`#rr-items .pitem input[data-idx="${i}"][data-field="${f}"]`);
+  // Enter / Tab: siguiente campo de la fila; desde Dto pasa a la fila de
+  // abajo (o a la fila de carga, al llegar al final). Shift+Tab vuelve.
+  if(e.key==='Enter'||e.key==='Tab'){
+    e.preventDefault();
+    if(e.shiftKey){
+      if(oi>0) enfocar(campoItem(idx,orden[oi-1]));
+      else if(idx>0)enfocar(campoItem(idx-1,'dto'));
+      return;
+    }
+    if(oi<orden.length-1){enfocar(campoItem(idx,orden[oi+1]));return;}
+    if(idx+1<_rrItems.length)enfocar(campoItem(idx+1,'cant'));
+    else enfocar(document.getElementById('rr-cod'));
+    return;
+  }
   if(e.key==='ArrowLeft'||e.key==='ArrowRight'){
-    // Solo si el cursor ya está en el extremo del texto (si no, dejar que
-    // la flecha mueva el cursor dentro del campo, como siempre).
-    const p=e.target.selectionStart,l=e.target.value.length;
-    if(e.key==='ArrowLeft'&&p!==0)return;
-    if(e.key==='ArrowRight'&&p!==l)return;
-    const it=_rrItems[idx];if(!it)return;
-    const orden=it.esPeso?['cant','peso','precio']:['cant','precio'];
-    const oi=orden.indexOf(field);
+    // Solo si el cursor ya está en el extremo del texto, o el texto está todo
+    // seleccionado (si no, la flecha mueve el cursor dentro del campo).
+    const ini=e.target.selectionStart,fin=e.target.selectionEnd,l=e.target.value.length;
+    if(e.key==='ArrowLeft'&&ini!==0)return;
+    if(e.key==='ArrowRight'&&fin!==l)return;
     const oNext=oi+(e.key==='ArrowRight'?1:-1);
     if(oNext<0||oNext>=orden.length)return;
     e.preventDefault();
-    const nextEl=document.querySelector(`#rr-items .pitem input[data-idx="${idx}"][data-field="${orden[oNext]}"]`);
-    if(nextEl){nextEl.focus();nextEl.select();}
+    enfocar(campoItem(idx,orden[oNext]));
+  }
+}
+
+// ─── Historial de precio al pasar por el campo Precio ────────────────────
+// Al entrar al precio de un renglón, se abre debajo un abanico con las
+// últimas veces que a ESTE cliente se le facturó/presupuestó ese producto
+// (fecha, remito, cantidad, precio, descuento) y la última venta del mismo
+// producto a cualquier cliente. Tocando una fila se usa ese precio.
+const RR_HIST_MAX = 6;
+
+function _rrHistPrecioDatos(prodId, cliId){
+  const propias = [], otras = [];
+  (_remitos || []).forEach(r => {
+    if (r.anulado || !r.fecha) return;
+    (r.items || []).forEach(it => {
+      if (it.id !== prodId) return;
+      const fila = {
+        fecha: String(r.fecha).slice(0, 10), remitoId: r.id, cliente: r.cliente || '',
+        cant: it.esPeso || it.peso ? (it.peso || 0) : (it.cant || 0),
+        un: it.esPeso || it.peso ? 'kg' : (it.un || 'un'),
+        precio: +it.precio || 0, dto: +it.dto || 0
+      };
+      (String(r.cliente_id) === String(cliId) ? propias : otras).push(fila);
+    });
+  });
+  const ord = (a, b) => b.fecha.localeCompare(a.fecha) || (b.remitoId - a.remitoId);
+  propias.sort(ord); otras.sort(ord);
+  return { propias: propias.slice(0, RR_HIST_MAX), ultimaOtro: otras[0] || null };
+}
+
+function _rrHistPrecioAbrir(input, prodId, idx){
+  _rrHistPrecioCerrar(true);
+  const cliId = document.getElementById('rr-cli-id')?.value;
+  if (!prodId || !cliId) return;
+  const { propias, ultimaOtro } = _rrHistPrecioDatos(prodId, cliId);
+  const ff = f => f.split('-').reverse().join('/');
+  const num = n => (Math.round(n * 100) / 100).toLocaleString('es-AR');
+  const fila = (h, conCliente) => `<div class="rr-hist-row" onmousedown="event.preventDefault();_rrHistPrecioUsar(${idx},${h.precio})" title="Usar este precio">
+      <span>${ff(h.fecha)}</span>
+      <span>R-${String(h.remitoId).padStart(4, '0')}${conCliente ? ' · ' + esc(h.cliente) : ''}</span>
+      <span>${num(h.cant)} ${esc(h.un)}</span>
+      <b>${fmt(h.precio)}</b>
+      <span>${h.dto ? h.dto + '%' : ''}</span>
+    </div>`;
+  const pop = document.createElement('div');
+  pop.id = 'rr-hist-pop';
+  pop.className = 'rr-hist-pop';
+  pop.innerHTML = `
+    <div class="rr-hist-tit">Últimas ventas a este cliente</div>
+    ${propias.length ? propias.map(h => fila(h, false)).join('') : '<div class="rr-hist-vacio">Nunca se le vendió este producto a este cliente.</div>'}
+    ${ultimaOtro ? `<div class="rr-hist-tit">Última venta a otro cliente</div>${fila(ultimaOtro, true)}` : ''}
+    <div class="rr-hist-pie">Tocá una fila para usar ese precio</div>`;
+  document.body.appendChild(pop);
+  // Debajo del campo, alineado a su borde derecho; si no entra abajo, arriba
+  const rc = input.getBoundingClientRect();
+  const w = pop.offsetWidth, h = pop.offsetHeight;
+  let left = Math.max(8, Math.min(rc.right - w, window.innerWidth - w - 8));
+  let top = rc.bottom + 4;
+  if (top + h > window.innerHeight - 8) top = Math.max(8, rc.top - h - 4);
+  pop.style.left = left + 'px';
+  pop.style.top = top + 'px';
+}
+
+function _rrHistPrecioCerrar(ya){
+  const quitar = () => document.getElementById('rr-hist-pop')?.remove();
+  if (ya) quitar(); else setTimeout(quitar, 120);
+}
+
+function _rrHistPrecioUsar(idx, precio){
+  const v = String(precio);
+  if (idx >= 0) {
+    if (!_rrItems[idx]) return;
+    _rrItems[idx].precio = precio;
+    renderItemsRR();
+    const el = document.querySelector(`#rr-items input[data-idx="${idx}"][data-field="precio"]`);
+    if (el) { el.focus(); el.select(); }
+  } else {
+    _rrStagingVals.precio = v;
+    renderItemsRR();
+    const el = document.getElementById('rr-precio');
+    if (el) { el.focus(); el.select(); }
   }
 }
 
@@ -1002,8 +1074,8 @@ function renderItemsRR(){
       <select onchange="actualizarListaItemRR(${i},this.value)" style="width:72px;font-size:11px" title="Lista de precios para este producto">${_rrListaOptions(it.listaId)}</select>
       <input type="text" inputmode="decimal" data-idx="${i}" data-field="cant" value="${it.cant}" oninput="updItemRR(${i},'cant',this.value,this)" onkeydown="_rrItemKeydown(event,${i},'cant')" style="width:58px" title="Cantidad">
       ${pesoCol}
-      <input type="text" inputmode="decimal" data-idx="${i}" data-field="precio" value="${it.precio}" oninput="updItemRR(${i},'precio',this.value,this)" onkeydown="_rrItemKeydown(event,${i},'precio')" style="width:88px;text-align:right">
-      <span style="width:42px;text-align:center;font-size:11px;color:var(--txt2)">${it.dto?it.dto+'%':''}</span>
+      <input type="text" inputmode="decimal" data-idx="${i}" data-field="precio" value="${it.precio}" oninput="updItemRR(${i},'precio',this.value,this)" onkeydown="_rrItemKeydown(event,${i},'precio')" onfocus="_rrHistPrecioAbrir(this,${it.id},${i})" onblur="_rrHistPrecioCerrar()" style="width:88px;text-align:right">
+      <input type="text" inputmode="decimal" data-idx="${i}" data-field="dto" value="${it.dto||0}" oninput="updItemRR(${i},'dto',this.value,this)" onkeydown="_rrItemKeydown(event,${i},'dto')" style="width:42px;text-align:center" title="Descuento %">
       <span class="ptot">${q>0?fmt(neto):'—'}</span>
       <button class="btn D sm" onclick="delItemRR(${i})" title="Eliminar (F7)">🗑</button>
     </div>`;
@@ -1021,7 +1093,9 @@ function renderItemsRR(){
     <span style="width:32px"></span>
   </div>`;
   
-  el.innerHTML = header + rows + (_facturandoCargaId ? '' : _rrStagingRowHTML());
+  // La fila de carga se muestra siempre, también al facturar una carga con
+  // pesaje: el cliente puede pedir algo más al momento de armar el cajón.
+  el.innerHTML = header + rows + _rrStagingRowHTML();
   
   const sinPeso = _rrItems.filter(it=>it.esPeso&&(it.peso||0)===0).length;
   if(sinPeso){
