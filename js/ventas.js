@@ -872,6 +872,12 @@ function _rrCommitStaging() {
       listaId: listaId
     });
   }
+  // Aviso de stock: si el producto tiene poco o nada, avisar sin bloquear.
+  // El toast se auto-cierra a los 4s y no interrumpe la carga.
+  const si = _stockInfo(_rrProTemp);
+  if((_rrProTemp.stock||0) <= 5){
+    toast(si.txt + ' — ' + _rrProTemp.nombre, (si.stock||0) <= 0 ? 'err' : 'warn', 4000);
+  }
   _rrProTemp = null;
   _rrStagingVals = { cod: '', cant: '1', peso: '', precio: '0', dto: '0', lista: _rrStagingVals.lista };
   renderItemsRR();

@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20261002-04';
+const APP_VERSION = '20261002-05';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -594,7 +594,8 @@ function poblarSelectZona(id){
 function toast(msg,tipo='ok',ms=2800){
   const t=document.createElement('div');
   t.textContent=msg;
-  t.style.cssText=`position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;color:#fff;pointer-events:none;transition:opacity .4s;background:${tipo==='err'?'var(--D)':'var(--P)'}`;
+  const bg = tipo==='err' ? 'var(--D)' : tipo==='warn' ? 'var(--W)' : 'var(--P)';
+  t.style.cssText=`position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;color:#fff;pointer-events:none;transition:opacity .4s;background:${bg}`;
   document.body.appendChild(t);
   setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),400);},ms);
 }
