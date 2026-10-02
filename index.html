@@ -3399,10 +3399,10 @@ input.no-spin {
           <label style="font-size:12px;font-weight:600;color:var(--txt2);">Archivos (uno por mes)</label>
           <input type="file" id="fin-file" accept=".xlsx" multiple style="width:100%; padding:6px 0; font-size:13px;">
         </div>
-        <button class="btn P" onclick="importarMayores()" style="padding:10px 24px; font-weight:700;">📊 Procesar</button>
+        <button id="btn-importar-mayores" class="btn P" onclick="importarMayores()" style="padding:10px 24px; font-weight:700;">📊 Procesar</button>
         <button class="btn" onclick="limpiarFinanciero()" style="padding:10px 18px;">🗑 Limpiar</button>
       </div>
-      <div id="fin-status" style="font-size:13px;color:var(--txt2);margin-top:8px;min-height:20px;"></div>
+      <div id="fin-status" style="display:none;margin-top:10px;"></div>
     </div>
 
     <!-- Contenedor de resultados -->
@@ -3419,10 +3419,10 @@ input.no-spin {
           <label style="font-size:12px; font-weight:600; color:var(--txt2);">Archivos (uno por mes)</label>
           <input type="file" id="res-file" accept=".xlsx" multiple style="width:100%; padding:6px 0; font-size:13px;">
         </div>
-        <button class="btn P" onclick="importarResultadoProducto()" style="padding:10px 24px; font-weight:700;">📥 Importar</button>
+        <button id="btn-importar-resultado" class="btn P" onclick="importarResultadoProducto()" style="padding:10px 24px; font-weight:700;">📥 Importar</button>
         <button class="btn" onclick="limpiarResultadoProducto()" style="padding:10px 18px;">🗑 Limpiar</button>
       </div>
-      <div id="res-status" style="font-size:13px;color:var(--txt2);margin-top:8px;min-height:20px;"></div>
+      <div id="res-status" style="display:none;margin-top:10px;"></div>
     </div>
   </div>
 
@@ -5365,16 +5365,16 @@ input.no-spin {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20261001-03"></script>
-<script src="js/maestros.js?v=20261001-03"></script>
-<script src="js/ventas.js?v=20261001-03"></script>
-<script src="js/tesoreria.js?v=20261001-03"></script>
-<script src="js/contabilidad.js?v=20261001-03"></script>
-<script src="js/informes.js?v=20261001-03"></script>
-<script src="js/inf_productos.js?v=20261001-03"></script>
-<script src="js/logistica.js?v=20261001-03"></script>
-<script src="js/movil_header_observer.js?v=20261001-03"></script>
-<script src="js/instalar_app.js?v=20261001-03"></script>
+<script src="js/app.js?v=20261002-01"></script>
+<script src="js/maestros.js?v=20261002-01"></script>
+<script src="js/ventas.js?v=20261002-01"></script>
+<script src="js/tesoreria.js?v=20261002-01"></script>
+<script src="js/contabilidad.js?v=20261002-01"></script>
+<script src="js/informes.js?v=20261002-01"></script>
+<script src="js/inf_productos.js?v=20261002-01"></script>
+<script src="js/logistica.js?v=20261002-01"></script>
+<script src="js/movil_header_observer.js?v=20261002-01"></script>
+<script src="js/instalar_app.js?v=20261002-01"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

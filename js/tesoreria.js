@@ -1947,22 +1947,35 @@ function initSaldosZona() {
 function poblarSelectorZonas() {
   const sel = document.getElementById('sz-zona');
   if (!sel) return;
-  
+
   // Guardar valor seleccionado actual
   const valorActual = sel.value;
-  
+
   // Limpiar y agregar opción por defecto
   sel.innerHTML = '<option value="">— Seleccioná una zona —</option>';
-  
-  // Obtener zonas únicas de los clientes
-  const zonas = [...new Set(_clientes.map(c => c.zona).filter(Boolean))].sort();
-  
-  zonas.forEach(z => {
+
+  // Zona ya es igual a localidad (decisión de negocio). Poblamos desde
+  // localidad para no depender de que el cliente tenga zona migrada, y
+  // filtramos valores que no son localidades reales:
+  //   · vacíos
+  //   · 'SIN LOCALIDAD' (marcador de carga pendiente)
+  //   · puramente numéricos (restos de códigos viejos del FoxPro)
+  //   · que empiezan con 'TEST' (productos/zonas de prueba)
+  // Normalizamos a MAYÚSCULAS y ordenamos alfabéticamente.
+  const zonasSet = new Set();
+  (_clientes || []).filter(c => c.activo !== false).forEach(c => {
+    const loc = String(c.localidad || '').trim().toUpperCase();
+    if (!loc) return;
+    if (loc === 'SIN LOCALIDAD') return;
+    if (/^\d+$/.test(loc)) return;
+    if (loc.startsWith('TEST')) return;
+    zonasSet.add(loc);
+  });
+
+  [...zonasSet].sort((a, b) => a.localeCompare(b, 'es')).forEach(z => {
     const opt = document.createElement('option');
     opt.value = z;
-    // Mostrar descripción de la zona si existe
-    const zonaObj = _zonas.find(zn => zn.codigo === z);
-    opt.textContent = zonaObj ? `${z} - ${esc(zonaObj.descripcion)}` : z;
+    opt.textContent = z;
     if (z === valorActual) opt.selected = true;
     sel.appendChild(opt);
   });
@@ -1990,8 +2003,14 @@ function renderSaldosZona() {
     return;
   }
 
-  // Filtrar clientes por zona
-  let lista = _clientes.filter(c => c.activo !== false && (c.zona || 'Sin zona') === zonaSeleccionada);
+  // Filtrar clientes por localidad (que es lo mismo que zona).
+  // Se normaliza a MAYÚSCULAS para tolerar diferencias entre el valor
+  // guardado en el cliente y el que devuelve el selector.
+  const zonaNorm = String(zonaSeleccionada || '').trim().toUpperCase();
+  let lista = _clientes.filter(c => 
+    c.activo !== false && 
+    String(c.localidad || '').trim().toUpperCase() === zonaNorm
+  );
   
   if (filtro === 'deudores') {
     lista = lista.filter(c => (c.saldo || 0) > 0);

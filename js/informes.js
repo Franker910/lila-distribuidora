@@ -1,5 +1,57 @@
 // ─── INFORMES: dashboard, reportes, comparativos, stock, gerencial ───
 
+// ─── HELPERS DE FEEDBACK VISUAL PARA IMPORTACIONES ─────────────────────
+// Muestra el estado de una importación con formato llamativo. Se usa
+// tanto en importarMayores() como en importarResultadoProducto().
+// tipo: 'loading' | 'ok' | 'warn' | 'err' | ''
+function _setImportStatus(elId, tipo, msg){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  const estilos = {
+    loading: { bg:'#fff8e6', border:'#e6c300', color:'#7a5a00',
+      icon:'<span style="display:inline-block;width:18px;height:18px;border:2.5px solid #7a5a00;border-top-color:transparent;border-radius:50%;animation:girar .7s linear infinite;vertical-align:middle;margin-right:10px"></span>' },
+    ok:      { bg:'#e8f5ef', border:'#1a7a52', color:'#0f5438', icon:'<span style="font-size:20px;margin-right:8px">✅</span>' },
+    warn:    { bg:'#fff8e6', border:'#c47a00', color:'#7a5a00', icon:'<span style="font-size:18px;margin-right:8px">⚠️</span>' },
+    err:     { bg:'#fdecea', border:'#c0392b', color:'#c0392b', icon:'<span style="font-size:18px;margin-right:8px">❌</span>' },
+    '':      { bg:'transparent', border:'transparent', color:'', icon:'' }
+  };
+  const e = estilos[tipo] !== undefined ? estilos[tipo] : estilos[''];
+  if(!msg && tipo === ''){
+    el.style.display = 'none';
+    el.innerHTML = '';
+    return;
+  }
+  el.style.display = 'block';
+  el.style.background = e.bg;
+  el.style.border = '2px solid ' + e.border;
+  el.style.color = e.color;
+  el.style.padding = '14px 18px';
+  el.style.borderRadius = '10px';
+  el.style.fontWeight = '600';
+  el.style.fontSize = '15px';
+  el.style.lineHeight = '1.4';
+  el.innerHTML = e.icon + msg;
+}
+
+// Bloquea/desbloquea un botón mientras corre una operación larga.
+// Mientras está bloqueado, le pone un texto distinto ("⏳ Procesando...")
+// para que se vea claro que está trabajando.
+function _bloquearBoton(btn, bloqueado, textoCargando){
+  if(!btn) return;
+  if(bloqueado){
+    if(!btn.dataset.txtOrig) btn.dataset.txtOrig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = textoCargando || '⏳ Procesando...';
+    btn.style.opacity = '0.75';
+    btn.style.cursor = 'wait';
+  } else {
+    btn.disabled = false;
+    if(btn.dataset.txtOrig) btn.textContent = btn.dataset.txtOrig;
+    btn.style.opacity = '';
+    btn.style.cursor = '';
+  }
+}
+
 // ─── CONSTANTES PARA MOVIMIENTOS DE MAYORES ───
 const CUENTAS_MAYORES = [
   '11201 Deudores por Ventas',
@@ -3175,24 +3227,25 @@ let _finResultados = [];
 // ─── IMPORTAR MAYORES Y GUARDAR PLAZOS REALES ────────────────────────
 async function importarMayores() {
   const fileInput = document.getElementById('fin-file');
-  const status = document.getElementById('fin-status');
   const resultadosDiv = document.getElementById('fin-resultados');
+  const btn = document.getElementById('btn-importar-mayores');
 
   if (!fileInput.files.length) {
-    status.textContent = '⚠️ Seleccioná al menos un archivo.';
+    _setImportStatus('fin-status', 'warn', 'Seleccioná al menos un archivo.');
     return;
   }
 
   if (!_clientes || !_clientes.length) {
-    status.textContent = '⏳ Cargando clientes...';
+    _setImportStatus('fin-status', 'loading', 'Cargando clientes...');
     await cargarClientes();
   }
   if (!_proveedores || !_proveedores.length) {
-    status.textContent = '⏳ Cargando proveedores...';
+    _setImportStatus('fin-status', 'loading', 'Cargando proveedores...');
     await cargarProveedores();
   }
 
-  status.textContent = '⏳ Procesando archivos...';
+  _setImportStatus('fin-status', 'loading', 'Procesando archivos de Mayores... <b>No cierres esta pantalla</b>.');
+  _bloquearBoton(btn, true, '⏳ Procesando...');
   resultadosDiv.innerHTML = '';
 
   const files = Array.from(fileInput.files);
@@ -3209,7 +3262,7 @@ async function importarMayores() {
       const file = files[i];
       const mes = ordenMeses.find(m => file.name.includes(m));
       if (!mes) {
-        status.textContent = `⚠️ No se pudo detectar el mes en el archivo: ${file.name}`;
+        _setImportStatus('fin-status', 'warn', `⚠️ No se pudo detectar el mes en el archivo: ${file.name}`);
         continue;
       }
 
@@ -3233,7 +3286,7 @@ async function importarMayores() {
       const resultado = analizarMes(mes, workbook, siguienteWorkbook);
       resultado.mes = mes;
       resultados.push(resultado);
-      status.textContent = `✅ Procesado: ${mes}`;
+      _setImportStatus('fin-status', 'loading', `Procesando... ✅ ${mes} listo. No cierres esta pantalla.`);
 
       // ─── GUARDAR PLAZOS REALES EN SUPABASE ──────────────────────────
 
@@ -3309,17 +3362,19 @@ async function importarMayores() {
     } // fin for
 
     if (!resultados.length) {
-      status.textContent = '❌ No se pudo procesar ningún archivo.';
+      _setImportStatus('fin-status', 'err', 'No se pudo procesar ningún archivo.');
       return;
     }
 
     _finResultados = resultados;
     renderResultadosFinancieros(resultados);
-    status.textContent = `✅ ${resultados.length} mes(es) procesados. Datos guardados en la base de datos.`;
-
+    _setImportStatus('fin-status', 'ok',
+      `${resultados.length} mes(es) procesados y guardados en la base de datos.`);
   } catch (error) {
     console.error('❌ Error al procesar archivos:', error);
-    status.textContent = `❌ Error: ${error.message}`;
+    _setImportStatus('fin-status', 'err', 'Error: ' + error.message);
+  } finally {
+    _bloquearBoton(btn, false);
   }
 }
 
@@ -3988,19 +4043,20 @@ function exportarDescuentosClienteCSV() {
 // ─── IMPORTAR RESULTADO POR PRODUCTO ──────────────────────────────
 async function importarResultadoProducto() {
   const fileInput = document.getElementById('res-file');
-  const status = document.getElementById('res-status');
+  const btn = document.getElementById('btn-importar-resultado');
   if (!fileInput.files.length) {
-    status.textContent = '⚠️ Seleccioná al menos un archivo.';
+    _setImportStatus('res-status', 'warn', 'Seleccioná al menos un archivo.');
     return;
   }
 
   // Verificar que XLSX esté disponible
   if (typeof XLSX === 'undefined') {
-    status.textContent = '❌ La librería XLSX no está cargada. Recargá la página.';
+    _setImportStatus('res-status', 'err', 'La librería XLSX no está cargada. Recargá la página.');
     return;
   }
 
-  status.textContent = '⏳ Procesando archivos...';
+  _setImportStatus('res-status', 'loading', 'Procesando archivos de Resultado por producto... <b>No cierres esta pantalla</b>.');
+  _bloquearBoton(btn, true, '⏳ Procesando...');
   const files = Array.from(fileInput.files);
   const ordenMeses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto'];
   const mesNumero = { '01':'Enero', '1':'Enero', '02':'Febrero', '2':'Febrero', '03':'Marzo', '3':'Marzo', '04':'Abril', '4':'Abril', '05':'Mayo', '5':'Mayo', '06':'Junio', '6':'Junio', '07':'Julio', '7':'Julio', '08':'Agosto', '8':'Agosto' };
@@ -4019,7 +4075,7 @@ async function importarResultadoProducto() {
         }
       }
       if (!mes) {
-        status.textContent = `⚠️ No se pudo detectar el mes en: ${file.name}`;
+        _setImportStatus('res-status', 'loading', `⚠️ No se pudo detectar el mes en: ${file.name}. Procesando el resto...`);
         errores.push(`Mes no detectado: ${file.name}`);
         continue;
       }
@@ -4030,7 +4086,7 @@ async function importarResultadoProducto() {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data, { type: 'array' });
       if (!workbook.SheetNames.length) {
-        status.textContent = `⚠️ El archivo ${file.name} no tiene hojas.`;
+        _setImportStatus('res-status', 'loading', `⚠️ El archivo ${file.name} no tiene hojas. Procesando el resto...`);
         errores.push(`Sin hojas: ${file.name}`);
         continue;
       }
@@ -4082,7 +4138,7 @@ async function importarResultadoProducto() {
       }
 
       if (!registros.length) {
-        status.textContent = `⚠️ No se encontraron datos en ${file.name}`;
+        _setImportStatus('res-status', 'loading', `⚠️ No se encontraron datos en ${file.name}. Procesando el resto...`);
         errores.push(`Sin datos: ${file.name}`);
         continue;
       }
@@ -4096,19 +4152,22 @@ async function importarResultadoProducto() {
         if (error) throw error;
       }
       totalInsertados += registros.length;
-      status.textContent = `✅ ${registros.length} registros importados para ${periodo} (${mes})`;
+      _setImportStatus('res-status', 'loading', `Procesando... ✅ ${mes} listo (${registros.length} registros). No cierres esta pantalla.`);
     }
 
     if (errores.length) {
-      status.textContent += `\n⚠️ ${errores.length} archivo(s) con problemas: ${errores.join(', ')}`;
+      _setImportStatus('res-status', 'warn',
+        `Importación completada con avisos: ${totalInsertados} registros guardados. ${errores.length} archivo(s) con problemas: ${errores.join(', ')}`);
     } else {
-      status.textContent = `✅ Importación completada: ${totalInsertados} registros guardados.`;
+      _setImportStatus('res-status', 'ok',
+        `Importación completada: ${totalInsertados} registros guardados.`);
     }
     fileInput.value = '';
-
   } catch (error) {
     console.error('❌ Error al importar resultado:', error);
-    status.textContent = `❌ Error: ${error.message}`;
+    _setImportStatus('res-status', 'err', 'Error: ' + error.message);
+  } finally {
+    _bloquearBoton(btn, false);
   }
 }
 
