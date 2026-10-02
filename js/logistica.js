@@ -391,9 +391,6 @@ function imprimirRemitosCarga(cargaId){
     +'</table>'
     +'<div style="font-weight:600;font-size:13px;margin-bottom:8px;color:#1a7a52">📄 Detalle por cliente</div>'
     +bloques
-    +'<div class="no-print" style="text-align:center;margin-top:16px">'
-      +'<button onclick="window.print()" style="padding:8px 24px;background:#1a7a52;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🖨️ Imprimir</button>'
-    +'</div>'
     +'</body></html>');
   w.document.close();
 }
