@@ -220,6 +220,8 @@ function limpiarModalCobro(){
   const rEmpty=document.getElementById('cob-remitos-empty');
   if(rEmpty){rEmpty.textContent='Seleccioná un cliente para ver sus facturas';rEmpty.style.display='block';}
   const rWrap=document.getElementById('cob-remitos-tablewrap');if(rWrap)rWrap.style.display='none';
+  const rAcc=document.getElementById('cob-remitos-acciones');
+  if(rAcc){rAcc.style.display='none';rAcc.innerHTML='';}
   const rs2=document.getElementById('cob-resto-section');if(rs2)rs2.style.display='none';
   const av=document.getElementById('cob-saldo-favor-aviso');if(av)av.style.display='none';
   const ci=document.getElementById('cob-cli-info');if(ci)ci.style.display='none';
@@ -307,14 +309,7 @@ function selCliCob(id){
   if(remsPend.length){
     if(rEmpty)rEmpty.style.display='none';
     if(rWrap)rWrap.style.display='block';
-    if(lista)lista.innerHTML=`
-       <tr><td colspan="4" style="padding:6px 4px 10px 4px;border:none">
-         <button onclick="cobAutoImputar()"
-           style="width:100%;padding:8px;background:var(--A);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">
-           ⚡ Repartir automáticamente (más viejas primero)
-         </button>
-       </td></tr>
-       ` + remsPend.map(r=>`
+    if(lista)lista.innerHTML = remsPend.map(r=>`
        <tr>
          <td style="border:1px solid #000;padding:5px 7px"><button onclick="verRemitoEnCobro(${r.id})" title="Ver detalle" style="background:none;border:none;font-size:12px;font-weight:700;color:var(--P);cursor:pointer;padding:0;white-space:nowrap;text-decoration:underline">R-${String(r.id).padStart(4,'0')}</button></td>
          <td style="border:1px solid #000;padding:5px 7px;text-align:right;font-weight:700;color:var(--D)">${fmt(r.saldo_pendiente||r.total)}</td>
@@ -332,10 +327,20 @@ function selCliCob(id){
            </div>
          </td>
        </tr>`).join('');
+    // Botón "Repartir automáticamente" — abajo de la tabla, ancho propio
+    const acc = document.getElementById('cob-remitos-acciones');
+    if(acc){
+      acc.style.display = 'block';
+      acc.innerHTML = `<button onclick="cobAutoImputar()"
+        style="padding:7px 14px;background:var(--A);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap"
+        title="Reparte el total entre las facturas más viejas primero">⚡ Repartir automáticamente</button>`;
+    }
   } else {
     if(rEmpty){rEmpty.textContent='Sin facturas pendientes';rEmpty.style.display='block';}
     if(rWrap)rWrap.style.display='none';
     if(lista)lista.innerHTML='';
+    const acc = document.getElementById('cob-remitos-acciones');
+    if(acc){acc.style.display='none';acc.innerHTML='';}
   }
   // Sugerir saldo en efectivo y sincronizar total a imputar
   // const ef=document.getElementById('cob-efectivo');
