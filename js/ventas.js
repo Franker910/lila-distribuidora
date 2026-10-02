@@ -2501,6 +2501,15 @@ async function confirmarPedidoMovil(){
   mostrarConfirmacionMovil('pedido', c?.nombre, _pmCarrito.length + ' productos · ' + fmt(tot));
 }
 
+// Destino de "Cargar otro cobro" después de confirmar un cobro desde el celu.
+//   · Repartidor → "Mi ruta de hoy" (es lo que está trabajando en la calle).
+//   · Vendedor   → "Cobranza" (lista de clientes por zona), porque no
+//                  maneja hoja de ruta.
+function irACargarOtroCobro(){
+  if(usuarioActual?.rol === 'repartidor') go('hoja-ruta');
+  else go('cobranza');
+}
+
 function mostrarConfirmacionMovil(tipo, cliente, detalle, cobId){
   const panel = document.getElementById('p-pedido-movil');
   if (!panel) return;
@@ -2550,7 +2559,7 @@ function mostrarConfirmacionMovil(tipo, cliente, detalle, cobId){
             📋 Ver resumen
           </button>
         ` : ''}
-        <button onclick="_cerrarConfirmacionMovil(); ${esCobranza ? 'go(\'cobranza\')' : 'resetYNuevoPedido()'}" 
+        <button onclick="_cerrarConfirmacionMovil(); ${esCobranza ? 'irACargarOtroCobro()' : 'resetYNuevoPedido()'}"  
           style="width:100%;padding:14px;background:${esCobranza ? 'var(--bg2)' : 'var(--P)'};color:${esCobranza ? 'var(--PD)' : '#fff'};border:${esCobranza ? '2px solid var(--P)' : 'none'};border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;">
           ${esCobranza ? '💰 Cargar otro cobro' : '🆕 Nuevo pedido'}
         </button>

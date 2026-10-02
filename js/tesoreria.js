@@ -3451,7 +3451,7 @@ function selClienteCobMovil(id){
           onkeydown="if(event.key==='Home'){event.preventDefault();verRemitoEnCobro(${r.id})}"
           title="Inicio = ver factura">
         <button onclick="cobmImputarTodo(${r.id},${saldo})"
-          style="padding:8px 10px;background:var(--P);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">
+          style="min-width:76px;min-height:48px;padding:10px 14px;background:var(--P);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent">
           ✓ Todo
         </button>
       </div>`;
