@@ -304,9 +304,15 @@ function imprimirRemitosCarga(cargaId){
     let tot=0;
     const filas=(r.items||[]).map(it=>{
       const neto=it.precio*it.cant*(1-(it.dto||0)/100);tot+=neto;
+      // Mismo criterio que el remito individual y el resumen de carga:
+      // separar Kg de Cant. El peso real está en it.peso; fallback a it.cant
+      // para items viejos sin it.peso cargado.
+      const esKg = it.esPeso || (it.un||'').toLowerCase()==='kg';
+      const peso = esKg ? (it.peso || it.cant || 0) : 0;
       return '<tr>'
         +'<td style="padding:4px 7px;border:1px solid #ccc">'+esc(it.nom)+'</td>'
-        +'<td style="padding:4px 7px;border:1px solid #ccc;text-align:center">'+it.cant+' '+(it.un||'')+'</td>'
+        +'<td style="padding:4px 7px;border:1px solid #ccc;text-align:center">'+it.cant+'</td>'
+        +'<td style="padding:4px 7px;border:1px solid #ccc;text-align:center">'+(esKg?fmtN(peso,2):'—')+'</td>'
         +'<td style="padding:4px 7px;border:1px solid #ccc;text-align:right">'+fmt(it.precio)+'</td>'
         +((it.dto||0)>0?'<td style="padding:4px 7px;border:1px solid #ccc;text-align:center">'+it.dto+'%</td>':'<td style="padding:4px 7px;border:1px solid #ccc;text-align:center">—</td>')
         +'<td style="padding:4px 7px;border:1px solid #ccc;text-align:right;font-weight:600">'+fmt(neto)+'</td>'
@@ -320,7 +326,8 @@ function imprimirRemitosCarga(cargaId){
       +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
         +'<thead><tr style="background:#e8f5e9">'
           +'<th style="padding:4px 7px;border:1px solid #ccc;text-align:left">Producto</th>'
-          +'<th style="padding:4px 7px;border:1px solid #ccc;text-align:center;width:80px">Cant.</th>'
+          +'<th style="padding:4px 7px;border:1px solid #ccc;text-align:center;width:60px">Cant.</th>'
+          +'<th style="padding:4px 7px;border:1px solid #ccc;text-align:center;width:60px">Kg</th>'
           +'<th style="padding:4px 7px;border:1px solid #ccc;text-align:right;width:80px">P.Unit</th>'
           +'<th style="padding:4px 7px;border:1px solid #ccc;text-align:center;width:45px">Dto</th>'
           +'<th style="padding:4px 7px;border:1px solid #ccc;text-align:right;width:90px">Total</th>'
@@ -677,13 +684,21 @@ function resumenCarga(id){
             <th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--brd)">Producto</th>
             <th style="padding:6px 10px;text-align:right;border-bottom:1px solid var(--brd)">Cant.</th>
             <th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--brd)">Unidad</th>
+            <th style="padding:6px 10px;text-align:right;border-bottom:1px solid var(--brd)">Kg</th>
           </tr></thead>
           <tbody>
-            ${(p.items||[]).map(it=>`<tr>
-              <td style="padding:7px 10px;border-bottom:0.5px solid var(--brd)">${esc(it.nom)}</td>
-              <td style="padding:7px 10px;border-bottom:0.5px solid var(--brd);text-align:right;font-weight:700">${fmtN(it.cant,2)}</td>
-              <td style="padding:7px 10px;border-bottom:0.5px solid var(--brd);color:var(--txt2)">${it.un||''}</td>
-            </tr>`).join('')}
+            ${(p.items||[]).map(it=>{
+              // Peso real del item (solo aplica a productos por kg). Fallback
+              // a it.cant para items viejos sin it.peso.
+              const esKg = it.esPeso || (it.un||'').toLowerCase()==='kg';
+              const peso = esKg ? (it.peso || it.cant || 0) : 0;
+              return `<tr>
+                <td style="padding:7px 10px;border-bottom:0.5px solid var(--brd)">${esc(it.nom)}</td>
+                <td style="padding:7px 10px;border-bottom:0.5px solid var(--brd);text-align:right;font-weight:700">${fmtN(it.cant,2)}</td>
+                <td style="padding:7px 10px;border-bottom:0.5px solid var(--brd);color:var(--txt2)">${it.un||''}</td>
+                <td style="padding:7px 10px;border-bottom:0.5px solid var(--brd);text-align:right;font-weight:600">${esKg?fmtN(peso,2):'—'}</td>
+              </tr>`;
+            }).join('')}
           </tbody>
         </table>
       </div>`;
@@ -974,12 +989,16 @@ function imprimirRemito(){
     const prod=_productos.find(p=>p.id===it.id||p.nombre===it.nom)||{};
     const base=it.precio*it.cant, dtoA=base*((it.dto||0)/100), neto=base-dtoA;
     sub+=base; dtoT+=dtoA; tot+=neto;
-    const esKg=(it.un||'').toLowerCase()==='kg';
+    // Detectar si es por kg por dos vías: el flag explícito it.esPeso (nuevo)
+    // o la unidad it.un (fallback para items viejos). El peso real está en
+    // it.peso; si por algún motivo no está cargado, caemos a it.cant.
+    const esKg = it.esPeso || (it.un||'').toLowerCase()==='kg';
+    const peso = esKg ? (it.peso || it.cant || 0) : 0;
     return '<tr>'
       + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:10px;color:#666">'+(prod.codigo||'—')+'</td>'
       + '<td style="padding:5px 6px;border:1px solid #ccc;font-size:11px">'+esc(it.nom)+'</td>' 
       + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:11px;white-space:nowrap">'+fmtN(it.cant,2)+'</td>'
-      + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:11px">'+(esKg?fmtN(it.cant,2)+' kg':'—')+'</td>'  // Cambio aquí
+      + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:11px">'+(esKg?fmtN(peso,2):'—')+'</td>'
       + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:right;font-size:11px">'+fmt(it.precio)+'</td>'
       + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:center;font-size:11px">'+((it.dto||0)||'—')+(it.dto?'%':'')+'</td>'
       + '<td style="padding:5px 6px;border:1px solid #ccc;text-align:right;font-weight:600;font-size:11px">'+fmt(neto)+'</td>'
@@ -1016,7 +1035,7 @@ function imprimirRemito(){
           <th style="padding:5px 6px;border:1px solid #b2d8c4;font-size:10px;text-align:center">Código</th>
           <th style="padding:5px 6px;border:1px solid #b2d8c4;font-size:10px;text-align:left">Producto</th>
           <th style="padding:5px 6px;border:1px solid #b2d8c4;font-size:10px;text-align:center">Cant.</th>
-          <th style="padding:5px 6px;border:1px solid #b2d8c4;font-size:10px;text-align:center">Kilos</th>
+          <th style="padding:5px 6px;border:1px solid #b2d8c4;font-size:10px;text-align:center">Kg</th>
           <th style="padding:5px 6px;border:1px solid #b2d8c4;font-size:10px;text-align:right">P.Unit</th>
           <th style="padding:5px 6px;border:1px solid #b2d8c4;font-size:10px;text-align:center">Dto %</th>
           <th style="padding:5px 6px;border:1px solid #b2d8c4;font-size:10px;text-align:right">Total</th>
