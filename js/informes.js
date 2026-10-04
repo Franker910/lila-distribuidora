@@ -59,6 +59,22 @@ const CUENTAS_MAYORES = [
   '11101 Caja',
   '11102 Banco Macro Cta. Cte.'
 ];
+// Cuentas que TIENEN que venir en el mayor de cada mes (se avisa si falta
+// alguna). Se busca por código, así no importa si el nombre cambia un poco.
+const CUENTAS_MAYORES_OBLIGATORIAS = {
+  '11101': 'Caja',
+  '11102': 'Banco Macro Cta. Cte.',
+  '11104': 'Valores a Depositar',
+  '11201': 'Deudores por Ventas',
+  '21101': 'Proveedores',
+  '50203': 'Combustible y Lubricante',
+  '50305': 'Descuentos Realizados'
+};
+// Hojas del Excel que son cuentas: empiezan con el código (ej. "11101 Caja",
+// "40100-00001 Lacteos"). Se guardan TODAS, no solo las 4 de arriba.
+function _hojasCuentaMayor(workbook){
+  return workbook.SheetNames.filter(n => /^\d{5}/.test(String(n).trim()));
+}
 
 // ─── MÓDULO GERENCIAL ───
 // Permitir scroll sobre los canvas de Chart.js
@@ -965,7 +981,7 @@ function navInfTabs(e){
 }
 
 function infTab(tab){
-    const tabs = ['ventas','descuentos','descuentos-cliente','clientes','productos','comisiones','gerencial','comisiones2','cmg-cli','financiamiento','financiero','plazos','calce','historico'];
+    const tabs = ['ventas','descuentos','descuentos-cliente','clientes','productos','comisiones','gerencial','comisiones2','cmg-cli','financiamiento','financiero','fondos','plazos','calce','historico'];
 
   setBreadcrumbSub('inf', tab);
 
@@ -983,6 +999,7 @@ function infTab(tab){
   if (tab === 'productos') setTimeout(() => ipInit(), 50);
   if (tab === 'gerencial') setTimeout(() => cargarGerencialSupabase(), 100);
   if (tab === 'historico') setTimeout(() => informeHistoricoChart(null, true), 150);
+  if (tab === 'fondos') setTimeout(() => fonInit(false), 50);
   if (tab === 'plazos') {
     cargarPeriodosPlazos().then(() => renderPlazos());
   }
@@ -3223,6 +3240,20 @@ function analizarMes(mes, workbook, siguienteWorkbook) {
 }
 
 let _finResultados = [];
+let _avisosMayores = [];
+
+// Detecta el mes en el nombre del archivo como PALABRA SUELTA.
+// Antes se usaba name.includes(mes) y "Lila_Mayores_Junio_2026.xlsx"
+// daba "Mayo" (porque "Mayores" contiene "Mayo") → junio en adelante
+// se guardaban como mayo. Ahora "Mayo" tiene que estar separado por
+// _, espacio, guion, punto, etc.
+function _mesDeArchivo(nombre, meses){
+  for (const m of meses) {
+    const rx = new RegExp('(^|[^a-záéíóúñ])' + m + '(?![a-záéíóúñ])', 'i');
+    if (rx.test(nombre)) return m;
+  }
+  return undefined;
+}
 
 // ─── IMPORTAR MAYORES Y GUARDAR PLAZOS REALES ────────────────────────
 async function importarMayores() {
@@ -3250,17 +3281,18 @@ async function importarMayores() {
 
   const files = Array.from(fileInput.files);
   const resultados = [];
-  const ordenMeses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto'];
+  _avisosMayores = [];
+  const ordenMeses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   files.sort((a, b) => {
-    const ma = ordenMeses.findIndex(m => a.name.includes(m));
-    const mb = ordenMeses.findIndex(m => b.name.includes(m));
+    const ma = ordenMeses.indexOf(_mesDeArchivo(a.name, ordenMeses));
+    const mb = ordenMeses.indexOf(_mesDeArchivo(b.name, ordenMeses));
     return ma - mb;
   });
 
   try {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const mes = ordenMeses.find(m => file.name.includes(m));
+      const mes = _mesDeArchivo(file.name, ordenMeses);
       if (!mes) {
         _setImportStatus('fin-status', 'warn', `⚠️ No se pudo detectar el mes en el archivo: ${file.name}`);
         continue;
@@ -3276,7 +3308,7 @@ async function importarMayores() {
       const siguiente = (idx + 1 < ordenMeses.length) ? ordenMeses[idx + 1] : null;
       let siguienteWorkbook = null;
       if (siguiente) {
-        const nextFile = files.find(f => f.name.includes(siguiente));
+        const nextFile = files.find(f => _mesDeArchivo(f.name, ordenMeses) === siguiente);
         if (nextFile) {
           const nextData = await nextFile.arrayBuffer();
           siguienteWorkbook = XLSX.read(nextData, { type: 'array' });
@@ -3334,8 +3366,15 @@ async function importarMayores() {
       // Limpiar movimientos viejos del mismo período
       await sb.from('movimientos_mayores').delete().eq('periodo', periodo);
 
+      const hojasCuenta = _hojasCuentaMayor(workbook);
+      const codigosPresentes = new Set(hojasCuenta.map(h => String(h).trim().slice(0,5)));
+      const faltan = Object.entries(CUENTAS_MAYORES_OBLIGATORIAS)
+        .filter(([cod]) => !codigosPresentes.has(cod))
+        .map(([cod, nom]) => `${cod} ${nom}`);
+      if (faltan.length) _avisosMayores.push(`${mes}: faltan ${faltan.join(', ')}`);
+
       const movimientos = [];
-      for (const cuenta of CUENTAS_MAYORES) {
+      for (const cuenta of hojasCuenta) {
         const txs = leerHojaMayor(workbook, cuenta);
         for (const t of txs) {
           movimientos.push({
@@ -3354,7 +3393,10 @@ async function importarMayores() {
         for (let j = 0; j < movimientos.length; j += batchSize) {
           const batch = movimientos.slice(j, j + batchSize);
           const { error } = await sb.from('movimientos_mayores').insert(batch);
-          if (error) console.error(`❌ Error al guardar movimientos:`, error);
+          if (error) {
+            console.error(`❌ Error al guardar movimientos:`, error);
+            _avisosMayores.push(`${mes}: error al guardar ${batch.length} movimientos (${error.message})`);
+          }
         }
         console.log(`✅ ${movimientos.length} movimientos guardados para ${periodo}`);
       }
@@ -3367,9 +3409,16 @@ async function importarMayores() {
     }
 
     _finResultados = resultados;
+    if (typeof _fonCache !== 'undefined') _fonCache = null; // Fondos: recargar con los meses nuevos
     renderResultadosFinancieros(resultados);
-    _setImportStatus('fin-status', 'ok',
-      `${resultados.length} mes(es) procesados y guardados en la base de datos.`);
+    if (_avisosMayores.length) {
+      _setImportStatus('fin-status', 'warn',
+        `${resultados.length} mes(es) procesados, pero revisá:<br>• ` + _avisosMayores.map(esc).join('<br>• ') +
+        '<br><span style="font-size:12px">Sacá de nuevo ese mayor en FoxPro con todas las cuentas y volvé a subirlo: el mes se reemplaza completo.</span>');
+    } else {
+      _setImportStatus('fin-status', 'ok',
+        `${resultados.length} mes(es) procesados y guardados en la base de datos, con todas las cuentas.`);
+    }
   } catch (error) {
     console.error('❌ Error al procesar archivos:', error);
     _setImportStatus('fin-status', 'err', 'Error: ' + error.message);
@@ -4058,8 +4107,8 @@ async function importarResultadoProducto() {
   _setImportStatus('res-status', 'loading', 'Procesando archivos de Resultado por producto... <b>No cierres esta pantalla</b>.');
   _bloquearBoton(btn, true, '⏳ Procesando...');
   const files = Array.from(fileInput.files);
-  const ordenMeses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto'];
-  const mesNumero = { '01':'Enero', '1':'Enero', '02':'Febrero', '2':'Febrero', '03':'Marzo', '3':'Marzo', '04':'Abril', '4':'Abril', '05':'Mayo', '5':'Mayo', '06':'Junio', '6':'Junio', '07':'Julio', '7':'Julio', '08':'Agosto', '8':'Agosto' };
+  const ordenMeses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const mesNumero = { '01':'Enero', '1':'Enero', '02':'Febrero', '2':'Febrero', '03':'Marzo', '3':'Marzo', '04':'Abril', '4':'Abril', '05':'Mayo', '5':'Mayo', '06':'Junio', '6':'Junio', '07':'Julio', '7':'Julio', '08':'Agosto', '8':'Agosto', '09':'Septiembre', '9':'Septiembre', '10':'Octubre', '11':'Noviembre', '12':'Diciembre' };
 
   let totalInsertados = 0;
   let errores = [];
@@ -4067,9 +4116,9 @@ async function importarResultadoProducto() {
   try {
     for (const file of files) {
       // ─── Detectar mes ──────────────────────────────────────────────
-      let mes = ordenMeses.find(m => file.name.includes(m));
+      let mes = _mesDeArchivo(file.name, ordenMeses);
       if (!mes) {
-        const match = file.name.match(/\b(0?[1-8])\b/);
+        const match = file.name.match(/(?:^|[^0-9])(0?[1-9]|1[0-2])(?=[^0-9]|$)/); // ej. resultado_2026_09.xlsx
         if (match) {
           mes = mesNumero[match[1]];
         }

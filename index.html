@@ -3380,6 +3380,7 @@ input.no-spin {
     <button id="inf-tab-cmg-cli" class="btn sm" onclick="infTab('cmg-cli')" tabindex="-1">👥 CMG Clientes</button>
     <button id="inf-tab-financiamiento" class="btn sm" onclick="infTab('financiamiento')" tabindex="-1">🏭 Financiamiento</button>
     <button id="inf-tab-financiero" class="btn sm" onclick="infTab('financiero')" tabindex="-1">📊 Mayores</button>
+    <button id="inf-tab-fondos" class="btn sm" onclick="infTab('fondos')" tabindex="-1">💵 Fondos</button>
     <button id="inf-tab-plazos" class="btn sm" onclick="infTab('plazos')" tabindex="-1">📋 Plazos</button>
     <button id="inf-tab-calce" class="btn sm" onclick="infTab('calce')" tabindex="-1">📊 Calce de plazos</button>
     <button id="inf-tab-historico" class="btn sm" onclick="infTab('historico')" tabindex="-1">📈 Evolución histórica</button>
@@ -3425,6 +3426,37 @@ input.no-spin {
       </div>
       <div id="res-status" style="display:none;margin-top:10px;"></div>
     </div>
+  </div>
+
+  <!-- Informes → 💵 Fondos: evolución de Caja / Banco (lee movimientos_mayores) -->
+  <div id="inf-sec-fondos" style="display:none;">
+    <div class="card" style="margin-bottom:12px;">
+      <div style="font-weight:600;margin-bottom:4px;">💵 Evolución de fondos</div>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:10px;">
+        Se arma con los meses ya procesados en 📊 Mayores. Cada mes nuevo que subas se suma solo.
+      </p>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+        <div class="fg" style="min-width:170px">
+          <label style="font-size:12px;font-weight:600;color:var(--txt2);">Cuenta</label>
+          <select id="fon-cuenta" onchange="fonRender()" style="width:100%;padding:8px 10px;border:1.5px solid var(--brd);border-radius:8px;font-family:inherit;font-size:14px">
+            <option value="caja">Caja</option>
+            <option value="banco">Banco Macro</option>
+            <option value="ambas">Caja + Banco Macro</option>
+          </select>
+        </div>
+        <div class="fg" style="min-width:120px">
+          <label style="font-size:12px;font-weight:600;color:var(--txt2);">Desde</label>
+          <select id="fon-desde" onchange="fonRender()" style="width:100%;padding:8px 10px;border:1.5px solid var(--brd);border-radius:8px;font-family:inherit;font-size:14px"></select>
+        </div>
+        <div class="fg" style="min-width:120px">
+          <label style="font-size:12px;font-weight:600;color:var(--txt2);">Hasta</label>
+          <select id="fon-hasta" onchange="fonRender()" style="width:100%;padding:8px 10px;border:1.5px solid var(--brd);border-radius:8px;font-family:inherit;font-size:14px"></select>
+        </div>
+        <button class="btn" onclick="fonInit(true)" style="padding:9px 16px;">🔄 Recargar</button>
+      </div>
+      <div id="fon-status" style="font-size:12px;color:var(--txt2);margin-top:8px;min-height:16px"></div>
+    </div>
+    <div id="fon-res"></div>
   </div>
 
   <!-- ─── PLAZO POR CLIENTE / PROVEEDOR ─── -->
@@ -5366,16 +5398,17 @@ input.no-spin {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20261002-06"></script>
-<script src="js/maestros.js?v=20261002-06"></script>
-<script src="js/ventas.js?v=20261002-06"></script>
-<script src="js/tesoreria.js?v=20261002-06"></script>
-<script src="js/contabilidad.js?v=20261002-06"></script>
-<script src="js/informes.js?v=20261002-06"></script>
-<script src="js/inf_productos.js?v=20261002-06"></script>
-<script src="js/logistica.js?v=20261002-06"></script>
-<script src="js/movil_header_observer.js?v=20261002-06"></script>
-<script src="js/instalar_app.js?v=20261002-06"></script>
+<script src="js/app.js?v=20261003-01"></script>
+<script src="js/maestros.js?v=20261003-01"></script>
+<script src="js/ventas.js?v=20261003-01"></script>
+<script src="js/tesoreria.js?v=20261003-01"></script>
+<script src="js/contabilidad.js?v=20261003-01"></script>
+<script src="js/informes.js?v=20261003-01"></script>
+<script src="js/inf_productos.js?v=20261003-01"></script>
+<script src="js/logistica.js?v=20261003-01"></script>
+<script src="js/movil_header_observer.js?v=20261003-01"></script>
+<script src="js/instalar_app.js?v=20261003-01"></script>
+<script src="js/informe_fondos.js?v=20261003-01"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
