@@ -73,7 +73,10 @@ const CUENTAS_MAYORES_OBLIGATORIAS = {
 // Hojas del Excel que son cuentas: empiezan con el código (ej. "11101 Caja",
 // "40100-00001 Lacteos"). Se guardan TODAS, no solo las 4 de arriba.
 function _hojasCuentaMayor(workbook){
-  return workbook.SheetNames.filter(n => /^\d{5}/.test(String(n).trim()));
+  // Tolerar espacios/tabs al inicio del nombre. A veces al copiar/pegar
+  // pestañas en Excel quedan con un espacio adelante (" 40100 Lácteos")
+  // y eso hacía que el nombre no matcheara.
+  return workbook.SheetNames.filter(n => /^\s*\d{5}/.test(String(n)));
 }
 
 // ─── MÓDULO GERENCIAL ───
@@ -3242,6 +3245,8 @@ function analizarMes(mes, workbook, siguienteWorkbook) {
 let _finResultados = [];
 let _avisosMayores = [];
 
+const _ALIAS_MESES = { 'Setiembre': 'Septiembre' };
+
 // Detecta el mes en el nombre del archivo como PALABRA SUELTA.
 // Antes se usaba name.includes(mes) y "Lila_Mayores_Junio_2026.xlsx"
 // daba "Mayo" (porque "Mayores" contiene "Mayo") → junio en adelante
@@ -3251,6 +3256,11 @@ function _mesDeArchivo(nombre, meses){
   for (const m of meses) {
     const rx = new RegExp('(^|[^a-záéíóúñ])' + m + '(?![a-záéíóúñ])', 'i');
     if (rx.test(nombre)) return m;
+  }
+  // Alias (Setiembre → Septiembre)
+  for (const [alias, real] of Object.entries(_ALIAS_MESES)) {
+    const rx = new RegExp('(^|[^a-záéíóúñ])' + alias + '(?![a-záéíóúñ])', 'i');
+    if (rx.test(nombre)) return real;
   }
   return undefined;
 }
@@ -3399,15 +3409,33 @@ async function importarMayores() {
       }
       if (movimientos.length) {
         const batchSize = 500;
+        let guardados = 0;
         for (let j = 0; j < movimientos.length; j += batchSize) {
           const batch = movimientos.slice(j, j + batchSize);
           const { error } = await sb.from('movimientos_mayores').insert(batch);
-          if (error) {
-            console.error(`❌ Error al guardar movimientos:`, error);
-            _avisosMayores.push(`${mes}: error al guardar ${batch.length} movimientos (${error.message})`);
+          if (!error) {
+            guardados += batch.length;
+            continue;
+          }
+          // El batch falló entero (por ejemplo por una constraint). Reintentar
+          // fila por fila así se pierden solo las que efectivamente fallan,
+          // no las 500 del batch. Así una hoja entera no desaparece por un
+          // problema puntual de una fila.
+          console.warn(`⚠️ Batch de ${batch.length} falló, reintentando de a uno:`, error.message);
+          const fallidas = [];
+          for (const fila of batch) {
+            const { error: e2 } = await sb.from('movimientos_mayores').insert(fila);
+            if (!e2) guardados++;
+            else { fallidas.push(fila); console.error(`❌ Fila rechazada:`, fila, e2.message); }
+          }
+          if (fallidas.length) {
+            _avisosMayores.push(`${mes}: ${fallidas.length} fila(s) rechazada(s) en ${fallidas[0].cuenta}`);
           }
         }
-        console.log(`✅ ${movimientos.length} movimientos guardados para ${periodo}`);
+        console.log(`✅ ${guardados}/${movimientos.length} movimientos guardados para ${periodo}`);
+        if (guardados < movimientos.length) {
+          _avisosMayores.push(`${mes}: ${movimientos.length - guardados} de ${movimientos.length} movimientos NO se guardaron — revisar consola`);
+        }
       }
 
     } // fin for
