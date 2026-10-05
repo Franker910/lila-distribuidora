@@ -422,7 +422,7 @@ async function marcarLista(id){
 async function eliminarCarga(id){
   const cg=_cargas.find(x=>x.id===id);if(!cg)return;
   if(cg.estado!=='armando'){toast('Solo se pueden eliminar cargas en estado "armando"');return;}
-  if(!confirm('¿Eliminar esta carga? Los pedidos vuelven a estado pendiente.'))return;
+  if(!await _confirmar('¿Eliminar esta carga? Los pedidos vuelven a estado pendiente.', {titulo:'Eliminar carga', textoOk:'Eliminar'}))return;
   for(const pid of (cg.pedidos||[])){await sb.from('pedidos').update({estado:'pendiente',carga_id:null}).eq('id',pid);}
   await sb.from('cargas').delete().eq('id',id);
   await Promise.all([cargarCargas(),cargarPedidos()]);
@@ -1293,7 +1293,7 @@ async function hrGuardarGasto(concepto){
 }
 
 async function hrEliminarGasto(id){
-  if(!confirm('¿Eliminar este gasto?'))return;
+  if(!await _confirmar('¿Eliminar este gasto?', {titulo:'Eliminar gasto', textoOk:'Eliminar'}))return;
   await sb.from('gastos_reparto').delete().eq('id',id);
   await cargarGastosReparto();
   _renderGastosHoy();

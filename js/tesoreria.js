@@ -715,7 +715,7 @@ async function validarTransf(id){
 }
 
 async function rechazarTransf(id){
-  if(!confirm('¿Rechazar esta transferencia? El cobro quedará marcado como rechazado.'))return;
+  if(!await _confirmar('¿Rechazar esta transferencia? El cobro quedará marcado como rechazado.',{titulo:'Rechazar transferencia', textoOk:'Rechazar'}))return;
   const {error}=await sb.from('cobros').update({estado_transferencia:'rechazado'}).eq('id',id);
   if(error){toast('Error al rechazar','err');return;}
   const c=_cobros.find(x=>x.id===id);if(c)c.estado_transferencia='rechazado';
@@ -723,7 +723,7 @@ async function rechazarTransf(id){
 }
 
 async function validarCobro(id){
-  if(!confirm('¿Validar este cobro? Se descontará el saldo del cliente y sus remitos.'))return;
+  if(!await _confirmar('¿Validar este cobro? Se descontará el saldo del cliente y sus remitos.', {titulo:'Validar cobro', textoOk:'Validar'}))return;
   const cob=_cobros.find(x=>x.id===id);if(!cob)return;
   const {error}=await sb.from('cobros').update({estado_rendicion:'validado'}).eq('id',id);
   if(error){toast('Error al validar cobro: '+error.message,'err');return;}
@@ -748,7 +748,7 @@ async function validarCobro(id){
 }
 
 async function rechazarCobro(id){
-  if(!confirm('¿Rechazar este cobro?'))return;
+  if(!await _confirmar('¿Rechazar este cobro?', {titulo:'Rechazar cobro', textoOk:'Rechazar'}))return;
   const cob=_cobros.find(x=>x.id===id);if(!cob)return;
   const imps=Array.isArray(cob.imputaciones)?cob.imputaciones:[];
   const remImpactados=imps.map(imp=>_remitos.find(r=>r.id===imp.remito_id)).filter(r=>r&&r.cobrado);
@@ -1078,7 +1078,7 @@ async function rendAsignarNumeroAuto(){
   if(!_rendHojaSel)return;
   const {fecha,vendedor}=_rendHojaSel;
   const num=await _proximoNumeroRendicion();
-  if(!confirm(`¿Asignar el número de rendición #${num} a esta hoja de ruta?`))return;
+  if(!await _confirmar(`¿Asignar el número de rendición #${num} a esta hoja de ruta?`, {titulo:'Asignar número', textoOk:'Asignar'}))return;
   const dq=sb.from('hoja_ruta').update({numero_rendicion:num}).eq('fecha',fecha).is('numero_rendicion',null);
   if(vendedor&&vendedor!=='—')dq.eq('vendedor',vendedor);
   await dq;
@@ -1099,7 +1099,7 @@ async function rendAsignarNumeroAutoSinHoja(){
   const ids=_idsChk('.rend-sh-chk');
   if(!ids.length){toast('Seleccioná al menos un cobro','err');return;}
   const num=await _proximoNumeroRendicion();
-  if(!confirm(`¿Asignar el número de rendición #${num} a ${ids.length} cobro(s)?`))return;
+  if(!await _confirmar(`¿Asignar el número de rendición #${num} a ${ids.length} cobro(s)?`, {titulo:'Asignar número', textoOk:'Asignar'}))return;
   for(const id of ids){await sb.from('cobros').update({numero_rendicion:num}).eq('id',id);}
   await cargarCobros();
   renderRendicion();
@@ -1187,7 +1187,7 @@ async function rendGenerarHojaRutaFaltante(){
   const hojaKeys=new Set(_hojaRutaTodas.map(r=>String(r.cliente_id)+'|'+r.fecha));
   const cobrosSinHoja=_cobros.filter(c=>!hojaKeys.has(String(c.cliente_id)+'|'+c.fecha));
   if(!cobrosSinHoja.length){toast('No hay cobros sin hoja de ruta.');return;}
-  if(!confirm(`¿Generar la hoja de ruta faltante para ${cobrosSinHoja.length} cobro(s)?`))return;
+  if(!await _confirmar(`¿Generar la hoja de ruta faltante para ${cobrosSinHoja.length} cobro(s)?`, {titulo:'Generar hoja de ruta', textoOk:'Generar'}))return;
   for(const c of cobrosSinHoja){
     await _asegurarHojaRutaParaCobro(c.cliente_id,c.fecha,c.vendedor||'');
   }
@@ -1197,7 +1197,7 @@ async function rendGenerarHojaRutaFaltante(){
 }
 
 async function aprobarTodoRendicion(ids){
-  if(!confirm(`¿Aprobar ${ids.length} cobro(s)? Se descontará el saldo de los clientes y sus remitos.`))return;
+  if(!await _confirmar(`¿Aprobar ${ids.length} cobro(s)? Se descontará el saldo de los clientes y sus remitos.`,{titulo:'Aprobar todo', textoOk:'Aprobar'}))return;
   const esAdmin=usuarioActual?.esAdmin||usuarioActual?.rol_original==='admin';
   if(!esAdmin){toast('Solo el admin puede aprobar cobros','err');return;}
   let ok=0,err=0;
@@ -1235,7 +1235,7 @@ async function aprobarTodoRendicion(ids){
 }
 
 async function rechazarTodoRendicion(ids){
-  if(!confirm(`¿Rechazar ${ids.length} cobro(s)?`))return;
+  if(!await _confirmar(`¿Rechazar ${ids.length} cobro(s)?`,{titulo:'Rechazar todo', textoOk:'Rechazar'}))return;
   const esAdmin=usuarioActual?.esAdmin||usuarioActual?.rol_original==='admin';
   if(!esAdmin){toast('Solo el admin puede rechazar cobros','err');return;}
   let ok=0;
@@ -3911,7 +3911,7 @@ function renderTesPagos(){
 }
 
 async function eliminarPago(id){
-  if(!confirm('¿Eliminar este pago?'))return;
+  if(!await _confirmar('¿Eliminar este pago?', {titulo:'Eliminar pago', textoOk:'Eliminar'}))return;
   await sb.from('pagos_proveedores').delete().eq('id',id);
   await cargarPagosProv();renderTesPagos();
   toast('Pago eliminado');
@@ -4077,7 +4077,7 @@ async function autoConciliar(){
 }
 
 async function eliminarMovBanc(id){
-  if(!confirm('¿Eliminar este movimiento del extracto?'))return;
+  if(!await _confirmar('¿Eliminar este movimiento del extracto?', {titulo:'Eliminar movimiento', textoOk:'Eliminar'}))return;
   await sb.from('movimientos_bancarios').delete().eq('id',id);
   await cargarMovBanc();renderTesConcil();
   toast('Movimiento eliminado');

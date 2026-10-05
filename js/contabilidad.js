@@ -574,7 +574,7 @@ function renderGastos(){
 }
 
 async function elimGasto(id){
-  if(!confirm('¿Eliminar este gasto?'))return;
+  if(!await _confirmar('¿Eliminar este gasto?', {titulo:'Eliminar gasto', textoOk:'Eliminar'}))return;
   await sb.from('gastos').delete().eq('id',id);
   await cargarGastos();renderGastos();
 }

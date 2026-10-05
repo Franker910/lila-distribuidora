@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20261005-05';
+const APP_VERSION = '20261005-06';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -620,6 +620,58 @@ function toast(msg,tipo='ok',ms=2800){
   setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),400);},ms);
 }
 
+// Modal de confirmación custom, con la estética de la app. Reemplaza al
+// window.confirm() nativo, que muestra el dominio ("usuario.github.io dice:")
+// en el título y no se puede cambiar. Devuelve una Promise<boolean>.
+//   · opciones.titulo         → título del modal (default: 'Confirmar')
+//   · opciones.textoOk        → texto del botón de aceptar (default: 'Aceptar')
+//   · opciones.textoCancelar  → texto del botón de cancelar (default: 'Cancelar')
+//   · opciones.peligro        → true (default) pinta el botón OK en rojo
+//                               (para acciones destructivas como eliminar)
+function _confirmar(mensaje, opciones){
+  const opts = opciones || {};
+  return new Promise(resolve => {
+    document.getElementById('_conf-popup')?.remove();
+    const ov = document.createElement('div');
+    ov.id = '_conf-popup';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+    const titulo = opts.titulo || 'Confirmar';
+    const textoOk = opts.textoOk || 'Aceptar';
+    const textoCancelar = opts.textoCancelar || 'Cancelar';
+    const esPeligro = opts.peligro !== false;
+    const colorOk = esPeligro ? 'var(--D)' : 'var(--P)';
+    ov.innerHTML = `
+      <div style="background:var(--bg);border-radius:12px;padding:22px;max-width:440px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.35)">
+        <div style="font-size:15px;font-weight:700;color:var(--txt);margin-bottom:8px">${esc(titulo)}</div>
+        <div style="font-size:14px;color:var(--txt2);line-height:1.55;white-space:pre-line;margin-bottom:20px">${esc(mensaje)}</div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button id="_conf-no" class="btn" style="padding:9px 18px">${esc(textoCancelar)}</button>
+          <button id="_conf-si" class="btn" style="padding:9px 18px;background:${colorOk};color:#fff;border-color:${colorOk};font-weight:600">${esc(textoOk)}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+
+    let resuelto = false;
+    const cerrar = (val) => {
+      if(resuelto) return;
+      resuelto = true;
+      document.removeEventListener('keydown', keyHandler, true);
+      ov.remove();
+      resolve(val);
+    };
+    const keyHandler = (e) => {
+      if(e.key === 'Escape'){ e.stopPropagation(); e.preventDefault(); cerrar(false); }
+      else if(e.key === 'Enter'){ e.stopPropagation(); e.preventDefault(); cerrar(true); }
+    };
+    ov.querySelector('#_conf-si').onclick = () => cerrar(true);
+    ov.querySelector('#_conf-no').onclick = () => cerrar(false);
+    ov.onclick = (e) => { if(e.target === ov) cerrar(false); };
+    // capture=true para que atrape Enter/Escape antes que los handlers globales
+    document.addEventListener('keydown', keyHandler, true);
+    setTimeout(()=>ov.querySelector('#_conf-si')?.focus(), 40);
+  });
+}
+
 function pag(elId,total,cur,fn){
   const pages=Math.ceil(total/PP)||1;
   const el=document.getElementById(elId);if(!el)return;
@@ -1138,12 +1190,16 @@ function go(p,opts = {}) {
     if (!panelesMoviles.includes(p) && p !== 'vendedor-home') {
       // Si es admin con permiso, ofrecer cambiar a escritorio
       if (usuarioActual.esAdmin) {
-        if (confirm('📱 ¿Querés cambiar a vista de escritorio para acceder a esta función?')) {
-          usuarioActual.vista = 'escritorio';
-          usuarioActual.rol = 'admin';
-          mostrarVistaEscritorio();
-          setTimeout(() => go(p), 300);
-        }
+        _confirmar('📱 ¿Querés cambiar a vista de escritorio para acceder a esta función?',
+          {titulo:'Cambiar a escritorio', textoOk:'Ir a escritorio', textoCancelar:'Quedarme acá', peligro:false}
+        ).then(ok => {
+          if(ok){
+            usuarioActual.vista = 'escritorio';
+            usuarioActual.rol = 'admin';
+            mostrarVistaEscritorio();
+            setTimeout(() => go(p), 300);
+          }
+        });
         return;
       } else {
         // Vendedor/repartidor: no tiene acceso

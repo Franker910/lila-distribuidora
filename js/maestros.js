@@ -966,7 +966,7 @@ async function lpEditarLista(id){
 }
 
 async function lpEliminarLista(id){
-  if(!confirm('¿Eliminar esta lista? Se perderán todos los precios asociados.'))return;
+  if(!await _confirmar('¿Eliminar esta lista? Se perderán todos los precios asociados.', {titulo:'Eliminar lista',textoOk:'Eliminar'}))return;
   await sb.from('lista_precios_items').delete().eq('lista_id',id);
   await sb.from('listas_precios').delete().eq('id',id);
   Object.keys(_clienteListaMap).forEach(cid=>{if(_clienteListaMap[cid]==id)delete _clienteListaMap[cid];});
@@ -1350,7 +1350,7 @@ async function guardarProveedor(){
 }
 
 async function eliminarProveedor(id){
-  if(!confirm('¿Eliminar este proveedor?')) return;
+  if(!await _confirmar('¿Eliminar este proveedor?', {titulo:'Eliminar proveedor', textoOk:'Eliminar'})) return;
   await sb.from('proveedores').delete().eq('id', id);
   await cargarProveedores();
   renderProveedores();
@@ -1437,7 +1437,7 @@ async function guardarZona(){
 }
 
 async function eliminarZona(id){
-  if(!confirm('¿Eliminar esta zona?')) return;
+  if(!await _confirmar('¿Eliminar esta zona?',{titulo:'Eliminar zona', textoOk:'Eliminar'})) return;
   await sb.from('zonas').delete().eq('id', id);
   await cargarZonas();
   renderZonas();

@@ -705,7 +705,7 @@ async function informeComisiones(){
 
 // ─── EXPORTAR TODO ───
 async function exportarTodo(){
-  if(!confirm('¿Exportar todos los datos a Excel/CSV?'))return;
+  if(!await _confirmar('¿Exportar todos los datos a Excel/CSV?', {titulo:'Exportar datos', textoOk:'Exportar'}))return;
   await cargarTodo();
   const hoy=new Date().toLocaleDateString('es-AR').replace(/\//g,'-');
   const datos={

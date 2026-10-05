@@ -101,7 +101,7 @@ function verPedido(id){
 }
 
 async function elimPedido(id){
-  if(!confirm('¿Eliminar pedido?'))return;
+  if(!await _confirmar('¿Eliminar este pedido?', {titulo:'Eliminar pedido', textoOk:'Eliminar'}))return;
   await sb.from('pedidos').delete().eq('id',id);
   await cargarPedidos();renderPedidos();renderDash();
 }
@@ -2813,7 +2813,7 @@ function toggleDetallePedMovil(id){
 }
 
 async function elimPedidoMovil(id){
-  if(!confirm('¿Eliminar este pedido?'))return;
+  if(!await _confirmar('¿Eliminar este pedido?', {titulo:'Eliminar pedido', textoOk:'Eliminar'}))return;
   await sb.from('pedidos').delete().eq('id',id);
   await cargarPedidos();
   verMisPedidosHoy();
