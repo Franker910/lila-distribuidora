@@ -3374,17 +3374,26 @@ async function importarMayores() {
       if (faltan.length) _avisosMayores.push(`${mes}: faltan ${faltan.join(', ')}`);
 
       const movimientos = [];
+      // Contador de línea por (cuenta|fecha|asiento|concepto). Reinicia en
+      // cada import y por hoja (la clave incluye la cuenta). Permite que
+      // varias líneas reales compartan los mismos 4 valores, como el caso
+      // 40100 Lácteos (una línea por producto vendido, mismo asiento).
+      const contadores = {};
       for (const cuenta of hojasCuenta) {
         const txs = leerHojaMayor(workbook, cuenta);
         for (const t of txs) {
+          const fecha = t.fecha.toISOString().split('T')[0];
+          const clave = cuenta + '|' + fecha + '|' + t.asiento + '|' + t.concepto;
+          contadores[clave] = (contadores[clave] || 0) + 1;
           movimientos.push({
             cuenta: cuenta,
-            fecha: t.fecha.toISOString().split('T')[0],
+            fecha: fecha,
             asiento: t.asiento,
             concepto: t.concepto,
             debe: t.debe,
             haber: t.haber,
-            periodo: periodo
+            periodo: periodo,
+            linea_detalle: contadores[clave]
           });
         }
       }
