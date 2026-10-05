@@ -2128,6 +2128,7 @@ function renderComprobantes(){
   
   const fFecha=document.getElementById('comp-f-fecha')?.value||'';
   const fProv=document.getElementById('comp-f-prov')?.value||'';
+  const fCodProv=document.getElementById('comp-f-cod')?.value||'';
   const fNro=document.getElementById('comp-f-nro')?.value||'';
   const fDesc=document.getElementById('comp-f-desc')?.value||'';
   const fVenc=document.getElementById('comp-f-venc')?.value||'';
@@ -2139,7 +2140,22 @@ function renderComprobantes(){
     if(estado === 'pendiente' && c.fecha_vencimiento && c.fecha_vencimiento < hoy) estado = 'vencido';
     const okE = !est || estado === est;
     const okM = !mes || (c.fecha||'').startsWith(mes);
-    const okCols = matchFiltroCol(c.fecha,fFecha)&&matchFiltroCol(c.proveedor_nom,fProv)&&matchFiltroCol(c.nro_comprobante,fNro)&&
+    // Filtro por código de proveedor: busca en el catálogo _proveedores por
+    // proveedor_id y compara contra la columna codigo. Número puro → match
+    // exacto (para que "10" no traiga 110, 210...); texto → contains.
+    let okCodProv = true;
+    if(fCodProv){
+      const prov = _proveedores.find(p => String(p.id) === String(c.proveedor_id));
+      // Mismo criterio que la tabla: usa codigo si existe, si no el id.
+      // Antes solo miraba codigo, y como casi ningún proveedor tiene codigo
+      // cargado, el filtro nunca matcheaba con lo que se ve en pantalla.
+      const cod = String(prov?.codigo || prov?.id || '').trim();
+      const f = fCodProv.trim();
+      okCodProv = cod
+        ? (/^\d+$/.test(f) ? cod === f : cod.includes(f))
+        : false;
+    }
+    const okCols = matchFiltroCol(c.fecha,fFecha)&&matchFiltroCol(c.proveedor_nom,fProv)&&okCodProv&&matchFiltroCol(c.nro_comprobante,fNro)&&
       matchFiltroCol(c.descripcion||c.tipo,fDesc)&&matchFiltroCol(c.fecha_vencimiento,fVenc)&&matchFiltroCol(c.importe,fImp);
     return okQ && okE && okM && okCols;
   });
@@ -2487,6 +2503,7 @@ function limpiarFiltrosComprobantes() {
   document.getElementById('comp-q').value = '';
   document.getElementById('comp-est').value = '';
   document.getElementById('comp-mes').value = '';
+  document.getElementById('comp-f-cod').value = '';
   document.getElementById('comp-f-nro').value = '';
   document.getElementById('comp-f-desc').value = '';
   document.getElementById('comp-f-venc').value = '';
