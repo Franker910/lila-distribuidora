@@ -1634,7 +1634,7 @@ function imprimirNC(id){
     @media print{button{display:none}}
   </style></head><body>
   <div class="titulo">
-    <div class="empresa">🌸 DISTRIBUIDORA LILA</div>
+    <div class="empresa"> DISTRIBUIDORA LILA</div>
     <div class="nro">${esND?'NOTA DE DÉBITO':'NOTA DE CRÉDITO'} ${nro}</div>
   </div>
   <div class="row"><span><b>Fecha:</b></span><span>${n.fecha||'—'}</span></div>

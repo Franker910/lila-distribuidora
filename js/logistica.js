@@ -362,7 +362,7 @@ function imprimirRemitosCarga(cargaId){
     +'</style></head><body>'
     +'<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1a7a52;padding-bottom:8px;margin-bottom:14px">'
       +'<div>'
-        +'<div style="font-size:16px;font-weight:700;color:#1a7a52">🌸 DISTRIBUIDORA LILA</div>'
+        +'<div style="font-size:16px;font-weight:700;color:#1a7a52">DISTRIBUIDORA LILA</div>'
         +'<div style="font-size:13px;font-weight:600;margin-top:2px">'+titulo+'</div>'
         +'<div style="font-size:12px;margin-top:2px"><b>Fecha:</b> '+cg.fecha+' &nbsp;&nbsp; <b>Vendedor:</b> '+(cg.vendedor||'—')+'</div>'
       +'</div>'
@@ -933,7 +933,7 @@ function imprimirHojaRuta(){
     // Header
     +'<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1a7a52;padding-bottom:8px;margin-bottom:10px">'
       +'<div>'
-        +'<div style="font-size:16px;font-weight:700;color:#1a7a52">🌸 DISTRIBUIDORA LILA</div>'
+        +'<div style="font-size:16px;font-weight:700;color:#1a7a52">DISTRIBUIDORA LILA</div>'
         +'<div style="font-size:12px;margin-top:3px"><b>Repartidor:</b> '+esc(vendedor)+'</div>'
         +'<div style="font-size:12px"><b>Fecha de reparto:</b> '+fecha+' &nbsp;&nbsp; <b>Carga #:</b> '+cg.id+'</div>'
       +'</div>'
@@ -1006,7 +1006,7 @@ function imprimirRemito(){
     <div style="padding:10px 0 8px 0;min-height:48%">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #1a7a52;padding-bottom:8px;margin-bottom:10px">
         <div>
-          <div style="font-size:15px;font-weight:800;color:#1a7a52">🌸 Distribuidora Lila</div>
+          <div style="font-size:15px;font-weight:800;color:#1a7a52">Distribuidora Lila</div>
           <div style="font-size:9px;color:#888;margin-top:2px">Distribución mayorista</div>
         </div>
         <div style="text-align:center;flex:1;padding:0 10px">

@@ -1430,7 +1430,7 @@ function imprimirCuentaCorriente(){
     @page{size:A4 landscape;margin:10mm}
     @media print{button{display:none}}
   </style></head><body>
-  <div style="font-size:16px;font-weight:700;color:#1a7a52;border-bottom:2px solid #1a7a52;padding-bottom:8px;margin-bottom:14px">🌸 Distribuidora Lila — ${titulo}</div>
+  <div style="font-size:16px;font-weight:700;color:#1a7a52;border-bottom:2px solid #1a7a52;padding-bottom:8px;margin-bottom:14px">Distribuidora Lila — ${titulo}</div>
   ${body}
   <div style="text-align:center;margin-top:16px"><button onclick="window.print()" style="padding:8px 20px;background:#1a7a52;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">🖨️ Imprimir</button></div>
   </body></html>`);

@@ -2042,7 +2042,7 @@ function imprimirOrdenPago(id, fechaPago, forma){
     @media print{button{display:none}}
   </style></head><body>
   <div class="titulo">
-    <div class="empresa">🌸 DISTRIBUIDORA LILA</div>
+    <div class="empresa"> DISTRIBUIDORA LILA</div>
     <div class="nro">ORDEN DE PAGO</div>
   </div>
   <div class="row"><span><b>Fecha de pago:</b></span><span>${hoy}</span></div>
@@ -2086,7 +2086,7 @@ function imprimirComprobante(id){
     @media print{button{display:none}}
   </style></head><body>
   <div class="titulo">
-    <div class="empresa">🌸 DISTRIBUIDORA LILA</div>
+    <div class="empresa"> DISTRIBUIDORA LILA</div>
     <div class="nro">COMPROBANTE DE COMPRA ${c.nro_comprobante||'#'+c.id}</div>
   </div>
   <div class="row"><span><b>Fecha:</b></span><span>${c.fecha||'—'}</span></div>
