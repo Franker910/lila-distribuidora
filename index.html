@@ -1134,6 +1134,14 @@ input.no-spin {
 
 <!-- APP -->
 <div id="app">
+  
+<!-- Pantalla de carga: tapa todo hasta que entrarApp() termine de cargar los datos -->
+<div id="app-cargando" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:14px">
+  <div style="width:46px;height:46px;border:4px solid var(--PL);border-top-color:var(--P);border-radius:50%;animation:girar .8s linear infinite"></div>
+  <div style="font-size:15px;font-weight:600;color:var(--PD);letter-spacing:-.2px">Cargando datos…</div>
+  <div style="font-size:12px;color:var(--txt2)">Un momento por favor</div>
+</div>
+
 <div class="topbar">
   <button class="menu-toggle" id="btn-menu" onclick="toggleMenu()" aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar">☰</button>
   <span>🌸</span>
@@ -5398,17 +5406,17 @@ input.no-spin {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20261005-02"></script>
-<script src="js/maestros.js?v=20261005-02"></script>
-<script src="js/ventas.js?v=20261005-02"></script>
-<script src="js/tesoreria.js?v=20261005-02"></script>
-<script src="js/contabilidad.js?v=20261005-02"></script>
-<script src="js/informes.js?v=20261005-02"></script>
-<script src="js/inf_productos.js?v=20261005-02"></script>
-<script src="js/logistica.js?v=20261005-02"></script>
-<script src="js/movil_header_observer.js?v=20261005-02"></script>
-<script src="js/instalar_app.js?v=20261005-02"></script>
-<script src="js/informe_fondos.js?v=20261005-02"></script>
+<script src="js/app.js?v=20261005-03"></script>
+<script src="js/maestros.js?v=20261005-03"></script>
+<script src="js/ventas.js?v=20261005-03"></script>
+<script src="js/tesoreria.js?v=20261005-03"></script>
+<script src="js/contabilidad.js?v=20261005-03"></script>
+<script src="js/informes.js?v=20261005-03"></script>
+<script src="js/inf_productos.js?v=20261005-03"></script>
+<script src="js/logistica.js?v=20261005-03"></script>
+<script src="js/movil_header_observer.js?v=20261005-03"></script>
+<script src="js/instalar_app.js?v=20261005-03"></script>
+<script src="js/informe_fondos.js?v=20261005-03"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

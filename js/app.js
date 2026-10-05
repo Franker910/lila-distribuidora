@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20261005-02';
+const APP_VERSION = '20261005-03';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -235,10 +235,15 @@ function entrarApp(found) {
   usuarioActual.rol_original = found.rol_original || found.rol;
   usuarioActual.esAdmin = esAdminReal;
 
-  // 6. Ocultar login, mostrar app, cargar datos...
+  // 6. Ocultar login, mostrar app con pantalla de carga, cargar datos...
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('app').style.flexDirection = 'column';
+  // Pantalla de carga: tapa el contenido (que todavía tiene el último panel
+  // que quedó con .on del cierre de sesión anterior) hasta que cargarTodo()
+  // termine y go('dash') deje la app en el panel correcto.
+  const _loading = document.getElementById('app-cargando');
+  if (_loading) _loading.style.display = 'flex';
   document.getElementById('top-usuario').textContent = found.nombre + ' (' + usuarioActual.rol + ')';
   document.getElementById('top-fecha').textContent = new Date().toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' });
   ['np-fecha', 'cob-fecha', 'nc-fecha'].forEach(id => { const el = document.getElementById(id); if (el) el.value = hoyLocal(); });
@@ -278,6 +283,16 @@ function entrarApp(found) {
       initSidebarKeyNav();
       focoHamburguesa();
     }
+    // Ahora sí: ocultar la pantalla de carga.
+    const _loading = document.getElementById('app-cargando');
+    if (_loading) _loading.style.display = 'none';
+  }).catch(e => {
+    // Si por algún motivo cargarTodo() falla, no dejar al usuario atrapado
+    // en la pantalla de carga para siempre.
+    console.error('[entrarApp] cargarTodo falló:', e);
+    const _loading = document.getElementById('app-cargando');
+    if (_loading) _loading.style.display = 'none';
+    toast('⚠️ Error al cargar datos. Recargá la página.', 'err', 6000);
   });
 }
 
@@ -305,6 +320,11 @@ async function logout(){
   const _btnAdminLogout = document.getElementById('btn-volver-admin');
   if (_btnAdminLogout) _btnAdminLogout.style.display = 'none';
   
+  // Asegurar que la pantalla de carga quede oculta (por si quedó pegada de
+  // un login anterior que falló a mitad de camino).
+  const _loadingLogout = document.getElementById('app-cargando');
+  if (_loadingLogout) _loadingLogout.style.display = 'none';
+
   // Mostrar pantalla de login
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
