@@ -1380,14 +1380,30 @@ function renderZonas(){
   const tbody = document.getElementById('zona-tbody');
   if(!tbody) return;
   tbody.innerHTML = data.length ? data.map(z => {
-    const clientes = _clientes.filter(c => c.zona === z.codigo).length;
+    // Zona = localidad (decisión de negocio). El conteo matchea por:
+    //   · codigo:  clientes viejos que todavía tienen la zona como código
+    //              numérico (ej. c.zona = '1'). Compatibilidad.
+    //   · localidad: clientes migrados a zona = localidad, donde la
+    //              localidad del cliente coincide con la descripción de la
+    //              zona (ej. c.localidad = 'CASILDA' y z.descripcion = 'Casilda').
+    // Se usa un Set de ids para no contar dos veces si un cliente matchea
+    // por ambos criterios a la vez.
+    const desc = String(z.descripcion||'').trim().toUpperCase();
+    const cod = String(z.codigo||'').trim();
+    const ids = new Set();
+    _clientes.forEach(c => {
+      const porCodigo = cod && String(c.zona||'').trim() === cod;
+      const porLocalidad = desc && String(c.localidad||'').trim().toUpperCase() === desc;
+      if(porCodigo || porLocalidad) ids.add(c.id);
+    });
+    const clientes = ids.size;
     return `<tr>
-      <td style="font-weight:700;color:var(--P)">${z.codigo}</td>
+      <td style="font-weight:700;color:var(--P)">${esc(z.codigo||'')}</td>
       <td>${esc(z.descripcion||'—')}</td>
       <td>${esc(z.vendedor||'—')}</td>
       <td><span class="b bA">${clientes} clientes</span></td>
       <td><button class="btn sm" onclick="editarZona(${z.id})">✏️</button>
-          <button class="btn D sm" onclick="eliminarZona(${z.id})">🗑</button></td>
+        <button class="btn D sm" onclick="eliminarZona(${z.id})">🗑</button></td>
     </tr>`;
   }).join('') : '<tr><td colspan="5"><div class="empty">Sin zonas</div></td></tr>';
 }
