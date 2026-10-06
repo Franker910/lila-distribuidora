@@ -1558,37 +1558,33 @@ body.modo-movil-vendedor #p-pedidos.on {
 
 <!-- POPUP cantidad producto móvil -->
 <div id="pm-popup-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1300;align-items:flex-end;justify-content:center">
-  <div style="background:#fff;border-radius:16px 16px 0 0;padding:16px 18px 18px;width:100%;max-width:480px;box-sizing:border-box;max-height:90vh;overflow-y:auto;">
-
+  <div style="background:#fff;border-radius:16px 16px 0 0;padding:14px 18px 16px;width:100%;max-width:480px;box-sizing:border-box;">
+    
     <!-- Nombre y precio -->
-    <div id="pm-popup-nombre" style="font-size:17px;font-weight:700;color:var(--PD);margin-bottom:3px;"></div>
-    <div id="pm-popup-precio" style="font-size:13px;color:var(--txt2);margin-bottom:14px;"></div>
-
+    <div id="pm-popup-nombre" style="font-size:15px;font-weight:700;color:var(--PD);margin-bottom:2px;"></div>
+    <div id="pm-popup-precio" style="font-size:12px;color:var(--txt2);margin-bottom:10px;"></div>
+    
     <!-- Controles de cantidad -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-      <button onclick="pmCantidad(-1)"
-        style="width:44px;height:44px;border-radius:50%;background:var(--bg2);border:2px solid var(--brd);font-size:22px;cursor:pointer;font-weight:300;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">−</button>
-      <input id="pm-cant" type="number" value="1" min="0.1" step="0.5" inputmode="decimal"
-        style="flex:1;height:44px;text-align:center;font-size:20px;font-weight:700;border:2px solid var(--P);border-radius:10px;padding:0 10px;box-sizing:border-box;font-family:inherit;">
-      <button onclick="pmCantidad(1)"
-        style="width:44px;height:44px;border-radius:50%;background:var(--P);border:none;color:#fff;font-size:22px;cursor:pointer;font-weight:300;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">+</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <button onclick="pmCantidad(-1)" style="width:38px;height:38px;border-radius:50%;background:var(--bg2);border:1px solid var(--brd);font-size:20px;cursor:pointer;font-weight:300;display:flex;align-items:center;justify-content:center;">−</button>
+      <input id="pm-cant" type="number" value="1" min="0.1" step="0.5"
+        style="flex:1;text-align:center;font-size:20px;font-weight:700;border:2px solid var(--P);border-radius:8px;padding:4px;width:70px;">
+      <button onclick="pmCantidad(1)" style="width:38px;height:38px;border-radius:50%;background:var(--P);border:none;color:#fff;font-size:20px;cursor:pointer;font-weight:300;display:flex;align-items:center;justify-content:center;">+</button>
     </div>
-
+    
     <!-- Descuento -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
       <label style="font-size:14px;color:var(--txt2);width:60px;font-weight:600;">Dto %</label>
       <input id="pm-dto" type="number" value="0" min="0" max="100" inputmode="decimal"
         style="flex:1;height:52px;padding:0 14px;border:2px solid var(--brd);border-radius:10px;font-size:22px;font-weight:700;text-align:right;font-family:inherit;box-sizing:border-box;">
     </div>
-
+    
     <!-- Botones -->
-    <div style="display:flex;gap:10px;">
-      <button onclick="cerrarPopupMovil()"
-        style="flex:1;height:52px;background:var(--bg2);border:2px solid var(--brd);border-radius:10px;font-size:15px;cursor:pointer;font-weight:600;font-family:inherit;-webkit-tap-highlight-color:transparent;">Cancelar</button>
-      <button onclick="agregarAlCarrito()"
-        style="flex:2;height:52px;background:var(--P);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;">✓ Agregar</button>
+    <div style="display:flex;gap:8px;">
+      <button onclick="cerrarPopupMovil()" style="flex:1;padding:10px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;font-size:14px;cursor:pointer;font-weight:600;">Cancelar</button>
+      <button onclick="agregarAlCarrito()" style="flex:2;padding:10px;background:var(--P);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">✓ Agregar</button>
     </div>
-
+    
   </div>
 </div>
 
@@ -5461,17 +5457,17 @@ body.modo-movil-vendedor #p-pedidos.on {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20261006-06"></script>
-<script src="js/maestros.js?v=20261006-06"></script>
-<script src="js/ventas.js?v=20261006-06"></script>
-<script src="js/tesoreria.js?v=20261006-06"></script>
-<script src="js/contabilidad.js?v=20261006-06"></script>
-<script src="js/informes.js?v=20261006-06"></script>
-<script src="js/inf_productos.js?v=20261006-06"></script>
-<script src="js/logistica.js?v=20261006-06"></script>
-<script src="js/movil_header_observer.js?v=20261006-06"></script>
-<script src="js/instalar_app.js?v=20261006-06"></script>
-<script src="js/informe_fondos.js?v=20261006-06"></script>
+<script src="js/app.js?v=20261006-07"></script>
+<script src="js/maestros.js?v=20261006-07"></script>
+<script src="js/ventas.js?v=20261006-07"></script>
+<script src="js/tesoreria.js?v=20261006-07"></script>
+<script src="js/contabilidad.js?v=20261006-07"></script>
+<script src="js/informes.js?v=20261006-07"></script>
+<script src="js/inf_productos.js?v=20261006-07"></script>
+<script src="js/logistica.js?v=20261006-07"></script>
+<script src="js/movil_header_observer.js?v=20261006-07"></script>
+<script src="js/instalar_app.js?v=20261006-07"></script>
+<script src="js/informe_fondos.js?v=20261006-07"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
