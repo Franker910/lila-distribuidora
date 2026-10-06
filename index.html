@@ -1558,7 +1558,7 @@ body.modo-movil-vendedor #p-pedidos.on {
 
 <!-- POPUP cantidad producto móvil -->
 <div id="pm-popup-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1300;align-items:flex-end;justify-content:center">
-  <div style="background:#fff;border-radius:16px 16px 0 0;padding:16px 18px 18px;width:100%;max-width:480px;box-sizing:border-box;">
+  <div style="background:#fff;border-radius:16px 16px 0 0;padding:16px 18px 18px;width:100%;max-width:480px;box-sizing:border-box;max-height:90vh;overflow-y:auto;">
 
     <!-- Nombre y precio -->
     <div id="pm-popup-nombre" style="font-size:17px;font-weight:700;color:var(--PD);margin-bottom:3px;"></div>
@@ -1567,11 +1567,11 @@ body.modo-movil-vendedor #p-pedidos.on {
     <!-- Controles de cantidad -->
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
       <button onclick="pmCantidad(-1)"
-        style="width:52px;height:52px;border-radius:50%;background:var(--bg2);border:2px solid var(--brd);font-size:26px;cursor:pointer;font-weight:300;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">−</button>
+        style="width:44px;height:44px;border-radius:50%;background:var(--bg2);border:2px solid var(--brd);font-size:22px;cursor:pointer;font-weight:300;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">−</button>
       <input id="pm-cant" type="number" value="1" min="0.1" step="0.5" inputmode="decimal"
-        style="flex:1;height:52px;text-align:center;font-size:22px;font-weight:700;border:2px solid var(--P);border-radius:10px;padding:0 10px;box-sizing:border-box;font-family:inherit;">
+        style="flex:1;height:44px;text-align:center;font-size:20px;font-weight:700;border:2px solid var(--P);border-radius:10px;padding:0 10px;box-sizing:border-box;font-family:inherit;">
       <button onclick="pmCantidad(1)"
-        style="width:52px;height:52px;border-radius:50%;background:var(--P);border:none;color:#fff;font-size:26px;cursor:pointer;font-weight:300;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">+</button>
+        style="width:44px;height:44px;border-radius:50%;background:var(--P);border:none;color:#fff;font-size:22px;cursor:pointer;font-weight:300;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;">+</button>
     </div>
 
     <!-- Descuento -->
@@ -5461,17 +5461,17 @@ body.modo-movil-vendedor #p-pedidos.on {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20261006-04"></script>
-<script src="js/maestros.js?v=20261006-04"></script>
-<script src="js/ventas.js?v=20261006-04"></script>
-<script src="js/tesoreria.js?v=20261006-04"></script>
-<script src="js/contabilidad.js?v=20261006-04"></script>
-<script src="js/informes.js?v=20261006-04"></script>
-<script src="js/inf_productos.js?v=20261006-04"></script>
-<script src="js/logistica.js?v=20261006-04"></script>
-<script src="js/movil_header_observer.js?v=20261006-04"></script>
-<script src="js/instalar_app.js?v=20261006-04"></script>
-<script src="js/informe_fondos.js?v=20261006-04"></script>
+<script src="js/app.js?v=20261006-06"></script>
+<script src="js/maestros.js?v=20261006-06"></script>
+<script src="js/ventas.js?v=20261006-06"></script>
+<script src="js/tesoreria.js?v=20261006-06"></script>
+<script src="js/contabilidad.js?v=20261006-06"></script>
+<script src="js/informes.js?v=20261006-06"></script>
+<script src="js/inf_productos.js?v=20261006-06"></script>
+<script src="js/logistica.js?v=20261006-06"></script>
+<script src="js/movil_header_observer.js?v=20261006-06"></script>
+<script src="js/instalar_app.js?v=20261006-06"></script>
+<script src="js/informe_fondos.js?v=20261006-06"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
