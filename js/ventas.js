@@ -1761,12 +1761,12 @@ function renderVendedorHome(){
           <div style="display:flex;flex-direction:column;gap:10px">
             <button onclick="go('hoja-ruta')"
               style="display:flex;align-items:center;gap:16px;width:100%;padding:20px 22px;background:#5b21b6;color:#fff;border:none;border-radius:14px;font-size:19px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 3px 10px rgba(91,33,182,.25)">
-              <span style="font-size:28px;line-height:1">🗺</span>
+              <span style="font-size:28px;line-height:1"></span>
               <span>Mi ruta de hoy</span>
             </button>
             <button onclick="abrirNCMovil()"
               style="display:flex;align-items:center;gap:16px;width:100%;padding:20px 22px;background:var(--W);color:#fff;border:none;border-radius:14px;font-size:19px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 3px 10px rgba(234,88,12,.25)">
-              <span style="font-size:28px;line-height:1">📋</span>
+              <span style="font-size:28px;line-height:1"></span>
               <span>Registrar devolución</span>
             </button>
           </div>
@@ -1778,17 +1778,17 @@ function renderVendedorHome(){
           <div style="display:flex;flex-direction:column;gap:10px">
             <button onclick="go('cobranza')"
               style="display:flex;align-items:center;gap:16px;width:100%;padding:20px 22px;background:#1a6fa8;color:#fff;border:none;border-radius:14px;font-size:19px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 3px 10px rgba(26,111,168,.25)">
-              <span style="font-size:28px;line-height:1">💰</span>
+              <span style="font-size:28px;line-height:1"></span>
               <span>Registrar cobro</span>
             </button>
             <button onclick="irACuentaCorriente()"
               style="display:flex;align-items:center;gap:16px;width:100%;padding:16px 22px;background:var(--PL);color:var(--PD);border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">
-              <span style="font-size:22px;line-height:1">📋</span>
+              <span style="font-size:22px;line-height:1"></span>
               <span>Cuenta corriente</span>
             </button>
             <button onclick="irAMisCobranzas()"
               style="display:flex;align-items:center;gap:16px;width:100%;padding:16px 22px;background:#ede9fe;color:#5b21b6;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent">
-              <span style="font-size:22px;line-height:1">📊</span>
+              <span style="font-size:22px;line-height:1"></span>
               <span>Mis cobranzas</span>
             </button>
           </div>
