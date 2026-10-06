@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20261006-01';
+const APP_VERSION = '20261006-02';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -2113,38 +2113,28 @@ function _navCerrarCapaSuperior() {
     cerrarMenu();
     return true;
   }
-  // 4. Pedido móvil: si hay un paso más profundo que la lista de
-  //    clientes/zonas (Productos, Resumen, o el detalle de una
-  //    zona), el atrás retrocede un paso EN VEZ de cambiar de panel
-  //    — así no se pierde el cliente elegido ni el carrito.
+  // 4. Pedido móvil: si estás en Info / Mi pedido / Grilla, el atrás del
+  //    celu cancela el pedido (con confirm si hay items). Si estás en la
+  //    vista de una localidad, retrocede al listado de localidades.
   const panelPedido = document.getElementById('p-pedido-movil');
   if (panelPedido && panelPedido.classList.contains('on')) {
     const pasoResumen = document.getElementById('pm-paso-resumen');
     const pasoProductos = document.getElementById('pm-paso-productos');
     const pasoZona = document.getElementById('pm-paso-zona');
+    const pasoInfo = document.getElementById('pm-paso-cliente-info');
     const enResumen = pasoResumen && getComputedStyle(pasoResumen).display !== 'none';
     const enProductos = pasoProductos && getComputedStyle(pasoProductos).display !== 'none';
     const enZona = pasoZona && getComputedStyle(pasoZona).display !== 'none';
-    if (enResumen || enProductos || enZona) {
-      if (enResumen) {
-        volverProductosMovil();
-      } else if (enProductos) {
-        // Si hay items en el carrito, _pmIntentarVolverDeProductos()
-        // muestra un confirm. Si el usuario cancela, quedarse en productos
-        // y re-clavar el estado para que el próximo atrás re-dispare.
-        const volvio = (typeof _pmIntentarVolverDeProductos === 'function')
-          ? _pmIntentarVolverDeProductos()
-          : (volverHeaderPedidoMovil(), true);
-        if (!volvio) {
-          history.pushState({type:'panel', panel:'pedido-movil'}, '', location.pathname);
-          return true;
-        }
-      } else if (enZona) {
-        pmVolverAZonas();
-      }
-      // El navegador ya hizo un "pop" real del historial al apretar
-      // atrás. Lo volvemos a clavar para que el PRÓXIMO atrás siga
-      // encontrando este mismo panel, en vez de saltar de más.
+    const enInfo = pasoInfo && getComputedStyle(pasoInfo).display !== 'none';
+
+    if (enResumen || enProductos || enInfo) {
+      // Atrás en Info / Mi pedido / Grilla → cancelar pedido (confirm si hay items)
+      if (typeof _pmCancelarPedido === 'function') _pmCancelarPedido();
+      history.pushState({type:'panel', panel:'pedido-movil'}, '', location.pathname);
+      return true;
+    }
+    if (enZona) {
+      pmVolverAZonas();
       history.pushState({type:'panel', panel:'pedido-movil'}, '', location.pathname);
       return true;
     }

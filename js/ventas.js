@@ -2385,6 +2385,8 @@ function mostrarResumenMovil(){
   if (pasoZona) pasoZona.style.display = 'none';
   if (pasoProd) { pasoProd.style.display = 'none'; pasoProd.classList.remove('on'); }
   if (pasoRes)  pasoRes.style.display  = 'flex';
+  const pasoInfo = document.getElementById('pm-paso-cliente-info');
+  if (pasoInfo) pasoInfo.style.display = 'none';
   
 
   // Header visible con nombre + botón "+Productos" (sin buscadores)
@@ -2428,19 +2430,9 @@ function mostrarResumenMovil(){
 }
 
 function eliminarProductoResumen(index) {
-  // Eliminar el producto del carrito
   _pmCarrito.splice(index, 1);
-  
-  // Actualizar la interfaz
   actualizarCarritoBar();
-  
-  // Si el carrito quedó vacío, volver a la lista de productos
-  if (_pmCarrito.length === 0) {
-    volverProductosMovil();
-    return;
-  }
-  
-  // Si no quedó vacío, refrescar el resumen
+  // Siempre nos quedamos en "Mi pedido", incluso si el carrito quedó vacío.
   mostrarResumenMovil();
 }
 
@@ -3660,22 +3652,136 @@ function _pmIntentarVolverDeProductos(){
 // limpia el carrito y vuelve al paso de elegir cliente (o la localidad
 // desde donde se abrió).
 function _pmCancelarPedido(){
-  if(_pmCarrito.length === 0){
-    // Sin items: no hace falta pedir confirmación, volver directo.
-    _pmVolverAClientes();
-    return;
-  }
   const cant = _pmCarrito.length;
-  const ok = confirm(
-    '⚠️ Vas a cancelar el pedido con ' + cant + ' producto' + (cant!==1?'s':'') + ' sin confirmar.\n\n' +
-    '¿Querés descartarlo y volver a elegir cliente?'
-  );
-  if(!ok) return;
+  const msg = cant === 0
+    ? '¿Querés cancelar el pedido y volver a elegir cliente?'
+    : '⚠️ Vas a cancelar el pedido con ' + cant + ' producto' + (cant!==1?'s':'') + ' sin confirmar.\n\n' +
+      '¿Querés descartarlo y volver a elegir cliente?';
+
+  if(!confirm(msg)) return false;
+
   _pmCarrito = [];
   _pmProdActual = null;
   cerrarPopupMovil();
   actualizarCarritoBar();
   _pmVolverAClientes();
+  return true;
+}
+
+// ─── Ficha cliente (pantalla completa) ─────────────────────
+function pmAbrirClienteInfo(){
+  const pasoRes  = document.getElementById('pm-paso-resumen');
+  const pasoProd = document.getElementById('pm-paso-productos');
+  const pasoCli  = document.getElementById('pm-paso-cliente');
+  const pasoZona = document.getElementById('pm-paso-zona');
+  const pasoInfo = document.getElementById('pm-paso-cliente-info');
+  const header   = document.getElementById('pm-header');
+
+  if (pasoRes)  pasoRes.style.display  = 'none';
+  if (pasoProd) { pasoProd.style.display = 'none'; pasoProd.classList.remove('on'); }
+  if (pasoCli)  pasoCli.style.display  = 'none';
+  if (pasoZona) pasoZona.style.display = 'none';
+  if (pasoInfo) pasoInfo.style.display = 'flex';
+  // Header oculto: la ficha tiene su propio título y toda la info ahí adentro.
+  if (header) header.style.display = 'none';
+
+  _pmRenderFichaCliente();
+}
+
+function pmCerrarClienteInfo(){ mostrarResumenMovil(); }
+
+function _pmRenderFichaCliente(){
+  const c = _clientes.find(x => x.id === _pmCliId);
+  if (!c) return;
+  const datos    = document.getElementById('pm-ficha-datos');
+  const saldoDiv = document.getElementById('pm-ficha-saldo');
+  const movsDiv  = document.getElementById('pm-ficha-movs');
+  if (!datos || !saldoDiv || !movsDiv) return;
+
+  const dias = diasDesde(c.ultimo_remito);
+  const zona = _zonas.find(z => z.codigo === c.zona)?.descripcion || c.zona || '—';
+  const saldo = c.saldo || 0;
+
+  datos.innerHTML = `
+    <div class="card" style="margin-bottom:12px;padding:14px;">
+      <div style="font-size:18px;font-weight:700;color:var(--PD);margin-bottom:2px;">${esc(c.nombre)}</div>
+      <div style="font-size:12px;color:var(--txt2);margin-bottom:10px;">[${esc(c.codigo||c.id)}]</div>
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px;">
+        <span style="color:var(--txt2)">Dirección</span><span>${esc(c.direccion||'—')}</span>
+        <span style="color:var(--txt2)">Localidad</span><span>${esc(c.localidad||'—')}</span>
+        <span style="color:var(--txt2)">Zona</span><span>${esc(zona)}</span>
+        <span style="color:var(--txt2)">Teléfono</span><span>${esc(c.telefono||'—')}</span>
+        <span style="color:var(--txt2)">Vendedor</span><span>${esc(c.vendedor||'—')}</span>
+        <span style="color:var(--txt2)">Cond. pago</span><span>${c.condicion_pago?c.condicion_pago+' días':'Contado'}</span>
+        <span style="color:var(--txt2)">Descuento</span><span>${c.descuento||0}%</span>
+        ${dias!==null?`<span style="color:var(--txt2)">Último rem.</span><span>hace ${dias}d</span>`:''}
+      </div>
+    </div>`;
+
+  saldoDiv.innerHTML = `
+    <div style="background:${saldo>0?'var(--DL)':'var(--PL)'};border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;">
+      <div style="font-size:11px;color:${saldo>0?'var(--D)':'var(--PD)'};font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Saldo actual</div>
+      <div style="font-size:32px;font-weight:700;color:${saldo>0?'var(--D)':'var(--PD)'};margin-top:4px;">${fmt(saldo)}</div>
+      <div style="font-size:11px;color:var(--txt2);margin-top:4px;">${saldo>0?'Lo que debe el cliente':'Sin deuda pendiente'}</div>
+    </div>`;
+
+  movsDiv.innerHTML = '<div style="text-align:center;padding:20px;color:var(--txt2);font-size:13px">Cargando movimientos...</div>';
+  _pmCargarMovimientosFicha(c.id);
+}
+
+async function _pmCargarMovimientosFicha(clienteId){
+  const movsDiv = document.getElementById('pm-ficha-movs');
+  if (!movsDiv) return;
+
+  const desde = new Date();
+  desde.setMonth(desde.getMonth() - 2);
+  const desdeStr = desde.toISOString().split('T')[0];
+
+  try {
+    const [r1, r2, r3] = await Promise.all([
+      sb.from('remitos').select('id,fecha,total,cobrado,anulado').eq('cliente_id', clienteId).gte('fecha', desdeStr).order('fecha',{ascending:false}),
+      sb.from('cobros').select('id,fecha,importe,forma,estado_rendicion').eq('cliente_id', clienteId).gte('fecha', desdeStr).order('fecha',{ascending:false}),
+      sb.from('notas_credito').select('id,fecha,importe,motivo').eq('cliente_id', clienteId).gte('fecha', desdeStr).order('fecha',{ascending:false}),
+    ]);
+
+    const remitos = (r1.data||[]).filter(x=>!x.anulado).slice(0,5);
+    const cobros  = (r2.data||[]).slice(0,5);
+    const ncs     = (r3.data||[]).slice(0,5);
+
+    const movs = [
+      ...remitos.map(r=>({fecha:r.fecha, tipo:'remito', desc:'Remito R-'+String(r.id).padStart(4,'0'), importe:r.total, cobrado:r.cobrado})),
+      ...cobros.map(co=>({fecha:co.fecha, tipo:'cobro', desc:'Cobro '+co.forma, importe:co.importe, pendiente: co.estado_rendicion==='pendiente'})),
+      ...ncs.map(n=>({fecha:n.fecha, tipo:'nc', desc:'NC '+(n.motivo||''), importe:Math.abs(n.importe)})),
+    ].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+
+    if (!movs.length){
+      movsDiv.innerHTML = '<div style="text-align:center;padding:20px;color:var(--txt2);font-size:13px">Sin movimientos en los últimos 2 meses</div>';
+      return;
+    }
+
+    movsDiv.innerHTML = `
+      <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Últimos movimientos</div>
+      ${movs.map(m=>{
+        const esEntrada = m.tipo==='cobro' || m.tipo==='nc';
+        const color = esEntrada ? 'var(--P)' : 'var(--D)';
+        const signo = esEntrada ? '−' : '+';
+        let badge = '';
+        if (m.tipo==='remito' && !m.cobrado) badge = '<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:4px;margin-left:6px">pendiente</span>';
+        else if (m.tipo==='remito' && m.cobrado) badge = '<span style="font-size:10px;background:#e8f5e9;color:#2e7d32;padding:2px 6px;border-radius:4px;margin-left:6px">✓ cobrado</span>';
+        else if (m.tipo==='cobro' && m.pendiente) badge = '<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:4px;margin-left:6px">s/validar</span>';
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:0.5px solid var(--brd)">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(m.desc)}${badge}</div>
+            <div style="font-size:11px;color:var(--txt2);">${m.fecha}</div>
+          </div>
+          <div style="font-size:15px;font-weight:700;color:${color};flex-shrink:0;margin-left:10px;">${signo}${fmt(m.importe)}</div>
+        </div>`;
+      }).join('')}
+      <div style="font-size:11px;color:var(--txt2);text-align:center;padding:12px 0;">Mostrando últimos 5 de cada tipo · para más detalle usá Cuentas corrientes</div>`;
+  } catch (e) {
+    console.error('[ficha]', e);
+    movsDiv.innerHTML = '<div style="text-align:center;padding:20px;color:var(--D);font-size:13px">No se pudieron cargar los movimientos</div>';
+  }
 }
 
 // Vuelve al paso de elegir cliente. Si el pedido se abrió desde una
@@ -3697,6 +3803,10 @@ function _pmVolverAClientes(){
   if(proBusq) proBusq.style.display = 'none';
   const cliInfoHdr = document.getElementById('pm-cli-info-header');
   if (cliInfoHdr) cliInfoHdr.style.display = '';
+
+  _pmVisitoGrilla = false;
+  const pasoInfoReset = document.getElementById('pm-paso-cliente-info');
+  if (pasoInfoReset) pasoInfoReset.style.display = 'none';
 
   // Reset del nombre / saldo en el header
   const nombreEl = document.getElementById('pm-cli-nombre');
@@ -4179,20 +4289,21 @@ function initSwipePedidoMovil() {
     cont,
     // ── swipe izquierda (avanzar) ──
     () => {
-      if (visible('pm-paso-resumen')) {
-        // En "Mi pedido": ir a la grilla, solo si ya la visitó antes.
-        // La primera vez no hace nada (el usuario tiene que tocar "+Productos").
+      if (visible('pm-paso-cliente-info')) {
+        // Ficha cliente → volver a Mi pedido
+        pmCerrarClienteInfo();
+      } else if (visible('pm-paso-resumen')) {
+        // Mi pedido → grilla (solo si ya la visitó antes)
         if (_pmVisitoGrilla) volverProductosMovil();
       }
-      // En la grilla o en elegir cliente, izquierda no hace nada.
     },
     // ── swipe derecha (retroceder) ──
     () => {
       if (visible('pm-paso-resumen')) {
-        // En "Mi pedido": cancelar pedido (con confirm si hay items).
-        _pmCancelarPedido();
+        // Mi pedido → abrir Ficha cliente
+        pmAbrirClienteInfo();
       } else if (visible('pm-paso-productos')) {
-        // En grilla: volver a "Mi pedido".
+        // Grilla → volver a Mi pedido
         mostrarResumenMovil();
       } else if (visible('pm-paso-cliente')) {
         irAHome();

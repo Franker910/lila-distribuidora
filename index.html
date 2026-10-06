@@ -1434,7 +1434,7 @@ input.no-spin {
       </div>
       <div style="text-align:right;flex-shrink:0;margin-left:auto;display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
         <button id="pm-btn-productos-header" onclick="volverProductosMovil()"
-          style="display:none;background:#fff;color:var(--PD);border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;white-space:nowrap;">
+          style="display:none;background:#fff;color:var(--PD);border:none;border-radius:12px;padding:16px 32px;font-size:20px;font-weight:800;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.2);">
           +Productos
         </button>
         <div id="pm-cli-saldo-wrap" style="display:none;cursor:pointer;background:rgba(255,255,255,0.08);border-radius:8px;padding:4px 12px;text-align:center;border:1px solid rgba(255,255,255,0.12);" onclick="verSaldoMovil()">
@@ -1511,6 +1511,18 @@ input.no-spin {
             ✓ Confirmar pedido
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- Ficha cliente -->
+    <div id="pm-paso-cliente-info" style="display:none; flex-direction:column; flex:1 1 auto; min-height:0; overflow:hidden; padding:0; background:var(--bg);">
+      <div style="flex:1; overflow-y:auto; min-height:0; padding:12px 14px 20px; -webkit-overflow-scrolling:touch;">
+        <div style="margin-bottom:12px;">
+          <div style="font-size:13px;font-weight:700;color:var(--PD);">Ficha cliente</div>
+        </div>
+        <div id="pm-ficha-datos"></div>
+        <div id="pm-ficha-saldo"></div>
+        <div id="pm-ficha-movs"></div>
       </div>
     </div>
 
@@ -5419,17 +5431,17 @@ input.no-spin {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20261006-01"></script>
-<script src="js/maestros.js?v=20261006-01"></script>
-<script src="js/ventas.js?v=20261006-01"></script>
-<script src="js/tesoreria.js?v=20261006-01"></script>
-<script src="js/contabilidad.js?v=20261006-01"></script>
-<script src="js/informes.js?v=20261006-01"></script>
-<script src="js/inf_productos.js?v=20261006-01"></script>
-<script src="js/logistica.js?v=20261006-01"></script>
-<script src="js/movil_header_observer.js?v=20261006-01"></script>
-<script src="js/instalar_app.js?v=20261006-01"></script>
-<script src="js/informe_fondos.js?v=20261006-01"></script>
+<script src="js/app.js?v=20261006-02"></script>
+<script src="js/maestros.js?v=20261006-02"></script>
+<script src="js/ventas.js?v=20261006-02"></script>
+<script src="js/tesoreria.js?v=20261006-02"></script>
+<script src="js/contabilidad.js?v=20261006-02"></script>
+<script src="js/informes.js?v=20261006-02"></script>
+<script src="js/inf_productos.js?v=20261006-02"></script>
+<script src="js/logistica.js?v=20261006-02"></script>
+<script src="js/movil_header_observer.js?v=20261006-02"></script>
+<script src="js/instalar_app.js?v=20261006-02"></script>
+<script src="js/informe_fondos.js?v=20261006-02"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
