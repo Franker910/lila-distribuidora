@@ -1729,6 +1729,7 @@ async function guardarND(){
 // ─── PEDIDO MÓVIL (estilo Moviler) ───
 let _pmCliId=null, _pmCarrito=[], _pmMarcaActual=null, _pmProdActual=null;
 let _pmMarcaAbierta = null; // {marca, key, pref} - acordeón actualmente abierto
+let _pmBusquedaTexto = '';
 
 function renderVendedorHome(){
   const saludo = document.getElementById('vh-saludo');
@@ -1853,6 +1854,11 @@ function abrirPedidoMovil(origen){
   _pmVisitoGrilla = false;
   const _pmBtnProdHdr = document.getElementById('pm-btn-productos-header');
   if (_pmBtnProdHdr) _pmBtnProdHdr.style.display = 'none';
+  _pmBusquedaTexto = '';
+  const busqHdrInput = document.getElementById('pm-pro-busq-header');
+  if (busqHdrInput) busqHdrInput.value = '';
+  const busqHdrWrap = document.getElementById('pm-pro-busq-header-wrap');
+  if (busqHdrWrap) busqHdrWrap.style.display = 'none';
 
   // Asegurar que el botón volver esté visible al entrar de nuevo al flujo
   const _pmBtnVolver = document.getElementById('pm-btn-volver-header');
@@ -2398,6 +2404,17 @@ function mostrarResumenMovil(){
   const btnProdHdr = document.getElementById('pm-btn-productos-header');
   if (btnProdHdr) btnProdHdr.style.display = 'block';
 
+  // Buscador de productos: visible en "Mi pedido", oculto en grilla y cliente
+  const busqHdrWrap = document.getElementById('pm-pro-busq-header-wrap');
+  if (busqHdrWrap) busqHdrWrap.style.display = 'flex';
+  // Limpiar el input y el filtro al volver a "Mi pedido"
+  _pmBusquedaTexto = '';
+  const busqHdrInput = document.getElementById('pm-pro-busq-header');
+  if (busqHdrInput) busqHdrInput.value = '';
+  // Ocultar el buscador viejo de la grilla (ya no se usa)
+  const proBusqViejo = document.getElementById('pm-pro-busq-wrap');
+  if (proBusqViejo) proBusqViejo.style.display = 'none';
+
   const tot = _pmCarrito.reduce((a,x) => a + x.neto, 0);
   const hayItems = _pmCarrito.length > 0;
 
@@ -2444,27 +2461,100 @@ function volverProductosMovil(){
   if (pasoRes)  pasoRes.style.display = 'none';
   if (header)   header.style.display = '';
 
-  // Marcar que ya se visitó la grilla → habilita el swipe derecha en el resumen
   _pmVisitoGrilla = true;
 
-  // El botón "+Productos" del header solo aplica en el resumen.
+  // Ocultar el buscador del header (solo va en "Mi pedido") y el +Productos
+  const busqHdrWrap = document.getElementById('pm-pro-busq-header-wrap');
+  if (busqHdrWrap) busqHdrWrap.style.display = 'none';
   const btnProdHdr = document.getElementById('pm-btn-productos-header');
   if (btnProdHdr) btnProdHdr.style.display = 'none';
 
-  const proBusq = document.getElementById('pm-pro-busq-wrap');
-  if (proBusq) proBusq.style.display = 'block';
-  const input = document.getElementById('pm-pro-busq');
-  const resultados = document.getElementById('pm-pro-busq-resultados');
-  if (input) input.value = '';
-  if (resultados) { resultados.style.display = 'none'; resultados.innerHTML = ''; }
+  // Ocultar el buscador viejo de la grilla (ya no se usa)
+  const proBusqViejo = document.getElementById('pm-pro-busq-wrap');
+  if (proBusqViejo) proBusqViejo.style.display = 'none';
+
+  // Resetear búsqueda al entrar: acá queremos ver los acordeones
+  _pmBusquedaTexto = '';
 
   if (!_productos || !_productos.length) {
     const cont = document.getElementById('pm-marcas-lista');
     if (cont) cont.innerHTML = '<div style="padding:20px;text-align:center;color:var(--txt2)">Cargando productos...</div>';
-    cargarProductos().then(() => cargarMarcasMovil());
+    cargarProductos().then(() => _pmRenderGrillaProductos());
   } else {
-    cargarMarcasMovil();
+    _pmRenderGrillaProductos();
   }
+}
+
+// Toma lo que el usuario escribió en el buscador del header, lo deja como
+// filtro activo y navega a la grilla de productos mostrando los resultados.
+function pmBuscarProductosHeader(){
+  const input = document.getElementById('pm-pro-busq-header');
+  const q = (input?.value || '').trim().toLowerCase();
+  _pmBusquedaTexto = q;
+
+  // Ir a la grilla (mismo destino que volverProductosMovil, sin tocar
+  // _pmVisitoGrilla porque ya se setea al visitar la grilla normalmente).
+  const pasoRes  = document.getElementById('pm-paso-resumen');
+  const pasoProd = document.getElementById('pm-paso-productos');
+  const header   = document.getElementById('pm-header');
+  if (pasoRes)  pasoRes.style.display = 'none';
+  if (pasoProd) { pasoProd.style.display = 'flex'; pasoProd.classList.add('on'); }
+  if (header)   header.style.display = '';
+  _pmVisitoGrilla = true;
+
+  // Ocultar el buscador del header y el +Productos (estamos en la grilla)
+  const busqHdrWrap = document.getElementById('pm-pro-busq-header-wrap');
+  if (busqHdrWrap) busqHdrWrap.style.display = 'none';
+  const btnProdHdr = document.getElementById('pm-btn-productos-header');
+  if (btnProdHdr) btnProdHdr.style.display = 'none';
+
+  // Ocultar el buscador viejo de la grilla si quedó visible
+  const proBusqViejo = document.getElementById('pm-pro-busq-wrap');
+  if (proBusqViejo) proBusqViejo.style.display = 'none';
+
+  _pmRenderGrillaProductos();
+}
+
+// Renderiza el contenido de la grilla: si hay búsqueda activa (_pmBusquedaTexto
+// no vacío) muestra la lista plana de coincidencias; si no, los acordeones
+// por marca de siempre.
+function _pmRenderGrillaProductos(){
+  const cont = document.getElementById('pm-marcas-lista');
+  if(!cont) return;
+
+  const q = _pmBusquedaTexto;
+  if(!q){
+    cargarMarcasMovil();
+    return;
+  }
+
+  const coincidencias = _productos.filter(p => p.activo !== false &&
+    ((p.nombre||'').toLowerCase().includes(q) || String(p.codigo||'').includes(q))
+  );
+
+  if(!coincidencias.length){
+    cont.innerHTML = '<div style="padding:30px 16px;text-align:center;color:var(--txt2);font-size:15px;">No hay productos que coincidan con la búsqueda</div>';
+    return;
+  }
+
+  const items = _pmItemsActuales() || [];
+  cont.innerHTML = coincidencias.map(p => {
+    const enCarrito = items.find(x => x.id === p.id);
+    const si = _stockInfo(p);
+    return `<div onclick="abrirPopupMovil(${p.id})"
+      style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--brd);cursor:pointer;background:${enCarrito?'var(--PL)':'#fff'}">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:15px;font-weight:${enCarrito?'700':'500'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.nombre)}</div>
+        <div style="font-size:11px;color:var(--txt2);">${esc(p.proveedor_nom||'')} · Cód: ${esc(String(p.codigo||p.id))}</div>
+        <div style="font-size:12px;color:${si.color};font-weight:${si.peso};">${si.txt}</div>
+        ${enCarrito?`<div style="font-size:11px;color:var(--P);font-weight:600;">✓ ${enCarrito.cant} ${p.unidad||''} en pedido</div>`:''}
+      </div>
+      <div style="text-align:right;flex-shrink:0;margin-left:10px;">
+        <div style="font-size:15px;font-weight:700;color:var(--PD);">${fmt(p.precio)}</div>
+        <div style="font-size:10px;color:var(--txt2);">${p.unidad||''}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 async function confirmarPedidoMovil(){
@@ -3803,6 +3893,11 @@ function _pmVolverAClientes(){
   if(proBusq) proBusq.style.display = 'none';
   const cliInfoHdr = document.getElementById('pm-cli-info-header');
   if (cliInfoHdr) cliInfoHdr.style.display = '';
+  const busqHdrWrap = document.getElementById('pm-pro-busq-header-wrap');
+  if (busqHdrWrap) busqHdrWrap.style.display = 'none';
+  const busqHdrInput = document.getElementById('pm-pro-busq-header');
+  if (busqHdrInput) busqHdrInput.value = '';
+  _pmBusquedaTexto = '';
 
   _pmVisitoGrilla = false;
   const pasoInfoReset = document.getElementById('pm-paso-cliente-info');
