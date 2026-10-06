@@ -1427,13 +1427,17 @@ input.no-spin {
   <!-- HEADER FIJO -->
   <div id="pm-header" style="background:var(--PD);color:#fff;padding:12px 14px;position:relative;flex-shrink:0;z-index:20;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
-      <div style="flex:1;min-width:0;">
+      <div id="pm-cli-info-header" style="flex:1;min-width:0;">
         <div style="font-size:11px;opacity:0.8">NUEVO PEDIDO</div>
         <div id="pm-cli-nombre" style="font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Seleccioná un cliente</div>
         <div id="pm-cli-detalle" style="font-size:11px;opacity:0.8;margin-top:2px;"></div>
       </div>
-      <div style="text-align:right;flex-shrink:0;margin-left:10px;">
-        <div id="pm-cli-saldo-wrap" style="display:none;cursor:pointer;background:rgba(255,255,255,0.08);border-radius:8px;padding:4px 12px;margin-top:4px;text-align:center;border:1px solid rgba(255,255,255,0.12);" onclick="verSaldoMovil()">
+      <div style="text-align:right;flex-shrink:0;margin-left:auto;display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+        <button id="pm-btn-productos-header" onclick="volverProductosMovil()"
+          style="display:none;background:#fff;color:var(--PD);border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;white-space:nowrap;">
+          +Productos
+        </button>
+        <div id="pm-cli-saldo-wrap" style="display:none;cursor:pointer;background:rgba(255,255,255,0.08);border-radius:8px;padding:4px 12px;text-align:center;border:1px solid rgba(255,255,255,0.12);" onclick="verSaldoMovil()">
           <div style="font-size:10px;opacity:0.7;font-weight:600;letter-spacing:0.3px;">SALDO CC</div>
           <div id="pm-cli-saldo" style="font-size:22px;font-weight:700;line-height:1.2;"></div>
         </div>
@@ -1461,7 +1465,7 @@ input.no-spin {
   <div style="flex:1; overflow:hidden; min-height:0; position:relative; background:var(--bg2);">
     
     <!-- Paso 1: Seleccionar cliente (acordeones por zona) -->
-    <div id="pm-paso-cliente" style="display:block; height:100%; overflow-y:auto; padding:12px 14px 20px; -webkit-overflow-scrolling:touch;">
+    <div id="pm-paso-cliente" style="display:block; flex:1 1 auto; min-height:0; overflow-y:auto; padding:12px 14px 20px; -webkit-overflow-scrolling:touch;">
 
       <!-- Contenedor de zonas (con padding-top para separar del buscador) -->
       <div id="pm-zonas-container" style="margin-top:4px; padding-top:4px;">
@@ -1478,27 +1482,35 @@ input.no-spin {
     </div>
 
     <!-- Paso 2: Productos (se muestra al seleccionar cliente) -->
-    <div id="pm-paso-productos" style="display:none; flex-direction:column; height:100%; overflow:hidden; padding:0 14px 20px; background:var(--bg);">
+    <div id="pm-paso-productos" style="display:none; flex-direction:column; flex:1 1 auto; min-height:0; overflow:hidden; padding:0 14px 20px; background:var(--bg);">
       <div id="pm-marcas-lista" style="flex:1; overflow-y:auto; padding:8px 0; -webkit-overflow-scrolling:touch;"></div>
     </div>
 
-    <!-- Paso 3: Resumen del pedido — se abre deslizando a la izquierda desde Productos -->
-    <div id="pm-paso-resumen" style="display:none; height:100%; overflow:hidden; padding:0; background:var(--bg); flex-direction:column;">
+    <!-- Paso 3: Mi pedido — pantalla principal del pedido, con items y confirmar -->
+    <div id="pm-paso-resumen" style="display:none; flex-direction:column; flex:1 1 auto; min-height:0; overflow:hidden; padding:0; background:var(--bg);">
       <!-- Contenido scrollable -->
       <div style="flex:1; overflow-y:auto; min-height:0; padding:12px 14px 20px; -webkit-overflow-scrolling:touch;">
-        <div style="font-size:13px;font-weight:600;color:var(--PD);margin-bottom:10px;">📋 Resumen del pedido</div>
+        <div style="font-size:13px;font-weight:600;color:var(--PD);margin-bottom:10px;">📋 Mi pedido</div>
         <div id="pm-resumen-items"></div>
-        <div style="background:var(--PL);border-radius:8px;padding:14px 16px;margin:14px 0;">
+        <div id="pm-resumen-vacio" style="text-align:center;padding:32px 16px;color:var(--txt2);font-size:14px;display:none">
+          Todavía no agregaste productos
+        </div>
+        <div id="pm-resumen-total-wrap" style="background:var(--PL);border-radius:8px;padding:14px 16px;margin:14px 0;display:none">
           <div style="display:flex;justify-content:space-between;align-items:center;font-size:16px;font-weight:700;color:var(--PD);">
             <span>TOTAL</span><span id="pm-resumen-total" style="font-size:22px;">$0</span>
           </div>
         </div>
       </div>
-      <!-- Footer sticky con el botón confirmar -->
+      <!-- Footer sticky: solo botón CONFIRMAR (el +Productos vive en el header) -->
       <div style="flex-shrink:0; padding:12px 14px; border-top:2px solid var(--P); background:var(--bg); box-shadow:0 -2px 8px rgba(0,0,0,0.05);">
-        <button onclick="confirmarPedidoMovil()" style="width:100%; padding:16px; background:var(--P); color:#fff; border:none; border-radius:12px; font-size:17px; font-weight:700; cursor:pointer; -webkit-tap-highlight-color:transparent; box-shadow:0 3px 10px rgba(26,122,82,.25);">
-          ✓ Confirmar pedido
+        <button id="pm-btn-agregar-prods" onclick="volverProductosMovil()" style="display:none; width:100%; padding:16px; background:var(--P); color:#fff; border:none; border-radius:12px; font-size:17px; font-weight:700; cursor:pointer; -webkit-tap-highlight-color:transparent; box-shadow:0 3px 10px rgba(26,122,82,.25);">
+          + Agregar productos
         </button>
+        <div id="pm-btn-confirmar-wrap" style="display:none">
+          <button onclick="confirmarPedidoMovil()" style="width:100%; padding:16px; background:var(--P); color:#fff; border:none; border-radius:12px; font-size:17px; font-weight:700; cursor:pointer; -webkit-tap-highlight-color:transparent; box-shadow:0 3px 10px rgba(26,122,82,.25);">
+            ✓ Confirmar pedido
+          </button>
+        </div>
       </div>
     </div>
 
@@ -5407,17 +5419,17 @@ input.no-spin {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20261005-07"></script>
-<script src="js/maestros.js?v=20261005-07"></script>
-<script src="js/ventas.js?v=20261005-07"></script>
-<script src="js/tesoreria.js?v=20261005-07"></script>
-<script src="js/contabilidad.js?v=20261005-07"></script>
-<script src="js/informes.js?v=20261005-07"></script>
-<script src="js/inf_productos.js?v=20261005-07"></script>
-<script src="js/logistica.js?v=20261005-07"></script>
-<script src="js/movil_header_observer.js?v=20261005-07"></script>
-<script src="js/instalar_app.js?v=20261005-07"></script>
-<script src="js/informe_fondos.js?v=20261005-07"></script>
+<script src="js/app.js?v=20261006-01"></script>
+<script src="js/maestros.js?v=20261006-01"></script>
+<script src="js/ventas.js?v=20261006-01"></script>
+<script src="js/tesoreria.js?v=20261006-01"></script>
+<script src="js/contabilidad.js?v=20261006-01"></script>
+<script src="js/informes.js?v=20261006-01"></script>
+<script src="js/inf_productos.js?v=20261006-01"></script>
+<script src="js/logistica.js?v=20261006-01"></script>
+<script src="js/movil_header_observer.js?v=20261006-01"></script>
+<script src="js/instalar_app.js?v=20261006-01"></script>
+<script src="js/informe_fondos.js?v=20261006-01"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

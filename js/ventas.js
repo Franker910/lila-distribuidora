@@ -1,6 +1,7 @@
 // ─── VENTAS: pedidos, remito rápido, notas de crédito/débito, venta móvil ───
 
 let _items=[], _proTemp=null;
+let _pmVisitoGrilla = false;
 
 async function cargarPedidos() {
   let all = [];
@@ -1849,6 +1850,9 @@ function abrirPedidoMovil(origen){
   _pmClientesZonaActual = [];
   _cobZonaInput = '';
   _pmMarcaAbierta = null;
+  _pmVisitoGrilla = false;
+  const _pmBtnProdHdr = document.getElementById('pm-btn-productos-header');
+  if (_pmBtnProdHdr) _pmBtnProdHdr.style.display = 'none';
 
   // Asegurar que el botón volver esté visible al entrar de nuevo al flujo
   const _pmBtnVolver = document.getElementById('pm-btn-volver-header');
@@ -1961,38 +1965,35 @@ function selClienteMovil(id){
     return;
   }
 
+  _pmVisitoGrilla = false;
+
   // Si el usuario estaba armando un pedido para otro cliente, limpiar el carrito.
   // Evita que queden productos "colgados" del cliente anterior al cambiar.
   if (_pmCliId !== null && _pmCliId !== id && _pmCarrito.length > 0) {
     _pmCarrito = [];
     actualizarCarritoBar();
-    // Si el resumen estaba visible, volver al paso de productos
-    const pasoRes = document.getElementById('pm-paso-resumen');
-    if (pasoRes) pasoRes.style.display = 'none';
-    const pasoProd = document.getElementById('pm-paso-productos');
-    if (pasoProd) pasoProd.style.display = 'none';
   }
-  
+
   console.log('✅ Cliente seleccionado:', c.nombre);
   _pmCliId = id;
 
-  // Ocultar buscador de clientes, mostrar buscador de productos
+  // Ocultar buscadores (el de productos solo se ve en la grilla).
   const cliBusq = document.getElementById('pm-cli-busq-wrap');
   const proBusq = document.getElementById('pm-pro-busq-wrap');
   if (cliBusq) cliBusq.style.display = 'none';
-  if (proBusq) proBusq.style.display = 'block';
-  
-  // Mostrar nombre del cliente en el header
+  if (proBusq) proBusq.style.display = 'none';
+
+  // Nombre del cliente en el header.
   const nombreEl = document.getElementById('pm-cli-nombre');
   if (nombreEl) {
     nombreEl.textContent = `[${c.codigo || c.id}] ${esc(c.nombre.toUpperCase())}`;
   }
-  
+
   const detalleEl = document.getElementById('pm-cli-detalle');
   if (detalleEl) {
     detalleEl.textContent = `${esc(c.localidad || '')} · ${esc(c.telefono || '')}`;
   }
-  
+
   const saldoEl = document.getElementById('pm-cli-saldo');
   const saldoWrap = document.getElementById('pm-cli-saldo-wrap');
   if (saldoEl) {
@@ -2003,54 +2004,32 @@ function selClienteMovil(id){
     saldoWrap.style.display = 'block';
   }
 
-  // Ocultar lista de clientes y buscador
+  // Ocultar lista de clientes y buscador.
   const listaClientes = document.getElementById('pm-cli-lista');
   if (listaClientes) {
     listaClientes.innerHTML = '';
     listaClientes.style.display = 'none';
   }
-  
   const buscador = document.getElementById('pm-cli-buscador');
   if (buscador) {
     buscador.style.display = 'none';
   }
-  
-  // Ocultar paso de cliente
+
+  // Ocultar paso de cliente.
   const pasoCliente = document.getElementById('pm-paso-cliente');
   if (pasoCliente) {
     pasoCliente.style.display = 'none';
   }
-  
-  // ✅ VERIFICAR QUE PRODUCTOS ESTÉN CARGADOS
+
+  // Pre-cargar productos en background (sin bloquear) si no están, así la
+  // grilla está lista cuando el usuario toque "+ Agregar productos".
   if (!_productos || !_productos.length) {
-    console.log('⏳ Productos no cargados, cargando...');
-    const marcas = document.getElementById('pm-marcas-lista');
-    if (marcas) {
-      marcas.innerHTML = '<div style="padding:20px;text-align:center;color:var(--txt2)">Cargando productos...</div>';
-      marcas.style.display = 'block';
-    }
-    cargarProductos().then(() => {
-      console.log('✅ Productos cargados, mostrando paso...');
-      _mostrarPasoProductosMovil();
-    });
-    return;
+    cargarProductos();
   }
 
-  // Mostrar el buscador de productos
-  const busqWrap = document.getElementById('pm-pro-busq-wrap');
-  if (busqWrap) busqWrap.style.display = 'block';
-  
-  // Resetear buscador
-  const input = document.getElementById('pm-pro-busq');
-  const resultados = document.getElementById('pm-pro-busq-resultados');
-  if (input) input.value = '';
-  if (resultados) {
-    resultados.style.display = 'none';
-    resultados.innerHTML = '';
-  }
-  
-  console.log('✅ Productos ya cargados, mostrando paso...');
-  _mostrarPasoProductosMovil();
+  // Ir a "Mi pedido" (pantalla principal del pedido). Antes se iba directo
+  // a la grilla de productos; ahora se muestra primero "Mi pedido".
+  mostrarResumenMovil();
 }
 
 function _mostrarPasoProductosMovil() {
@@ -2389,40 +2368,63 @@ function actualizarCarritoBar(){
 }
 
 function mostrarResumenMovil(){
-  const pasoProd = document.getElementById('pm-paso-productos');
-  const pasoRes = document.getElementById('pm-paso-resumen');
-  const header = document.getElementById('pm-header');
-  if (pasoProd) {
-    // Ojo: el CSS tiene display:none !important para #pm-paso-productos
-    // sin la clase .on. La forma de ocultarlo es removiendo la clase,
-    // no seteando style.display (que queda pisado por el !important).
-    pasoProd.style.display = 'none';
-    pasoProd.classList.remove('on');
-  }
-  if (pasoRes) pasoRes.style.display = 'flex';  // flex column para que el footer sticky funcione
-  // Ocultar el header (cliente + buscadores) para dar más espacio al resumen.
-  // El cliente ya se sabe, y el buscador de productos solo aplica en la lista.
-  if (header) header.style.display = 'none';
+  const pasoProd  = document.getElementById('pm-paso-productos');
+  const pasoRes   = document.getElementById('pm-paso-resumen');
+  const pasoCli   = document.getElementById('pm-paso-cliente');
+  const pasoZona  = document.getElementById('pm-paso-zona');
+  const header    = document.getElementById('pm-header');
+
+  // Ocultar info del cliente y saldo: en la grilla no van
+  const cliInfoHdr = document.getElementById('pm-cli-info-header');
+  if (cliInfoHdr) cliInfoHdr.style.display = 'none';
+  const saldoWrap = document.getElementById('pm-cli-saldo-wrap');
+  if (saldoWrap) saldoWrap.style.display = 'none';
+
+  // Ocultar todos los pasos que no son el resumen
+  if (pasoCli)  pasoCli.style.display  = 'none';
+  if (pasoZona) pasoZona.style.display = 'none';
+  if (pasoProd) { pasoProd.style.display = 'none'; pasoProd.classList.remove('on'); }
+  if (pasoRes)  pasoRes.style.display  = 'flex';
+  
+
+  // Header visible con nombre + botón "+Productos" (sin buscadores)
+  if (header) header.style.display = '';
+  const cliBusq = document.getElementById('pm-cli-busq-wrap');
+  if (cliBusq) cliBusq.style.display = 'none';
+  const proBusq = document.getElementById('pm-pro-busq-wrap');
+  if (proBusq) proBusq.style.display = 'none';
+  const btnProdHdr = document.getElementById('pm-btn-productos-header');
+  if (btnProdHdr) btnProdHdr.style.display = 'block';
 
   const tot = _pmCarrito.reduce((a,x) => a + x.neto, 0);
-  document.getElementById('pm-resumen-total').textContent = fmt(tot);
+  const hayItems = _pmCarrito.length > 0;
 
-  document.getElementById('pm-resumen-items').innerHTML = _pmCarrito.map((x, index) => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--brd);">
-      <div style="flex:1;min-width:0;">
-        <div style="font-weight:700;font-size:17px;">${esc(x.nom)}</div>
-        <div style="color:var(--txt2);font-size:14px;margin-top:3px;">${x.cant} ${x.un} × ${fmt(x.precio)}${x.dto>0?' − '+x.dto+'%':''}</div>
+  const vacio      = document.getElementById('pm-resumen-vacio');
+  const totalWrap  = document.getElementById('pm-resumen-total-wrap');
+  const btnConfWrap = document.getElementById('pm-btn-confirmar-wrap');
+  if (vacio)      vacio.style.display      = hayItems ? 'none' : 'block';
+  if (totalWrap)  totalWrap.style.display  = hayItems ? 'block' : 'none';
+  if (btnConfWrap) btnConfWrap.style.display = hayItems ? 'block' : 'none';
+
+  const itemsEl = document.getElementById('pm-resumen-items');
+  if (itemsEl) {
+    itemsEl.innerHTML = hayItems ? _pmCarrito.map((x, index) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--brd);">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:17px;">${esc(x.nom)}</div>
+          <div style="color:var(--txt2);font-size:14px;margin-top:3px;">${x.cant} ${x.un} × ${fmt(x.precio)}${x.dto>0?' − '+x.dto+'%':''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <div style="font-weight:700;color:var(--PD);font-size:17px;">${fmt(x.neto)}</div>
+          <button onclick="eliminarProductoResumen(${index})" 
+            style="background:var(--DL);color:var(--D);border:none;border-radius:8px;width:42px;height:42px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
+            title="Eliminar producto">✕</button>
+        </div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
-        <div style="font-weight:700;color:var(--PD);font-size:17px;">${fmt(x.neto)}</div>
-        <button onclick="eliminarProductoResumen(${index})" 
-          style="background:var(--DL);color:var(--D);border:none;border-radius:8px;width:42px;height:42px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
-          title="Eliminar producto">
-          ✕
-        </button>
-      </div>
-    </div>
-  `).join('');
+    `).join('') : '';
+  }
+
+  if (totalWrap) document.getElementById('pm-resumen-total').textContent = fmt(tot);
 }
 
 function eliminarProductoResumen(index) {
@@ -2444,19 +2446,33 @@ function eliminarProductoResumen(index) {
 
 function volverProductosMovil(){
   const pasoProd = document.getElementById('pm-paso-productos');
-  const pasoRes = document.getElementById('pm-paso-resumen');
-  const header = document.getElementById('pm-header');
-  if (pasoProd) {
-    // La clase .on es la que fuerza display:flex !important vía CSS.
-    pasoProd.style.display = 'flex';
-    pasoProd.classList.add('on');
-  }
-  if (pasoRes) pasoRes.style.display = 'none';
-  // Restaurar el header (cliente + buscador de productos).
-  if (header) header.style.display = '';
+  const pasoRes  = document.getElementById('pm-paso-resumen');
+  const header   = document.getElementById('pm-header');
+  if (pasoProd) { pasoProd.style.display = 'flex'; pasoProd.classList.add('on'); }
+  if (pasoRes)  pasoRes.style.display = 'none';
+  if (header)   header.style.display = '';
 
-  // Recargar marcas para que los badges se actualicen
-  cargarMarcasMovil();
+  // Marcar que ya se visitó la grilla → habilita el swipe derecha en el resumen
+  _pmVisitoGrilla = true;
+
+  // El botón "+Productos" del header solo aplica en el resumen.
+  const btnProdHdr = document.getElementById('pm-btn-productos-header');
+  if (btnProdHdr) btnProdHdr.style.display = 'none';
+
+  const proBusq = document.getElementById('pm-pro-busq-wrap');
+  if (proBusq) proBusq.style.display = 'block';
+  const input = document.getElementById('pm-pro-busq');
+  const resultados = document.getElementById('pm-pro-busq-resultados');
+  if (input) input.value = '';
+  if (resultados) { resultados.style.display = 'none'; resultados.innerHTML = ''; }
+
+  if (!_productos || !_productos.length) {
+    const cont = document.getElementById('pm-marcas-lista');
+    if (cont) cont.innerHTML = '<div style="padding:20px;text-align:center;color:var(--txt2)">Cargando productos...</div>';
+    cargarProductos().then(() => cargarMarcasMovil());
+  } else {
+    cargarMarcasMovil();
+  }
 }
 
 async function confirmarPedidoMovil(){
@@ -3640,6 +3656,78 @@ function _pmIntentarVolverDeProductos(){
   return true;
 }
 
+// Cancela el pedido actual: si hay items pide confirmación, después
+// limpia el carrito y vuelve al paso de elegir cliente (o la localidad
+// desde donde se abrió).
+function _pmCancelarPedido(){
+  if(_pmCarrito.length === 0){
+    // Sin items: no hace falta pedir confirmación, volver directo.
+    _pmVolverAClientes();
+    return;
+  }
+  const cant = _pmCarrito.length;
+  const ok = confirm(
+    '⚠️ Vas a cancelar el pedido con ' + cant + ' producto' + (cant!==1?'s':'') + ' sin confirmar.\n\n' +
+    '¿Querés descartarlo y volver a elegir cliente?'
+  );
+  if(!ok) return;
+  _pmCarrito = [];
+  _pmProdActual = null;
+  cerrarPopupMovil();
+  actualizarCarritoBar();
+  _pmVolverAClientes();
+}
+
+// Vuelve al paso de elegir cliente. Si el pedido se abrió desde una
+// localidad (pm-paso-zona), vuelve a esa localidad; si no, al listado
+// general de localidades.
+function _pmVolverAClientes(){
+  const pasoRes  = document.getElementById('pm-paso-resumen');
+  if(pasoRes) pasoRes.style.display = 'none';
+  const pasoProd = document.getElementById('pm-paso-productos');
+  if(pasoProd){ pasoProd.style.display = 'none'; pasoProd.classList.remove('on'); }
+
+  const header = document.getElementById('pm-header');
+  if(header) header.style.display = '';
+  const btnProdHdr = document.getElementById('pm-btn-productos-header');
+  if(btnProdHdr) btnProdHdr.style.display = 'none';
+  const cliBusq = document.getElementById('pm-cli-busq-wrap');
+  if(cliBusq) cliBusq.style.display = 'block';
+  const proBusq = document.getElementById('pm-pro-busq-wrap');
+  if(proBusq) proBusq.style.display = 'none';
+  const cliInfoHdr = document.getElementById('pm-cli-info-header');
+  if (cliInfoHdr) cliInfoHdr.style.display = '';
+
+  // Reset del nombre / saldo en el header
+  const nombreEl = document.getElementById('pm-cli-nombre');
+  if(nombreEl) nombreEl.textContent = 'Seleccioná un cliente';
+  const detalleEl = document.getElementById('pm-cli-detalle');
+  if(detalleEl) detalleEl.textContent = '';
+  const saldoWrap = document.getElementById('pm-cli-saldo-wrap');
+  if(saldoWrap) saldoWrap.style.display = 'none';
+
+  _pmCliId = null;
+
+  // Vista correcta según cómo llegó
+  const pasoZona = document.getElementById('pm-paso-zona');
+  const pasoCli  = document.getElementById('pm-paso-cliente');
+  if(_pmZonaActual){
+    if(pasoZona) pasoZona.style.display = 'block';
+    if(pasoCli)  pasoCli.style.display  = 'none';
+    pmRenderZonaClientes('');
+  } else {
+    if(pasoZona) pasoZona.style.display = 'none';
+    if(pasoCli)  pasoCli.style.display  = 'block';
+    renderClientesPorZona();
+  }
+
+  // Limpiar buscador del header
+  const busqCli = document.getElementById('pm-cli-busq');
+  if(busqCli) busqCli.value = '';
+  const resCli = document.getElementById('pm-cli-busq-resultados');
+  if(resCli){ resCli.style.display = 'none'; resCli.innerHTML = ''; }
+}
+
 // Modificar la función que se ejecuta al seleccionar una zona en pedido
 // Reemplazar la parte del modo pedido en seleccionarZonaUniversal()
 
@@ -4075,7 +4163,7 @@ function _initSwipeVolverHome(panelId){
 // ─────────────────────────────────────────────────────────────
 function initSwipePedidoMovil() {
   const cont = document.getElementById('p-pedido-movil');
-  if (!cont || cont.dataset.swipeOn) return; // evita engancharlo 2 veces
+  if (!cont || cont.dataset.swipeOn) return;
   cont.dataset.swipeOn = '1';
 
   const visible = (id) => {
@@ -4089,22 +4177,26 @@ function initSwipePedidoMovil() {
 
   habilitarSwipe(
     cont,
-    () => {   // swipe izq = avanzar
-      if (visible('pm-paso-productos')) {
-        if (_pmCarrito.length > 0) mostrarResumenMovil();
-      }
-    },
-    () => {   // swipe der = volver un paso
+    // ── swipe izquierda (avanzar) ──
+    () => {
       if (visible('pm-paso-resumen')) {
-        volverProductosMovil();
+        // En "Mi pedido": ir a la grilla, solo si ya la visitó antes.
+        // La primera vez no hace nada (el usuario tiene que tocar "+Productos").
+        if (_pmVisitoGrilla) volverProductosMovil();
+      }
+      // En la grilla o en elegir cliente, izquierda no hace nada.
+    },
+    // ── swipe derecha (retroceder) ──
+    () => {
+      if (visible('pm-paso-resumen')) {
+        // En "Mi pedido": cancelar pedido (con confirm si hay items).
+        _pmCancelarPedido();
       } else if (visible('pm-paso-productos')) {
-        // Si hay items en el carrito, pregunta antes de descartar.
-        // Si el usuario cancela, no se mueve nada.
-        _pmIntentarVolverDeProductos();
+        // En grilla: volver a "Mi pedido".
+        mostrarResumenMovil();
       } else if (visible('pm-paso-cliente')) {
         irAHome();
       } else if (!document.getElementById('pm-paso-cliente')) {
-        // "Mis pedidos de hoy" reemplaza el contenido del panel con innerHTML
         irAHome();
       }
     }
