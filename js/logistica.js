@@ -1486,6 +1486,9 @@ function hrInit(){
       btnVolver.style.alignItems = 'center';
     }
     
+    // Swipe derecha → vuelve a vendedor-home (engancha una sola vez)
+    _initSwipeVolverHome('p-hoja-ruta');
+    
     hrVerMiRuta();
     return;
   }
