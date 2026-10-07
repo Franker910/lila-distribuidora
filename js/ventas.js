@@ -3255,7 +3255,35 @@ function abrirNCMovil() {
   renderItemsNCM();
   actualizarTotalNCM();
   
-  _initSwipeVolverHome('p-nc-movil');
+  _initSwipeCancelarNC();;
+}
+
+// Swipe derecha en Registrar devolución: avisa y cancela si hay algo cargado.
+function _initSwipeCancelarNC() {
+  const panel = document.getElementById('p-nc-movil');
+  if (!panel || panel.dataset.swipeOn) return;
+  panel.dataset.swipeOn = '1';
+  habilitarSwipe(
+    panel,
+    () => {},                          // swipe izq: nada
+    () => _ncIntentarCancelar()        // swipe der: cancelar
+  );
+}
+
+// Pregunta si cancelar la NC. Si no hay nada cargado, sale directo.
+function _ncIntentarCancelar() {
+  const tieneDatos = (_ncmItems && _ncmItems.length > 0)
+    || (document.getElementById('ncm-cli-id')?.value || '')
+    || (document.getElementById('ncm-cli-q')?.value || '')
+    || (document.getElementById('ncm-pro-q')?.value || '');
+
+  if (!tieneDatos) {
+    go('vendedor-home');
+    return;
+  }
+  if (confirm('¿Cancelar esta devolución? Se va a perder todo lo cargado.')) {
+    go('vendedor-home');
+  }
 }
 
 // ─── BUSCADOR DE CLIENTES ──────────────────────────────────────────────
@@ -3550,15 +3578,15 @@ async function emitirNCMovil() {
   
   const c = _clientes.find(x => x.id == cid);
   const total = _ncmItems.reduce((a, it) => a + it.precio * it.cant, 0);
-  // Motivo y observaciones quedaron fijos: se sacaron los inputs de la UI
-  // para simplificar el flujo. Por defecto siempre es devolución de mercadería.
   const motivo = 'devolucion';
   const obs = '';
   
-  // Confirmar antes de emitir
-  if (!confirm(`¿Emitir nota de crédito por ${fmt(total)} a ${c?.nombre}?`)) {
-    return;
-  }
+  // Confirmación con detalle de productos (hasta 5) + monto + cliente
+  const lineas = _ncmItems.slice(0, 5).map(it => `  • ${it.cant} ${it.un||'un'} — ${it.nom}`);
+  if (_ncmItems.length > 5) lineas.push(`  • ... y ${_ncmItems.length - 5} más`);
+  const detalle = lineas.join('\n');
+  const msg = `¿Emitir nota de crédito?\n\nCliente: ${c?.nombre||''}\nMonto: ${fmt(total)}\n\nProductos:\n${detalle}`;
+  if (!confirm(msg)) return;
   
   const { data: nc, error } = await sb.from('notas_credito').insert({
     cliente_id: parseInt(cid),
@@ -3568,7 +3596,9 @@ async function emitirNCMovil() {
     importe: total,
     items: _ncmItems,
     observaciones: obs,
-    remito_id: null
+    remito_id: null,
+    vendedor: usuarioActual?.nombre || '',
+    carga_id: _cargaActivaHoy?.id || null
   }).select().single();
   
   if (error) {
@@ -3582,8 +3612,8 @@ async function emitirNCMovil() {
       saldo: Math.max(0, (c.saldo || 0) - total)
     }).eq('id', c.id);
   }
-
-  // Devolver stock de los productos (mismo comportamiento que el flujo PC)
+  
+  // Devolver stock de los productos
   for (const it of _ncmItems) {
     const prod = _productos.find(p => p.id === it.id);
     if (prod) {
@@ -3594,11 +3624,11 @@ async function emitirNCMovil() {
   }
   
   // Recargar datos
-  await Promise.all([cargarClientes(), cargarNCs(), cargarRemitos(),cargarProductos()]);
+  await Promise.all([cargarClientes(), cargarNCs(), cargarRemitos(), cargarProductos()]);
   renderNCs();
   renderDash();
   
-  // Mostrar confirmación
+  // Mostrar confirmación (overlay)
   mostrarConfirmacionNC('devolucion', c?.nombre, fmt(total));
 }
 
