@@ -3257,7 +3257,6 @@ function abrirNCMovil() {
   renderItemsNCM();
   actualizarTotalNCM();
   
-  setTimeout(() => document.getElementById('ncm-cli-q').focus(), 100);
   _initSwipeVolverHome('p-nc-movil');
 }
 
