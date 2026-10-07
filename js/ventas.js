@@ -2842,13 +2842,17 @@ function verMisPedidosHoy(){
         <!-- Header -->
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
           <button onclick="go('vendedor-home')" 
-            style="background:none;border:none;font-size:22px;cursor:pointer;padding:8px;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;">
+            style="background:none;border:none;font-size:22px;cursor:pointer;padding:8px;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             ←
           </button>
-          <div>
+          <div style="flex:1;min-width:0;">
             <h2 style="font-size:17px;font-weight:700;color:var(--PD);margin:0;">📋 Mis pedidos de hoy</h2>
             <div style="font-size:13px;color:var(--txt2);">${misPedidos.length} pedido${misPedidos.length!==1?'s':''} · ${hoy}</div>
           </div>
+          <button onclick="abrirPedidoMovil('mis-pedidos')" 
+            style="background:var(--P);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;flex-shrink:0;">
+            +Nuevo
+          </button>
         </div>
         
         <!-- Lista de pedidos -->
@@ -2889,11 +2893,6 @@ function verMisPedidosHoy(){
           </div>
         `}
         
-        <!-- Botón nuevo pedido -->
-        <button onclick="abrirPedidoMovil('mis-pedidos')" 
-          style="width:100%;margin-top:6px;padding:16px;background:var(--P);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-          + Nuevo pedido
-        </button>
       </div>
     </div>
   `;
@@ -3032,18 +3031,18 @@ function cerrarBottomSheetEditar(){
 
 function renderEditPedidoMovil(){
   const {items}=_editPedMovil;
-  const filas=items.map((it,i)=>`
-    <div style="display:flex;align-items:center;min-height:48px;padding:6px 0;border-bottom:1px solid var(--brd);gap:8px">
+  const filas = items.map((it, i) => `
+    <div style="display:flex;align-items:center;min-height:56px;padding:10px 0;border-bottom:1px solid var(--brd);gap:8px">
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--txt)">${esc(it.nom)}</div>
-        <div style="font-size:11px;color:var(--txt2)">${fmt(it.precio)}</div>
+        <div style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--txt)">${esc(it.nom)}</div>
+        <div style="font-size:12px;color:var(--txt2)">${fmt(it.precio)}</div>
       </div>
       <input type="number" inputmode="decimal" value="${it.cant}" min="0" step="0.5"
         onchange="_editPedMovil.items[${i}].cant=parseFloat(this.value)||0;actualizarTotalEditMovil()"
-        style="width:64px;height:40px;font-size:17px;font-weight:700;text-align:center;border:2px solid var(--P);border-radius:8px;padding:0 4px;color:var(--PD)">
-      <span style="font-size:12px;color:var(--txt2);min-width:24px;text-align:left">${it.un||'un'}</span>
+        style="width:72px;height:46px;font-size:19px;font-weight:700;text-align:center;border:2px solid var(--P);border-radius:8px;padding:0 4px;color:var(--PD)">
+      <span style="font-size:13px;color:var(--txt2);min-width:26px;text-align:left">${it.un||'un'}</span>
       <button onclick="_editPedMovil.items.splice(${i},1);renderEditPedidoMovil()"
-        style="min-width:36px;min-height:36px;background:var(--DL);color:var(--D);border:none;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        style="min-width:42px;min-height:42px;background:var(--DL);color:var(--D);border:none;border-radius:8px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
         ✕
       </button>
     </div>`).join('');
@@ -3062,32 +3061,42 @@ function actualizarTotalEditMovil(){
 }
 
 function filtrarAgregarMovil(){
-  const q=(document.getElementById('epm-busq')?.value||'').toLowerCase().trim();
-  const drop=document.getElementById('epm-drop');if(!drop)return;
-  // Sin búsqueda: mismo catálogo por marca que en la toma de pedido original.
-  if(!q){_pmRenderMarcas(drop,'epm');drop.style.display='block';return;}
-  const todos=_productos.filter(p=>p.activo!==false);
-  const res=todos.filter(p=>(p.nombre||'').toLowerCase().includes(q)||(p.codigo||'').toString().includes(q)||(p.linea||'').toLowerCase().includes(q));
-  if(!res.length){drop.style.display='none';return;}
-  drop.innerHTML=res.map(p=>{
-    const enEdit=_editPedMovil?.items.find(x=>x.id===p.id);
-    const sub=[p.linea,p.rubro].filter(Boolean).join(' · ');
-    const si=_stockInfo(p);
+  const q = (document.getElementById('epm-busq')?.value || '').toLowerCase().trim();
+  const drop = document.getElementById('epm-drop');
+  if (!drop) return;
+
+  // Sin texto: no mostramos nada. En edición el vendedor ya sabe qué
+  // buscar, no necesita el listado completo de marcas.
+  if (!q) { drop.style.display = 'none'; drop.innerHTML = ''; return; }
+
+  const todos = _productos.filter(p => p.activo !== false);
+  const res = todos.filter(p =>
+    (p.nombre || '').toLowerCase().includes(q) ||
+    (p.codigo || '').toString().includes(q) ||
+    (p.linea || '').toLowerCase().includes(q)
+  );
+
+  if (!res.length) { drop.style.display = 'none'; drop.innerHTML = ''; return; }
+
+  drop.innerHTML = res.map(p => {
+    const enEdit = _editPedMovil?.items.find(x => x.id === p.id);
+    const sub = [p.linea, p.rubro].filter(Boolean).join(' · ');
+    const si = _stockInfo(p);
     return `<div onclick="abrirPopupMovil(${p.id})"
-      style="padding:12px 14px;border-bottom:1px solid var(--brd);cursor:pointer;min-height:52px;display:flex;align-items:center;gap:10px;background:${enEdit?'var(--PL)':''}">
+      style="padding:12px 14px;border-bottom:1px solid var(--brd);cursor:pointer;min-height:52px;display:flex;align-items:center;gap:10px;background:${enEdit ? 'var(--PL)' : ''}">
       <div style="flex:1;min-width:0">
         <div style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.nombre)}</div>
-        ${sub?`<div style="font-size:11px;color:var(--txt2)">${esc(sub)}</div>`:''}
+        ${sub ? `<div style="font-size:11px;color:var(--txt2)">${esc(sub)}</div>` : ''}
         <div style="font-size:12px;color:${si.color};font-weight:${si.peso}">${si.txt}</div>
-        ${enEdit?`<div style="font-size:12px;color:var(--P);font-weight:600">✓ ${enEdit.cant} ${p.unidad||''} en pedido</div>`:''}
+        ${enEdit ? `<div style="font-size:12px;color:var(--P);font-weight:600">✓ ${enEdit.cant} ${p.unidad || ''} en pedido</div>` : ''}
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-size:14px;font-weight:700;color:var(--PD)">${fmt(p.precio)}</div>
-        ${p.unidad?`<div style="font-size:11px;color:var(--txt2)">${p.unidad}</div>`:''}
+        ${p.unidad ? `<div style="font-size:11px;color:var(--txt2)">${p.unidad}</div>` : ''}
       </div>
     </div>`;
   }).join('');
-  drop.style.display='block';
+  drop.style.display = 'block';
 }
 
 async function guardarEditPedidoMovil(){
