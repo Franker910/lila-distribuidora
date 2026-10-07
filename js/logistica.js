@@ -802,7 +802,7 @@ function verRemito(id){
   document.getElementById('m-ver-title').textContent='Remito R-'+String(r.id).padStart(4,'0')+' — '+r.cliente;
   const _p2=document.getElementById('m-ver-print2');if(_p2){_p2.style.display='none';}
   const _p=document.getElementById('m-ver-print');
-  if(_p){_p.textContent='🖨️ Imprimir remito';_p.onclick=imprimirRemito;_p.style.display='inline-flex';}
+  if(_p){_p.textContent='🖨️ Imprimir remito';_p.onclick=()=>imprimirRemito();_p.style.display='inline-flex';}
   const _an=document.getElementById('m-ver-anular');
   if(_an){_an.style.display=(!r.cobrado&&!r.anulado)?'inline-flex':'none';}
   document.getElementById('m-ver-body').innerHTML=detalleHTML(r,true);
@@ -971,7 +971,8 @@ function imprimirHojaRuta(){
   w.document.close();
 }
 
-function imprimirRemito(){
+function imprimirRemito(autoPrint){
+  autoPrint = autoPrint === true;
   const d=_remActual;
   if(!d){alert('No hay remito activo');return;}
   const num='R-'+String(d.id).padStart(4,'0');
@@ -1051,6 +1052,13 @@ function imprimirRemito(){
       </div>
     </div>`;
 
+  // Si autoPrint=true (F8 → Grabar e imprimir), la ventana dispara el
+  // print automáticamente al terminar de cargar. Si no, queda el botón
+  // "🖨️ Imprimir" para que el usuario decida.
+  const autoScript = autoPrint
+    ? '<script>window.addEventListener("load",function(){setTimeout(function(){try{window.print();}catch(e){}},300);});<\/script>'
+    : '';
+
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><title>${num}</title>
     <style>
@@ -1069,6 +1077,7 @@ function imprimirRemito(){
     <div class="no-print" style="text-align:center;margin-top:14px">
       <button onclick="window.print()" style="padding:9px 28px;background:#1a7a52;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">🖨️ Imprimir</button>
     </div>
+    ${autoScript}
     </body></html>`);
   w.document.close();
 }
