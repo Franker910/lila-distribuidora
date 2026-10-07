@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20261007-03';
+const APP_VERSION = '20261007-04';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -408,14 +408,13 @@ async function cargarTodo(){
 function togglePasswordVisibility() {
   const input = document.getElementById('login-pass');
   const svg = document.getElementById('eye-icon');
-  
   if (!input || !svg) return;
-  
-  // ¿El input ya tenía el foco antes de togglear? Si NO lo tenía,
-  // no se lo devolvemos al final — así el teclado no se abre solo.
+
+  // Guardamos si el input ya tenía foco antes de togglear. Si NO lo tenía,
+  // no hacemos focus() al final — así el teclado del celu no se abre solo.
   const teniaFoco = document.activeElement === input;
   const cursorPos = input.selectionStart;
-  
+
   if (input.type === 'password') {
     input.type = 'text';
     svg.innerHTML = `
@@ -431,13 +430,15 @@ function togglePasswordVisibility() {
     `;
     svg.setAttribute('stroke', '#666');
   }
-  
-  // Solo devolvemos el foco si ya estaba en el input (para no perder
-  // el cursor mientras escribís). Si el usuario no estaba escribiendo,
-  // no le abrimos el teclado.
+
   if (teniaFoco) {
+    // Estaba escribiendo → devolvemos el foco al input con el cursor donde estaba.
     input.focus();
     input.setSelectionRange(cursorPos, cursorPos);
+  } else {
+    // No estaba escribiendo → forzamos blur por si el cambio de tipo le dio foco.
+    // (En iOS el cambio password↔text a veces reenfoca el input.)
+    setTimeout(() => input.blur(), 0);
   }
 }
 
