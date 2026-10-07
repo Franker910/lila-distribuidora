@@ -3229,6 +3229,7 @@ async function guardarPedidoYVolver() {
 let _ncmItems = [];
 let _ncmProTemp = null;
 let _ncmCliTemp = null;
+let _ncmProdsDisponibles = []; // productos que el cliente compró y puede devolver
 
 // ─── ABRIR NOTA DE CRÉDITO MÓVIL ──────────────────────────────────────
 
@@ -3237,25 +3238,31 @@ function abrirNCMovil() {
   _ncmItems = [];
   _ncmProTemp = null;
   _ncmCliTemp = null;
+  _ncmProdsDisponibles = [];
   
-  // Limpiar campos
+  // Cliente
   document.getElementById('ncm-cli-q').value = '';
   document.getElementById('ncm-cli-cod').value = '';
   document.getElementById('ncm-cli-id').value = '';
   document.getElementById('ncm-cli-info').style.display = 'none';
-  document.getElementById('ncm-pro-q').value = '';
-  document.getElementById('ncm-pro-cod').value = '';
-  document.getElementById('ncm-cant').value = '1';
-  document.getElementById('ncm-precio').value = '0';
-  
-  // Ocultar dropdowns
   document.getElementById('ncm-cli-lista').style.display = 'none';
-  document.getElementById('ncm-pro-lista').style.display = 'none';
   
+  // Productos disponibles (oculto hasta elegir cliente)
+  document.getElementById('ncm-prods-section').style.display = 'none';
+  document.getElementById('ncm-pro-q').value = '';
+  document.getElementById('ncm-prods-lista').innerHTML = '';
+  
+  // Aviso sin remitos
+  document.getElementById('ncm-sin-remitos').style.display = 'none';
+  
+  // Motivo
+  document.getElementById('ncm-motivo').value = 'devolucion';
+  
+  // Items
   renderItemsNCM();
   actualizarTotalNCM();
   
-  _initSwipeCancelarNC();;
+  _initSwipeCancelarNC();
 }
 
 // Swipe derecha en Registrar devolución: avisa y cancela si hay algo cargado.
@@ -3353,15 +3360,134 @@ function seleccionarClienteNCM(id) {
   document.getElementById('ncm-cli-cod').value = c.codigo || c.id || '';
   document.getElementById('ncm-cli-lista').style.display = 'none';
   
-  // Mostrar info del cliente
-  const info = document.getElementById('ncm-cli-info');
+  // Info cliente
   document.getElementById('ncm-cli-nombre').textContent = c.nombre;
   document.getElementById('ncm-cli-detalle').textContent = `${esc(c.localidad || '')} · ${esc(c.telefono || '—')}`;
-  document.getElementById('ncm-cli-saldo').textContent = `Saldo: ${fmt(c.saldo || 0)}`;
-  document.getElementById('ncm-cli-saldo').style.color = (c.saldo || 0) > 0 ? 'var(--D)' : 'var(--P)';
-  info.style.display = 'block';
+  const saldoEl = document.getElementById('ncm-cli-saldo');
+  saldoEl.textContent = `Saldo: ${fmt(c.saldo || 0)}`;
+  saldoEl.style.color = (c.saldo || 0) > 0 ? 'var(--D)' : 'var(--P)';
+  document.getElementById('ncm-cli-info').style.display = 'block';
   
-  setTimeout(() => document.getElementById('ncm-pro-q').focus(), 100);
+  // Cargar productos comprados
+  _ncmCargarProductosCliente(id);
+}
+
+// Arma la lista de productos que el cliente compró (según _remitos),
+// sumando cantidades y quedándose con el remito más reciente como origen.
+function _ncmCargarProductosCliente(clienteId) {
+  const remitos = _remitos.filter(r => String(r.cliente_id) === String(clienteId) && !r.anulado);
+  const productos = {};
+  
+  remitos.forEach(r => {
+    (r.items || []).forEach(it => {
+      const pid = it.id;
+      if (!pid) return;
+      if (!productos[pid]) {
+        productos[pid] = {
+          id: pid,
+          nom: it.nom || '',
+          un: it.un || 'un',
+          cantidadDisponible: 0,
+          precio: it.precio || 0,
+          remitoOrigenId: r.id,
+          remitoOrigenFecha: r.fecha
+        };
+      }
+      productos[pid].cantidadDisponible += (it.esPeso ? (it.peso || 0) : (it.cant || 0));
+      // Remito más reciente como origen
+      if ((r.fecha || '') > (productos[pid].remitoOrigenFecha || '')) {
+        productos[pid].remitoOrigenId = r.id;
+        productos[pid].remitoOrigenFecha = r.fecha;
+        productos[pid].precio = it.precio || productos[pid].precio;
+      }
+    });
+  });
+  
+  _ncmProdsDisponibles = Object.values(productos).sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
+  
+  const prodsSection = document.getElementById('ncm-prods-section');
+  const sinRemitos = document.getElementById('ncm-sin-remitos');
+  
+  if (_ncmProdsDisponibles.length === 0) {
+    prodsSection.style.display = 'none';
+    sinRemitos.style.display = 'block';
+    sinRemitos.innerHTML = '⚠️ Este cliente no tiene remitos registrados.<br>Podés cargar productos igual, pero verificá antes de emitir la devolución.';
+  } else {
+    prodsSection.style.display = 'block';
+    sinRemitos.style.display = 'none';
+    document.getElementById('ncm-pro-q').value = '';
+    _renderProductosNCMDisponibles('');
+  }
+}
+
+// Renderiza la lista de productos disponibles aplicando un filtro opcional.
+function _renderProductosNCMDisponibles(filtro) {
+  const lista = document.getElementById('ncm-prods-lista');
+  if (!lista) return;
+  
+  const q = (filtro || '').toLowerCase().trim();
+  const prods = q
+    ? _ncmProdsDisponibles.filter(p => (p.nom || '').toLowerCase().includes(q))
+    : _ncmProdsDisponibles;
+  
+  if (!prods.length) {
+    lista.innerHTML = '<div style="padding:16px;text-align:center;color:var(--txt2);font-size:13px;">Sin productos que coincidan</div>';
+    return;
+  }
+  
+  lista.innerHTML = prods.map(p => {
+    const yaAgregado = _ncmItems.find(it => it.id === p.id);
+    const restante = p.cantidadDisponible - (yaAgregado?.cant || 0);
+    const sinRestante = restante <= 0;
+    return `<div ${sinRestante ? '' : `onclick="_ncmAgregarProducto(${p.id})"`}
+      style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--brd);cursor:${sinRestante ? 'default' : 'pointer'};${sinRestante ? 'opacity:0.55;' : ''}">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:14px;color:var(--txt);">${esc(p.nom)}</div>
+        <div style="font-size:11px;color:var(--txt2);margin-top:2px;">Comprado: ${fmtN(p.cantidadDisponible,2)} ${esc(p.un)} · R-${String(p.remitoOrigenId).padStart(4,'0')}</div>
+        ${yaAgregado ? `<div style="font-size:11px;color:var(--P);font-weight:600;margin-top:2px;">✓ ${fmtN(yaAgregado.cant,2)} ${esc(p.un)} en la devolución</div>` : ''}
+      </div>
+      <div style="text-align:right;flex-shrink:0;margin-left:10px;">
+        <div style="font-size:13px;font-weight:700;color:var(--PD);">${fmt(p.precio)}</div>
+        <div style="font-size:16px;color:${sinRestante ? 'var(--txt2)' : 'var(--P)'};margin-top:2px;font-weight:700;">${sinRestante ? '—' : '+'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filtrarProductosNCM() {
+  _renderProductosNCMDisponibles(document.getElementById('ncm-pro-q')?.value || '');
+}
+
+// Agrega el producto (con toda la cantidad disponible). Si ya estaba,
+// se queda con el máximo disponible — el usuario puede bajar la cantidad
+// desde el carrito con el input de la lista de items.
+function _ncmAgregarProducto(prodId) {
+  const p = _ncmProdsDisponibles.find(x => x.id === prodId);
+  if (!p) return;
+  
+  const yaAgregado = _ncmItems.find(it => it.id === p.id);
+  const restante = p.cantidadDisponible - (yaAgregado?.cant || 0);
+  if (restante <= 0) {
+    alert('Ya agregaste toda la cantidad disponible');
+    return;
+  }
+  
+  if (yaAgregado) {
+    yaAgregado.cant = p.cantidadDisponible;
+  } else {
+    _ncmItems.push({
+      id: p.id,
+      nom: p.nom,
+      un: p.un,
+      cant: p.cantidadDisponible,
+      precio: p.precio,
+      remito_origen_id: p.remitoOrigenId
+    });
+  }
+  
+  _renderProductosNCMDisponibles(document.getElementById('ncm-pro-q')?.value || '');
+  renderItemsNCM();
+  actualizarTotalNCM();
 }
 
 // ─── POSICIONAR DROPDOWN ──────────────────────────────────────────────
@@ -3526,33 +3652,58 @@ function renderItemsNCM() {
   if (!el) return;
   
   if (!_ncmItems.length) {
-    el.innerHTML = `
-      <div style="padding:20px;text-align:center;color:var(--txt2);font-size:13px;">
-        <div style="font-size:30px;margin-bottom:8px;">📦</div>
-        Sin productos agregados
-      </div>
-    `;
+    el.innerHTML = '';
     return;
   }
   
-  el.innerHTML = _ncmItems.map((it, i) => `
+  el.innerHTML = _ncmItems.map((it, i) => {
+    const max = _ncmProdsDisponibles.find(p => p.id === it.id)?.cantidadDisponible || it.cant;
+    return `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#fff;border-radius:10px;margin-bottom:6px;border:1.5px solid var(--brd);">
       <div style="flex:1;min-width:0;">
         <div style="font-weight:600;font-size:14px;">${esc(it.nom)}</div>
-        <div style="font-size:12px;color:var(--txt2);">${it.cant} × ${fmt(it.precio)} = ${fmt(it.precio * it.cant)}</div>
+        <div style="font-size:12px;color:var(--txt2);">${fmt(it.precio)} × </div>
       </div>
+      <input type="number" value="${it.cant}" min="0.01" max="${max}" step="0.5" inputmode="decimal"
+        onchange="_ncmEditarCantidad(${i}, this.value)"
+        style="width:80px;height:40px;font-size:16px;font-weight:700;text-align:center;border:2px solid var(--P);border-radius:8px;padding:0 6px;color:var(--PD);margin:0 8px;">
+      <span style="font-size:13px;color:var(--txt2);min-width:26px;">${it.un}</span>
       <button onclick="eliminarItemNCM(${i})" 
-        style="background:var(--DL);color:var(--D);border:none;border-radius:8px;padding:6px 10px;font-size:16px;cursor:pointer;min-width:36px;min-height:36px;">
-        ✕
-      </button>
-    </div>
-  `).join('');
+        style="margin-left:8px;background:var(--DL);color:var(--D);border:none;border-radius:8px;padding:6px 10px;font-size:16px;cursor:pointer;min-width:38px;min-height:38px;">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function _ncmEditarCantidad(idx, valor) {
+  const it = _ncmItems[idx];
+  if (!it) return;
+  const cant = parseFloat(valor) || 0;
+  if (cant <= 0) {
+    // Reusar la función que ya existe
+    eliminarItemNCM(idx);
+    // Refrescar la lista de disponibles para que se vea el ✓ actualizado
+    _renderProductosNCMDisponibles(document.getElementById('ncm-pro-q')?.value || '');
+    return;
+  }
+  const max = _ncmProdsDisponibles.find(p => p.id === it.id)?.cantidadDisponible || it.cant;
+  if (cant > max) {
+    alert(`Máximo disponible: ${fmtN(max, 2)} ${it.un}`);
+    it.cant = max;
+  } else {
+    it.cant = cant;
+  }
+  renderItemsNCM();
+  actualizarTotalNCM();
 }
 
 function eliminarItemNCM(i) {
   _ncmItems.splice(i, 1);
   renderItemsNCM();
   actualizarTotalNCM();
+  // Refrescar lista de productos disponibles para reflejar que ya no está en el carrito
+  if (typeof _renderProductosNCMDisponibles === 'function') {
+    _renderProductosNCMDisponibles(document.getElementById('ncm-pro-q')?.value || '');
+  }
 }
 
 // ─── ACTUALIZAR TOTAL ─────────────────────────────────────────────────
@@ -3566,26 +3717,16 @@ function actualizarTotalNCM() {
 
 async function emitirNCMovil() {
   const cid = document.getElementById('ncm-cli-id').value;
-  if (!cid) {
-    alert('Seleccioná un cliente');
-    return;
-  }
-  
-  if (!_ncmItems.length) {
-    alert('Agregá al menos un producto a devolver');
-    return;
-  }
+  if (!cid) { alert('Seleccioná un cliente'); return; }
+  if (!_ncmItems.length) { alert('Agregá al menos un producto a devolver'); return; }
   
   const c = _clientes.find(x => x.id == cid);
   const total = _ncmItems.reduce((a, it) => a + it.precio * it.cant, 0);
-  const motivo = 'devolucion';
-  const obs = '';
+  const motivo = document.getElementById('ncm-motivo').value || 'devolucion';
   
-  // Confirmación con detalle de productos (hasta 5) + monto + cliente
   const lineas = _ncmItems.slice(0, 5).map(it => `  • ${it.cant} ${it.un||'un'} — ${it.nom}`);
   if (_ncmItems.length > 5) lineas.push(`  • ... y ${_ncmItems.length - 5} más`);
-  const detalle = lineas.join('\n');
-  const msg = `¿Emitir nota de crédito?\n\nCliente: ${c?.nombre||''}\nMonto: ${fmt(total)}\n\nProductos:\n${detalle}`;
+  const msg = `¿Emitir nota de crédito?\n\nCliente: ${c?.nombre||''}\nMotivo: ${motivo}\nMonto: ${fmt(total)}\n\nProductos:\n${lineas.join('\n')}`;
   if (!confirm(msg)) return;
   
   const { data: nc, error } = await sb.from('notas_credito').insert({
@@ -3595,40 +3736,32 @@ async function emitirNCMovil() {
     motivo: motivo,
     importe: total,
     items: _ncmItems,
-    observaciones: obs,
+    observaciones: '',
     remito_id: null,
     vendedor: usuarioActual?.nombre || '',
     carga_id: _cargaActivaHoy?.id || null
   }).select().single();
   
-  if (error) {
-    alert('Error al emitir nota de crédito: ' + error.message);
-    return;
-  }
+  if (error) { alert('Error al emitir nota de crédito: ' + error.message); return; }
   
   // Descontar saldo del cliente
   if (c) {
-    await sb.from('clientes').update({
-      saldo: Math.max(0, (c.saldo || 0) - total)
-    }).eq('id', c.id);
+    await sb.from('clientes').update({ saldo: Math.max(0, (c.saldo || 0) - total) }).eq('id', c.id);
   }
   
-  // Devolver stock de los productos
+  // Devolver stock
   for (const it of _ncmItems) {
     const prod = _productos.find(p => p.id === it.id);
     if (prod) {
-      await sb.from('productos').update({
-        stock: (prod.stock || 0) + it.cant
-      }).eq('id', prod.id);
+      await sb.from('productos').update({ stock: (prod.stock || 0) + it.cant }).eq('id', prod.id);
     }
   }
   
-  // Recargar datos
+  // Recargar
   await Promise.all([cargarClientes(), cargarNCs(), cargarRemitos(), cargarProductos()]);
   renderNCs();
   renderDash();
   
-  // Mostrar confirmación (overlay)
   mostrarConfirmacionNC('devolucion', c?.nombre, fmt(total));
 }
 
