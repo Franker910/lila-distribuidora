@@ -2771,7 +2771,7 @@ input.no-spin {
         <input id="ncm-cli-cod" inputmode="numeric" pattern="[0-9]*" placeholder="Cód." autocomplete="off"
           style="width:72px;height:46px;font-size:20px;font-weight:700;text-align:center;border:2px solid var(--brd);border-radius:8px;padding:0 6px;"
           oninput="ncmBuscarPorCod()" onkeydown="if(event.key==='Enter'){event.preventDefault();ncmConfirmarCod();}">
-        <input id="ncm-cli-q" placeholder="🔍 Buscar cliente..." autocomplete="off"
+        <input id="ncm-cli-q" placeholder="Buscar cliente..." autocomplete="off"
           style="flex:1;height:46px;font-size:16px;border:2px solid var(--brd);border-radius:8px;padding:0 12px;box-sizing:border-box;"
           oninput="buscarClienteNCM()">
       </div>
@@ -2794,7 +2794,7 @@ input.no-spin {
         <input id="ncm-pro-cod" inputmode="numeric" pattern="[0-9]*" placeholder="Cód." autocomplete="off"
           style="width:72px;height:46px;font-size:20px;font-weight:700;text-align:center;border:2px solid var(--brd);border-radius:8px;padding:0 6px;"
           oninput="ncmBuscarProPorCod()" onkeydown="if(event.key==='Enter'){event.preventDefault();ncmConfirmarProCod();}">
-        <input id="ncm-pro-q" placeholder="🔍 Buscar producto..." autocomplete="off"
+        <input id="ncm-pro-q" placeholder="Buscar producto..." autocomplete="off"
           style="flex:1;height:46px;font-size:16px;border:2px solid var(--brd);border-radius:8px;padding:0 12px;box-sizing:border-box;"
           oninput="buscarProductoNCM()">
       </div>
@@ -2821,24 +2821,6 @@ input.no-spin {
 
     <!-- LISTA DE PRODUCTOS AGREGADOS -->
     <div id="ncm-items-lista" style="margin-bottom:14px;"></div>
-
-    <!-- MOTIVO -->
-    <div style="margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📝 Motivo</div>
-      <select id="ncm-motivo" style="width:100%;height:44px;border:2px solid var(--brd);border-radius:8px;padding:0 12px;font-size:14px;font-family:inherit;">
-        <option value="devolucion">Devolución de mercadería</option>
-        <option value="descuento">Descuento / Bonificación</option>
-        <option value="anulacion">Anulación de factura</option>
-        <option value="error">Error de precio</option>
-      </select>
-    </div>
-
-    <!-- OBSERVACIONES -->
-    <div style="margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📝 Observaciones</div>
-      <input id="ncm-obs" placeholder="Opcional" 
-        style="width:100%;height:44px;border:2px solid var(--brd);border-radius:8px;padding:0 12px;font-size:14px;box-sizing:border-box;">
-    </div>
 
   </div>
 
@@ -5438,17 +5420,17 @@ input.no-spin {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20261007-04"></script>
-<script src="js/maestros.js?v=20261007-04"></script>
-<script src="js/ventas.js?v=20261007-04"></script>
-<script src="js/tesoreria.js?v=20261007-04"></script>
-<script src="js/contabilidad.js?v=20261007-04"></script>
-<script src="js/informes.js?v=20261007-04"></script>
-<script src="js/inf_productos.js?v=20261007-04"></script>
-<script src="js/logistica.js?v=20261007-04"></script>
-<script src="js/movil_header_observer.js?v=20261007-04"></script>
-<script src="js/instalar_app.js?v=20261007-04"></script>
-<script src="js/informe_fondos.js?v=20261007-04"></script>
+<script src="js/app.js?v=20261007-05"></script>
+<script src="js/maestros.js?v=20261007-05"></script>
+<script src="js/ventas.js?v=20261007-05"></script>
+<script src="js/tesoreria.js?v=20261007-05"></script>
+<script src="js/contabilidad.js?v=20261007-05"></script>
+<script src="js/informes.js?v=20261007-05"></script>
+<script src="js/inf_productos.js?v=20261007-05"></script>
+<script src="js/logistica.js?v=20261007-05"></script>
+<script src="js/movil_header_observer.js?v=20261007-05"></script>
+<script src="js/instalar_app.js?v=20261007-05"></script>
+<script src="js/informe_fondos.js?v=20261007-05"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

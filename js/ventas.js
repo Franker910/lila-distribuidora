@@ -3247,8 +3247,6 @@ function abrirNCMovil() {
   document.getElementById('ncm-pro-cod').value = '';
   document.getElementById('ncm-cant').value = '1';
   document.getElementById('ncm-precio').value = '0';
-  document.getElementById('ncm-obs').value = '';
-  document.getElementById('ncm-motivo').value = 'devolucion';
   
   // Ocultar dropdowns
   document.getElementById('ncm-cli-lista').style.display = 'none';
@@ -3552,8 +3550,10 @@ async function emitirNCMovil() {
   
   const c = _clientes.find(x => x.id == cid);
   const total = _ncmItems.reduce((a, it) => a + it.precio * it.cant, 0);
-  const motivo = document.getElementById('ncm-motivo').value;
-  const obs = document.getElementById('ncm-obs').value || '';
+  // Motivo y observaciones quedaron fijos: se sacaron los inputs de la UI
+  // para simplificar el flujo. Por defecto siempre es devolución de mercadería.
+  const motivo = 'devolucion';
+  const obs = '';
   
   // Confirmar antes de emitir
   if (!confirm(`¿Emitir nota de crédito por ${fmt(total)} a ${c?.nombre}?`)) {
@@ -3582,40 +3582,67 @@ async function emitirNCMovil() {
       saldo: Math.max(0, (c.saldo || 0) - total)
     }).eq('id', c.id);
   }
+
+  // Devolver stock de los productos (mismo comportamiento que el flujo PC)
+  for (const it of _ncmItems) {
+    const prod = _productos.find(p => p.id === it.id);
+    if (prod) {
+      await sb.from('productos').update({
+        stock: (prod.stock || 0) + it.cant
+      }).eq('id', prod.id);
+    }
+  }
   
   // Recargar datos
-  await Promise.all([cargarClientes(), cargarNCs(), cargarRemitos()]);
+  await Promise.all([cargarClientes(), cargarNCs(), cargarRemitos(),cargarProductos()]);
   renderNCs();
   renderDash();
   
   // Mostrar confirmación
   mostrarConfirmacionNC('devolucion', c?.nombre, fmt(total));
-  go('vendedor-home');
 }
 
 // ─── CONFIRMACIÓN ──────────────────────────────────────────────────────
 
 function mostrarConfirmacionNC(tipo, cliente, total) {
-  const panel = document.getElementById('p-nc-movil');
-  if (!panel) return;
-  
-  panel.innerHTML = `
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px;text-align:center;">
-      <div style="font-size:56px;margin-bottom:16px;">✅</div>
-      <div style="font-size:20px;font-weight:700;color:var(--P);">Nota de crédito emitida</div>
-      <div style="font-size:16px;font-weight:600;margin-top:8px;">${esc(cliente)}</div>
-      <div style="font-size:18px;font-weight:700;color:var(--P);margin-top:4px;">${total}</div>
-      <div style="font-size:13px;color:var(--txt2);margin-top:4px;">El saldo del cliente fue actualizado</div>
-      <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:400px;margin-top:24px;">
-        <button onclick="go('vendedor-home')" style="width:100%;padding:16px;background:var(--P);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;">
-          🏠 Volver al inicio
-        </button>
-        <button onclick="go('nc-movil');setTimeout(abrirNCMovil,100);" style="width:100%;padding:16px;background:var(--bg2);color:var(--txt);border:2px solid var(--brd);border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;">
-          📋 Nueva devolución
-        </button>
-      </div>
+  // Eliminar cualquier overlay previo por las dudas
+  document.getElementById('pm-nc-confirm')?.remove();
+
+  const ov = document.createElement('div');
+  ov.id = 'pm-nc-confirm';
+  ov.style.cssText = [
+    'position:fixed',
+    'inset:0',
+    'z-index:9999',
+    'background:var(--bg)',
+    'display:flex',
+    'flex-direction:column',
+    'align-items:center',
+    'justify-content:center',
+    'padding:30px 20px',
+    'text-align:center',
+    '-webkit-tap-highlight-color:transparent'
+  ].join(';');
+
+  ov.innerHTML = `
+    <div style="font-size:56px;margin-bottom:16px;">✅</div>
+    <div style="font-size:20px;font-weight:700;color:var(--P);">Nota de crédito emitida</div>
+    <div style="font-size:16px;font-weight:600;margin-top:8px;">${esc(cliente)}</div>
+    <div style="font-size:18px;font-weight:700;color:var(--P);margin-top:4px;">${total}</div>
+    <div style="font-size:13px;color:var(--txt2);margin-top:4px;">El saldo del cliente fue actualizado</div>
+    <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:400px;margin-top:24px;">
+      <button onclick="document.getElementById('pm-nc-confirm').remove(); go('vendedor-home');" 
+        style="width:100%;padding:16px;background:var(--P);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;">
+        🏠 Volver al inicio
+      </button>
+      <button onclick="document.getElementById('pm-nc-confirm').remove(); abrirNCMovil();" 
+        style="width:100%;padding:16px;background:var(--bg2);color:var(--txt);border:2px solid var(--brd);border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;">
+        📋 Nueva devolución
+      </button>
     </div>
   `;
+
+  document.body.appendChild(ov);
 }
 
 // ─── FILTRAR CLIENTES DENTRO DE UNA ZONA (PEDIDO MÓVIL) ──────────────
