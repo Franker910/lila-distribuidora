@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20261007-08';
+const APP_VERSION = '20261008-01';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -725,6 +725,17 @@ function volverAdmin() {
   toast('💻 Cambiado a modo administrador');
 }
 
+// Vuelve al inicio según el contexto del usuario:
+//   · Admin en escritorio       → dashboard
+//   · Vendedor/repartidor móvil → vendedor-home
+function irAlHome(){
+  if(!usuarioActual) return;
+  const esMovilNav = usuarioActual?.vista === 'movil'
+    || usuarioActual?.rol === 'vendedor'
+    || usuarioActual?.rol === 'repartidor';
+  go(esMovilNav ? 'vendedor-home' : 'dash');
+}
+
 // Alternar Vendedor/Repartidor en el mismo celular (mauricio, alexis, david:
 // dualRolMovil=true en USUARIOS). Reutiliza tal cual toda la UI que ya
 // distingue por usuarioActual.rol, sin tocar ningún otro chequeo del código.
@@ -1296,6 +1307,13 @@ function go(p,opts = {}) {
   if(p==='remitos'){setTimeout(()=>{const q=document.getElementById('rem-q');if(q)q.focus();},100);}
   if(p==='maestro-proveedores'){setTimeout(()=>{const q=document.getElementById('prov-q');if(q)q.focus();},100);}
   if(p==='pedidos'){
+    // Filtro inicial opcional (ej: el KPI "Pedidos pendientes" del dashboard
+    // entra con filtro=pendiente; desde el sidebar, sin filtro, se mantiene
+    // lo que el usuario tenía).
+    if(opts.filtroPedidos !== undefined){
+      const sel = document.getElementById('ped-est');
+      if(sel) sel.value = opts.filtroPedidos;
+    }
     // Para vendedores sin admin: usar la vista móvil unificada (hoy)
     if((usuarioActual?.rol==='vendedor'||usuarioActual?.rol==='repartidor')&&!usuarioActual?.esAdmin&&usuarioActual?.rol_original!=='admin'){
       verMisPedidosHoy();

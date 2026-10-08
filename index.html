@@ -1141,8 +1141,14 @@ input.no-spin {
 
 <div class="topbar">
   <button class="menu-toggle" id="btn-menu" onclick="toggleMenu()" aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar">☰</button>
-  <img src="icons/icon-192.png" alt="" style="width:28px;height:28px;object-fit:contain;border-radius:6px">
-  <span class="logo">Distribuidora Lila</span>
+  <div onclick="irAlHome()" role="button" tabindex="0" aria-label="Ir al inicio"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();irAlHome();}"
+      style="display:flex;align-items:center;gap:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:6px;padding:2px 6px;transition:background .15s;"
+      onmouseover="this.style.background='rgba(255,255,255,0.12)'"
+      onmouseout="this.style.background='transparent'">
+    <img src="icons/icon-192.png" alt="" style="width:28px;height:28px;object-fit:contain;border-radius:6px;pointer-events:none;">
+    <span class="logo" style="pointer-events:none;">Distribuidora Lila</span>
+  </div>
   <div id="breadcrumb-bar" style="flex:1;text-align:center;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 12px;opacity:.95;"></div>
   <div class="right">
     <span id="top-fecha"></span>
@@ -1253,7 +1259,7 @@ input.no-spin {
     
     <!-- KPIs -->
     <div class="g4" style="margin-bottom:16px;">
-      <div class="stat" style="cursor:pointer" onclick="go('pedidos')">
+      <div class="stat" style="cursor:pointer" onclick="go('pedidos',{filtroPedidos:'pendiente'})">
         <div class="n" id="d-ped">—</div>
         <div class="l">🛒 Pedidos pendientes</div>
       </div>
@@ -5411,17 +5417,17 @@ input.no-spin {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20261007-08"></script>
-<script src="js/maestros.js?v=20261007-08"></script>
-<script src="js/ventas.js?v=20261007-08"></script>
-<script src="js/tesoreria.js?v=20261007-08"></script>
-<script src="js/contabilidad.js?v=20261007-08"></script>
-<script src="js/informes.js?v=20261007-08"></script>
-<script src="js/inf_productos.js?v=20261007-08"></script>
-<script src="js/logistica.js?v=20261007-08"></script>
-<script src="js/movil_header_observer.js?v=20261007-08"></script>
-<script src="js/instalar_app.js?v=20261007-08"></script>
-<script src="js/informe_fondos.js?v=20261007-08"></script>
+<script src="js/app.js?v=20261008-01"></script>
+<script src="js/maestros.js?v=20261008-01"></script>
+<script src="js/ventas.js?v=20261008-01"></script>
+<script src="js/tesoreria.js?v=20261008-01"></script>
+<script src="js/contabilidad.js?v=20261008-01"></script>
+<script src="js/informes.js?v=20261008-01"></script>
+<script src="js/inf_productos.js?v=20261008-01"></script>
+<script src="js/logistica.js?v=20261008-01"></script>
+<script src="js/movil_header_observer.js?v=20261008-01"></script>
+<script src="js/instalar_app.js?v=20261008-01"></script>
+<script src="js/informe_fondos.js?v=20261008-01"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
