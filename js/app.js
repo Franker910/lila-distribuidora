@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20261008-02';
+const APP_VERSION = '20261008-03';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -1290,7 +1290,18 @@ function go(p,opts = {}) {
   if(p==='contabilidad'){contTab(_pendingContTab||'gastos');_pendingContTab=null;}
   if(p==='nc')renderNCs();
   if(p==='hoja-ruta')hrInit();
-  if(p==='cuentas'){const _ccf=document.getElementById('cc-f');if(_ccf)_ccf.value='';const _ccq=document.getElementById('cc-q');if(_ccq)_ccq.value='';_ccPg=1;Promise.all([cargarRemitos(),cargarCobros(),cargarClientes()]).then(()=>{renderCC();});setTimeout(()=>{const q=document.getElementById('cc-q');if(q)q.focus();},100);}
+  if(p==='cuentas'){
+  // Filtro de estado según de dónde venga la navegación:
+  //   · Con opts.filtroCC (KPI "Cuentas vencidas" del dashboard) → ese valor.
+  //   · Sin opts (sidebar u otros accesos)                        → '' (Todos).
+  const _ccf = document.getElementById('cc-f');
+  if(_ccf) _ccf.value = (opts.filtroCC !== undefined) ? opts.filtroCC : '';
+  const _ccq = document.getElementById('cc-q');
+  if(_ccq) _ccq.value = '';
+  _ccPg = 1;
+  Promise.all([cargarRemitos(), cargarCobros(), cargarClientes()]).then(()=>{ renderCC(); });
+  setTimeout(()=>{ const q = document.getElementById('cc-q'); if(q) q.focus(); }, 100);
+  }
   if(p==='clientes'){setTimeout(()=>{const q=document.getElementById('cli-q');if(q)q.focus();},100);}
   if(p==='productos'){setTimeout(()=>{const q=document.getElementById('pro-q');if(q)q.focus();},100);}
   if(p==='carga'){
@@ -1309,13 +1320,13 @@ function go(p,opts = {}) {
   if(p==='remitos'){setTimeout(()=>{const q=document.getElementById('rem-q');if(q)q.focus();},100);}
   if(p==='maestro-proveedores'){setTimeout(()=>{const q=document.getElementById('prov-q');if(q)q.focus();},100);}
   if(p==='pedidos'){
-    // Filtro inicial opcional (ej: el KPI "Pedidos pendientes" del dashboard
-    // entra con filtro=pendiente; desde el sidebar, sin filtro, se mantiene
-    // lo que el usuario tenía).
-    if(opts.filtroPedidos !== undefined){
-      const sel = document.getElementById('ped-est');
-      if(sel) sel.value = opts.filtroPedidos;
-    }
+    // Filtro de estado según de dónde venga la navegación:
+    //   · Con opts.filtroPedidos (KPI del dashboard) → ese valor.
+    //   · Sin opts (sidebar u otros accesos)         → '' (Todos).
+    // Después siempre se re-renderiza la lista, para que el filtro que
+    // acabamos de aplicar se vea reflejado en las filas.
+    const sel = document.getElementById('ped-est');
+    if(sel) sel.value = (opts.filtroPedidos !== undefined) ? opts.filtroPedidos : '';
     // Para vendedores sin admin: usar la vista móvil unificada (hoy)
     if((usuarioActual?.rol==='vendedor'||usuarioActual?.rol==='repartidor')&&!usuarioActual?.esAdmin&&usuarioActual?.rol_original!=='admin'){
       verMisPedidosHoy();
@@ -1325,6 +1336,7 @@ function go(p,opts = {}) {
     const bd=document.getElementById('btn-nuevo-pedido-desk');
     if(bv) bv.style.display='none';
     if(bd) bd.style.display=(usuarioActual?.esAdmin||usuarioActual?.rol==='admin')?'inline-flex':'none';
+    renderPedidos();
     setTimeout(()=>{const q=document.getElementById('ped-q');if(q)q.focus();},100);
   }
   if(p==='listas-precios')initListasPrecios();

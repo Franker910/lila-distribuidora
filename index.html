@@ -1271,7 +1271,7 @@ input.no-spin {
         <div class="n" id="d-deuda">—</div>
         <div class="l">⚖️ Deuda total CC</div>
       </div>
-      <div class="stat" style="cursor:pointer" onclick="go('cuentas')">
+      <div class="stat" style="cursor:pointer" onclick="go('cuentas',{filtroCC:'vencido'})">
         <div class="n" id="d-venc" style="color:var(--D)">—</div>
         <div class="l">⚠️ Cuentas vencidas</div>
       </div>
@@ -1284,7 +1284,7 @@ input.no-spin {
         <div id="d-rem-list"><div class="loading">Cargando...</div></div>
       </div>
       <div class="card">
-        <div class="sech"><h2>Cuentas vencidas</h2><button class="btn sm" onclick="go('cuentas')">Ver todas</button></div>
+        <div class="sech"><h2>Cuentas vencidas</h2><button class="btn sm" onclick="go('cuentas',{filtroCC:'vencido'})">Ver todas</button></div>
         <div id="d-venc-list"><div class="loading">Cargando...</div></div>
       </div>
     </div>
@@ -2589,7 +2589,7 @@ input.no-spin {
   <div class="tb" style="flex-shrink:0; flex-wrap:wrap; gap:6px;">
     <input id="cc-q" placeholder="🔍 Buscar por nombre o código..." oninput="_ccPg=1;renderCC();resetNav('cc-tbody')" onkeydown="navCC(event)" title="↑↓ navegar · Enter abrir · Esc volver" style="flex:1; min-width:180px; max-width:300px;">
     
-    <select id="cc-f" onchange="_ccPg=1;renderCC()" style="flex:0 0 140px;">
+    <select id="cc-f" onchange="_ccPg=1;renderCC()" style="flex:0 0 160px;">
       <option value="">Todos los clientes</option>
       <option value="deuda">Con saldo</option>
       <option value="ok">En cero</option>
@@ -5437,17 +5437,17 @@ input.no-spin {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20261008-02"></script>
-<script src="js/maestros.js?v=20261008-02"></script>
-<script src="js/ventas.js?v=20261008-02"></script>
-<script src="js/tesoreria.js?v=20261008-02"></script>
-<script src="js/contabilidad.js?v=20261008-02"></script>
-<script src="js/informes.js?v=20261008-02"></script>
-<script src="js/inf_productos.js?v=20261008-02"></script>
-<script src="js/logistica.js?v=20261008-02"></script>
-<script src="js/movil_header_observer.js?v=20261008-02"></script>
-<script src="js/instalar_app.js?v=20261008-02"></script>
-<script src="js/informe_fondos.js?v=20261008-02"></script>
+<script src="js/app.js?v=20261008-03"></script>
+<script src="js/maestros.js?v=20261008-03"></script>
+<script src="js/ventas.js?v=20261008-03"></script>
+<script src="js/tesoreria.js?v=20261008-03"></script>
+<script src="js/contabilidad.js?v=20261008-03"></script>
+<script src="js/informes.js?v=20261008-03"></script>
+<script src="js/inf_productos.js?v=20261008-03"></script>
+<script src="js/logistica.js?v=20261008-03"></script>
+<script src="js/movil_header_observer.js?v=20261008-03"></script>
+<script src="js/instalar_app.js?v=20261008-03"></script>
+<script src="js/informe_fondos.js?v=20261008-03"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"
