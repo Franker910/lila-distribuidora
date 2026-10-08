@@ -1394,34 +1394,54 @@ input.no-spin {
 
 <div class="panel" id="p-pedidos" style="display:flex; flex-direction:column; height:100%; width:100%; overflow:hidden; padding:14px;">
   
-  <!-- Volver (visible solo en móvil) -->
-  <div id="pedidos-btn-volver-movil" style="display:none; flex-shrink:0; padding:0 0 8px 0;">
-  </div>
+  <!-- Contenedor centrado estilo FoxPro -->
+  <div style="max-width:1180px; width:100%; margin:0 auto; display:flex; flex-direction:column; flex:1; min-height:0;">
 
-  <!-- Título FIJO -->
-  <div class="sech" style="flex-shrink:0;">
-    <h2>Pedidos</h2>
-    <div style="display:flex;gap:6px">
-      <button class="btn" onclick="abrirPedido()" id="btn-nuevo-pedido-desk">+ Nuevo pedido</button>
+    <!-- Volver móvil (oculto) -->
+    <div id="pedidos-btn-volver-movil" style="display:none; flex-shrink:0; padding:0 0 8px 0;"></div>
+
+    <!-- Título y botón nuevo -->
+    <div class="sech" style="flex-shrink:0;">
+      <h2>Pedidos</h2>
+      <div style="display:flex;gap:6px">
+        <button class="btn P" onclick="abrirPedido()" id="btn-nuevo-pedido-desk">+ Nuevo pedido</button>
+      </div>
     </div>
-  </div>
 
-  <!-- Buscador FIJO -->
-  <div class="tb" style="flex-shrink:0;">
-    <input id="ped-q" placeholder="Buscar cliente..." oninput="renderPedidos();resetNav('ped-lista')" onkeydown="navPedidos(event)" style="flex:0 0 400px; font-size:14px; padding:8px 10px;">
-    <select id="ped-est" onchange="renderPedidos()" style="font-size:13px; padding:8px 10px;">
-      <option value="">Todos</option>
-      <option value="pendiente">Pendientes</option>
-      <option value="en_carga">En carga</option>
-      <option value="remitado">Remitados</option>
-    </select>
-  </div>
+    <!-- Filtros -->
+    <div class="tb" style="flex-shrink:0;">
+      <input id="ped-q" placeholder="Buscar cliente..." oninput="renderPedidos();resetNav('ped-lista')" onkeydown="navPedidos(event)" style="flex:0 0 400px; font-size:14px; padding:8px 10px;">
+      <select id="ped-est" onchange="renderPedidos()" style="font-size:13px; padding:8px 10px;">
+        <option value="">Todos</option>
+        <option value="pendiente">Pendientes</option>
+        <option value="en_carga">En carga</option>
+        <option value="remitado">Remitados</option>
+      </select>
+    </div>
 
-  <!-- LISTA SCROLLABLE -->
-  <div id="ped-lista" style="flex:1; overflow-y:auto; min-height:0; padding-right:4px;">
-    <div class="loading">Cargando...</div>
-  </div>
+    <!-- Grilla -->
+    <div id="ped-lista" style="flex:1; overflow-y:auto; min-height:0; border:1px solid var(--brd); border-radius:8px;">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th style="width:60px;">Nro</th>
+              <th style="width:92px;">Fecha</th>
+              <th>Cliente</th>
+              <th style="width:120px;">Localidad</th>
+              <th style="width:100px;">Vendedor</th>
+              <th style="width:55px;text-align:center;">Items</th>
+              <th style="width:100px;text-align:right;">Total</th>
+              <th style="width:90px;text-align:center;">Estado</th>
+              <th style="width:110px;text-align:center;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="ped-tbody"></tbody>
+        </table>
+      </div>
+    </div>
 
+  </div>
 </div>
 
 <!-- PEDIDO MÓVIL estilo Moviler -->
@@ -5417,17 +5437,17 @@ input.no-spin {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script src="js/app.js?v=20261008-01"></script>
-<script src="js/maestros.js?v=20261008-01"></script>
-<script src="js/ventas.js?v=20261008-01"></script>
-<script src="js/tesoreria.js?v=20261008-01"></script>
-<script src="js/contabilidad.js?v=20261008-01"></script>
-<script src="js/informes.js?v=20261008-01"></script>
-<script src="js/inf_productos.js?v=20261008-01"></script>
-<script src="js/logistica.js?v=20261008-01"></script>
-<script src="js/movil_header_observer.js?v=20261008-01"></script>
-<script src="js/instalar_app.js?v=20261008-01"></script>
-<script src="js/informe_fondos.js?v=20261008-01"></script>
+<script src="js/app.js?v=20261008-02"></script>
+<script src="js/maestros.js?v=20261008-02"></script>
+<script src="js/ventas.js?v=20261008-02"></script>
+<script src="js/tesoreria.js?v=20261008-02"></script>
+<script src="js/contabilidad.js?v=20261008-02"></script>
+<script src="js/informes.js?v=20261008-02"></script>
+<script src="js/inf_productos.js?v=20261008-02"></script>
+<script src="js/logistica.js?v=20261008-02"></script>
+<script src="js/movil_header_observer.js?v=20261008-02"></script>
+<script src="js/instalar_app.js?v=20261008-02"></script>
+<script src="js/informe_fondos.js?v=20261008-02"></script>
 
 <!-- ── Bottom sheet: edición de pedido móvil ── -->
 <div id="epm-backdrop"

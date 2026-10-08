@@ -62,7 +62,7 @@ let _cliPg=1, _proPg=1, _remPg=1, _cobPg=1, _ccPg=1;
 const PP=200;
 
 // ─── VERSIONADO / AUTO-ACTUALIZACIÓN ───
-const APP_VERSION = '20261008-01';
+const APP_VERSION = '20261008-02';
 
 // IMPORTANTE: al hacer deploy, actualizar APP_VERSION aquí, CACHE_VERSION en
 // sw.js, Y el ?v= de cada <script src="js/..."> en index.html (sin eso el
@@ -941,7 +941,9 @@ function navProveedores(e){navTablaGen(e,'prov-tbody','tr',r=>{const b=r.querySe
 
 function navGastos(e){navTablaGen(e,'gas-tbody','tr',null);}
 
-function navPedidos(e){navTablaGen(e,'ped-lista','.ccard',r=>{const b=r.querySelector('button.btn');if(b)b.click();});}
+function navPedidos(e){
+  navTablaGen(e,'ped-lista','tbody tr',r=>{ r.click(); });
+}
 
 // ─── CERRAR DROPS ───
 document.addEventListener('click',e=>{

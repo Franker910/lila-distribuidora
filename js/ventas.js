@@ -49,39 +49,56 @@ async function cargarPedidos() {
 
 // ─── PEDIDOS ───
 function renderPedidos(){
-  const q=(document.getElementById('ped-q').value||'').toLowerCase();
-  const est=document.getElementById('ped-est').value;
-  let data=_pedidos.filter(p=>(!q||(p.cliente||'').toLowerCase().includes(q)||String(p.id).includes(q)||(p.localidad||'').toLowerCase().includes(q)||(p.vendedor||'').toLowerCase().includes(q))&&(!est||p.estado===est));
-  const el=document.getElementById('ped-lista');
-  if(!data.length){el.innerHTML='<div class="empty">Sin pedidos</div>';return;}
-  const stBadge=s=>`<span class="b ${s==='pendiente'?'bW':s==='en_carga'?'bA':s==='remitado'?'bP':'bG'}">${s.replace('_',' ')}</span>`;
-  el.innerHTML=data.map(p=>`
-    <div style="background:var(--bg);border:1.5px solid var(--brd);border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
-      <div onclick="toggleDetallePed(${p.id})" style="display:flex;justify-content:space-between;align-items:center;padding:14px;cursor:pointer;border-left:4px solid var(--P)">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">#${p.id} — ${esc(p.cliente)}</div>
-          <div style="font-size:12px;color:var(--txt2);margin-top:2px">${esc(p.localidad||'')} · ${(_zonas.find(z=>z.codigo===p.zona)?.descripcion||p.zona)||''} · ${esc(p.vendedor||'—')} · ${p.fecha||''}</div>
-          <div style="margin-top:4px;display:flex;align-items:center;gap:6px">${stBadge(p.estado)}<span style="font-size:11px;color:var(--txt2)">${(p.items||[]).length} producto${(p.items||[]).length!==1?'s':''}${p.visita?' · '+p.visita:''}</span></div>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-left:12px;flex-shrink:0">
-          <div style="font-size:18px;font-weight:700;color:var(--P)">${fmt(p.total)}</div>
-          <span id="ped-chev-${p.id}" style="font-size:16px;color:var(--txt2);transition:transform 0.2s">▼</span>
-        </div>
-      </div>
-      <div id="ped-det-${p.id}" style="display:none;border-top:1px solid var(--brd)">
-        <div style="padding:12px 16px;font-size:13px;color:var(--txt2);background:var(--bg2)">
-          ${(p.items||[]).map(it=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid var(--brd)"><span>${esc(it.nom||it.nombre)}</span><span style="font-weight:600">${it.cant} ${it.un||'un'} · ${fmt(it.precio*it.cant)}</span></div>`).join('')}
-          ${p.obs?`<div style="margin-top:8px;color:var(--txt2);font-size:12px">Obs: ${esc(p.obs)}</div>`:''}
-        </div>
-        <div style="display:flex;gap:6px;padding:10px 14px;border-top:1px solid var(--brd);flex-wrap:wrap;">
-          ${p.estado==='pendiente'?`
-            <button onclick="event.stopPropagation();editarPedidoMovil(${p.id})" style="flex:0 0 auto;padding:0 14px;min-height:38px;background:var(--AL);color:var(--A);border:1.5px solid var(--A);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">✏️ Editar</button>
-            <button onclick="event.stopPropagation();elimPedido(${p.id})" style="flex:0 0 auto;padding:0 12px;min-height:38px;background:var(--DL);color:var(--D);border:1.5px solid var(--D);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">🗑 Eliminar</button>
-          `:''}
-          ${p.estado==='remitado'?`<button onclick="event.stopPropagation();verRemito(${p.remito_id})" style="flex:0 0 auto;padding:0 14px;min-height:38px;background:var(--bg2);border:1.5px solid var(--brd);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">📄 Ver remito</button>`:''}
-        </div>
-      </div>
-    </div>`).join('');
+  const q = (document.getElementById('ped-q')?.value || '').toLowerCase();
+  const est = document.getElementById('ped-est')?.value || '';
+  const tbody = document.getElementById('ped-tbody');
+  if (!tbody) return;
+
+  let data = _pedidos.filter(p =>
+    (!q ||
+      (p.cliente||'').toLowerCase().includes(q) ||
+      String(p.id).includes(q) ||
+      (p.localidad||'').toLowerCase().includes(q) ||
+      (p.vendedor||'').toLowerCase().includes(q)
+    ) && (!est || p.estado === est)
+  );
+
+  // Orden: más recientes primero (por fecha, y por id como desempate)
+  data.sort((a,b) => (b.fecha||'').localeCompare(a.fecha||'') || (b.id - a.id));
+
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty">Sin pedidos</div></td></tr>';
+    return;
+  }
+
+  const stBadge = s => {
+    const cls = s==='pendiente' ? 'bW' : s==='en_carga' ? 'bA' : s==='remitado' ? 'bP' : 'bA';
+    const txt = s==='pendiente' ? 'Pendiente' : s==='en_carga' ? 'En carga' : s==='remitado' ? 'Remitado' : (s||'');
+    return `<span class="b ${cls}" style="font-size:10px;padding:2px 8px;">${txt}</span>`;
+  };
+
+  tbody.innerHTML = data.map(p => {
+    const items = (p.items || []).length;
+    return `<tr onclick="verPedido(${p.id})" style="cursor:pointer">
+      <td style="font-weight:700;color:var(--A)">#${p.id}</td>
+      <td style="font-size:12px;color:var(--txt2);white-space:nowrap">${p.fecha||''}</td>
+      <td style="font-weight:600">${esc(p.cliente)}</td>
+      <td style="font-size:12px;color:var(--txt2)">${esc(p.localidad||'')}</td>
+      <td style="font-size:12px">${esc(p.vendedor||'—')}</td>
+      <td style="text-align:center;color:var(--txt2)">${items}</td>
+      <td style="text-align:right;font-weight:700;color:var(--P);white-space:nowrap">${fmt(p.total)}</td>
+      <td style="text-align:center">${stBadge(p.estado)}</td>
+      <td style="text-align:center;white-space:nowrap" onclick="event.stopPropagation()">
+        ${p.estado==='pendiente'
+          ? `<button class="btn sm" onclick="editarPedidoPC(_pedidos.find(x=>x.id===${p.id}))" title="Editar pedido" style="padding:3px 8px;font-size:12px">✏️</button>
+             <button class="btn D sm" onclick="elimPedido(${p.id})" title="Eliminar pedido" style="padding:3px 8px;font-size:12px">🗑</button>`
+          : ''}
+        ${p.estado==='remitado' && p.remito_id
+          ? `<button class="btn sm" onclick="verRemito(${p.remito_id})" title="Ver remito" style="padding:3px 8px;font-size:12px">📄</button>`
+          : ''}
+      </td>
+    </tr>`;
+  }).join('');
 }
 
 function toggleDetallePed(id){

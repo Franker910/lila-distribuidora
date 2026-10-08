@@ -117,7 +117,13 @@ function detalleHTML(d,isRem){
   const rows=(d.items||[]).map(it=>{
     const base=it.precio*it.cant,dtoA=base*(it.dto/100),neto=base-dtoA;
     sub+=base;dtoT+=dtoA;tot+=neto;
-    return `<tr><td>${esc(it.nom)}</td><td style="text-align:center">${fmtN(it.cant,2)} ${it.un||''}</td><td style="text-align:right">${fmt(it.precio)}</td><td style="text-align:center">${it.dto||0}%</td><td style="text-align:right;font-weight:600">${fmt(neto)}</td></tr>`;
+    return `<tr style="font-size:15px">
+      <td style="padding:11px 10px">${esc(it.nom)}</td>
+      <td style="padding:11px 10px;text-align:center;white-space:nowrap">${fmtN(it.cant,2)} ${it.un||''}</td>
+      <td style="padding:11px 10px;text-align:right;white-space:nowrap">${fmt(it.precio)}</td>
+      <td style="padding:11px 10px;text-align:center">${it.dto||0}%</td>
+      <td style="padding:11px 10px;text-align:right;font-weight:700;white-space:nowrap">${fmt(neto)}</td>
+    </tr>`;
   }).join('');
   return `<div style="font-size:13px">
     <div style="display:flex;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
@@ -135,8 +141,14 @@ function detalleHTML(d,isRem){
         ${d.lugar_entrega?`<div style="color:#c07000;font-weight:600">📍 Entrega: ${esc(d.lugar_entrega)}</div>`:''}
       </div>
     </div>
-    <div class="tbl-wrap"><table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead><tr style="background:#f5f5f5"><th style="padding:6px 8px;text-align:left;border-bottom:1px solid #ccc">Producto</th><th style="padding:6px 8px;border-bottom:1px solid #ccc">Cant.</th><th style="padding:6px 8px;text-align:right;border-bottom:1px solid #ccc">P.Unit</th><th style="padding:6px 8px;border-bottom:1px solid #ccc">Dto</th><th style="padding:6px 8px;text-align:right;border-bottom:1px solid #ccc">Total</th></tr></thead>
+    <div class="tbl-wrap"><table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="background:#f5f5f5">
+        <th style="padding:9px 10px;text-align:left;border-bottom:1px solid #ccc">Producto</th>
+        <th style="padding:9px 10px;border-bottom:1px solid #ccc;text-align:center">Cant.</th>
+        <th style="padding:9px 10px;text-align:right;border-bottom:1px solid #ccc">P.Unit</th>
+        <th style="padding:9px 10px;border-bottom:1px solid #ccc;text-align:center">Dto</th>
+        <th style="padding:9px 10px;text-align:right;border-bottom:1px solid #ccc">Total</th>
+      </tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
     <div style="margin-top:8px;font-size:12px;color:#777">${dtoT>0?'Descuento: '+fmt(dtoT):''}</div>
